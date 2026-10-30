@@ -1,0 +1,44 @@
+{
+  "results": [
+    {
+      "width": 360,
+      "overflow": 0,
+      "metadata": "pass",
+      "syntheticMetrics": "pass",
+      "anchors": "pass",
+      "keyboardAndSkip": "pass",
+      "menu": "pass",
+      "expandedState": "pass"
+    },
+    {
+      "width": 768,
+      "overflow": 0,
+      "metadata": "pass",
+      "syntheticMetrics": "pass",
+      "anchors": "pass",
+      "keyboardAndSkip": "pass"
+    },
+    {
+      "width": 1440,
+      "overflow": 0,
+      "metadata": "pass",
+      "syntheticMetrics": "pass",
+      "anchors": "pass",
+      "keyboardAndSkip": "pass"
+    },
+    {
+      "width": 320,
+      "overflow": 0,
+      "metadata": "pass",
+      "syntheticMetrics": "pass",
+      "anchors": "pass",
+      "keyboardAndSkip": "pass",
+      "menu": "pass",
+      "expandedState": "pass"
+    }
+  ],
+  "reducedMotion": "pass",
+  "noJavaScriptNativeMenu": "pass",
+  "consoleErrors": [],
+  "networkErrors": []
+}

@@ -6,6 +6,11 @@ export const site = {
     "Pratinjau platform untuk UMKM makanan berbasis preorder. Hubungkan produk, biaya, kapasitas, strategi promosi, pesanan, dan evaluasi hasil.",
 };
 
+export const authLinks = {
+  signIn: { href: "/login", label: "Masuk" },
+  signUp: { href: "/register", label: "Daftar" },
+} as const;
+
 export const landingNavigation = [
   { href: "#cara-kerja", label: "Cara kerja" },
   { href: "#contoh-penggunaan", label: "Contoh penggunaan" },

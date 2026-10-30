@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { landingNavigation } from "@/config/site";
+import { authLinks, landingNavigation } from "@/config/site";
 import styles from "./landing.module.css";
 
 /** Native disclosure works without hydration; JavaScript adds Escape/outside close. */
@@ -38,6 +38,8 @@ export function MobileNavigation() {
           <a key={item.href} href={item.href} onClick={closeMenu}>{item.label}</a>
         ))}
         <a href="#contoh-penggunaan" onClick={closeMenu}>Lihat contoh alur</a>
+        <a href={authLinks.signIn.href}>{authLinks.signIn.label}</a>
+        <a href={authLinks.signUp.href}>{authLinks.signUp.label}</a>
       </nav>
     </details>
   );

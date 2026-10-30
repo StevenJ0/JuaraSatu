@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Brand } from "@/components/brand";
 import { getCurrentBusinessProfile } from "@/features/business/guard";
 import { SignOutButton } from "@/features/auth/components/sign-out-button";
 
@@ -11,21 +12,19 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
   const business = await getCurrentBusinessProfile();
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-50 font-sans dark:bg-zinc-950">
-      <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="flex min-h-screen flex-col bg-background font-sans">
+      <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-500">
-              Campaign Lab
-            </p>
-            <p className="truncate font-semibold text-zinc-900 dark:text-zinc-50">{business.name}</p>
+          <div className="flex min-w-0 items-center gap-4">
+            <Brand href="/dashboard" />
+            <p className="truncate border-l border-line pl-4 text-sm font-semibold text-ink">{business.name}</p>
           </div>
           <nav className="flex items-center gap-1">
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                className="rounded-lg px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-subtle"
               >
                 {item.label}
               </Link>

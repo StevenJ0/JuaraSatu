@@ -1,7 +1,7 @@
 import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
 
 const CONTROL_CLASS =
-  "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm outline-none transition focus:border-amber-600 focus:ring-2 focus:ring-amber-600/20 aria-[invalid=true]:border-red-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100";
+  "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 aria-[invalid=true]:border-red-500";
 
 type FieldBaseProps = {
   name: string;
@@ -26,17 +26,17 @@ function controlProps({ name, errors, hint }: FieldBaseProps) {
 function FieldShell({ name, label, errors, hint, children }: FieldBaseProps & { children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={name} className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+      <label htmlFor={name} className="text-sm font-medium text-ink">
         {label}
       </label>
       {children}
       {hint && (
-        <p id={`${name}-hint`} className="text-xs text-zinc-500 dark:text-zinc-400">
+        <p id={`${name}-hint`} className="text-xs text-muted">
           {hint}
         </p>
       )}
       {errors && errors.length > 0 && (
-        <p id={`${name}-error`} className="text-xs text-red-600 dark:text-red-400">
+        <p id={`${name}-error`} className="text-xs text-red-600">
           {errors.join(" ")}
         </p>
       )}

@@ -1,7 +1,7 @@
 import { Brand } from "@/components/brand";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Icon } from "@/components/ui/icon";
-import { landingNavigation, site } from "@/config/site";
+import { authLinks, landingNavigation, site } from "@/config/site";
 import { MobileNavigation } from "./mobile-navigation";
 import { demo, estimatedContribution, initialAvailable, offerPrice, rupiah, unitContribution } from "./demo-data";
 import { OfferBreakdown, ProductPreview } from "./product-preview";
@@ -46,7 +46,10 @@ export function LandingPage() {
           <nav className={styles.desktopNav} aria-label="Navigasi utama">
             {landingNavigation.map((item) => <a href={item.href} key={item.href}>{item.label}</a>)}
           </nav>
-          <ButtonLink className={styles.headerCta} href="#contoh-penggunaan">Lihat contoh alur<Icon name="arrow-up-right" /></ButtonLink>
+          <div className={styles.authActions}>
+            <ButtonLink variant="secondary" href={authLinks.signIn.href}>{authLinks.signIn.label}</ButtonLink>
+            <ButtonLink className={styles.signUpAction} href={authLinks.signUp.href}>{authLinks.signUp.label}</ButtonLink>
+          </div>
           <MobileNavigation />
         </div>
       </header>

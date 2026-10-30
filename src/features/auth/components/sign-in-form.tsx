@@ -34,9 +34,9 @@ export function SignInForm({ notice }: { notice?: string }) {
       <button type="submit" className={PRIMARY_BUTTON_CLASS} disabled={isPending}>
         {isPending ? "Memproses..." : "Masuk"}
       </button>
-      <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="text-center text-sm text-muted">
         Belum punya akun?{" "}
-        <Link href="/register" className="font-medium text-amber-700 hover:underline dark:text-amber-500">
+        <Link href="/register" className="font-semibold text-brand underline decoration-line underline-offset-4 hover:decoration-current">
           Daftar
         </Link>
       </p>

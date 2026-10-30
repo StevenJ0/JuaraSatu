@@ -5,7 +5,7 @@ export function SignOutButton() {
     <form action={signOutAction}>
       <button
         type="submit"
-        className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+        className="rounded-lg px-3 py-1.5 text-sm! font-medium! text-muted transition hover:bg-subtle hover:text-ink"
       >
         Keluar
       </button>

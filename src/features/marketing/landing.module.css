@@ -316,3 +316,19 @@
   .productWindow { animation: settle-in 500ms ease-out; }
   @keyframes settle-in { from { opacity: .7; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 }
+
+/* Aksi akun di pojok kanan header. Di ponsel hanya "Masuk" yang terlihat; keduanya juga ada di menu. */
+.authActions { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.authActions a { white-space: nowrap; }
+@media (min-width: 701px) and (max-width: 1050px) {
+  .authActions { gap: 8px; }
+  .authActions a { padding-inline: 16px; }
+}
+@media (max-width: 700px) {
+  .authActions { gap: 0; }
+  .authActions a { min-height: 44px; padding: 8px 12px; }
+  .authActions .signUpAction { display: none; }
+}
+@media (max-width: 379px) {
+  .authActions { display: none; }
+}

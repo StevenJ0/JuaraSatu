@@ -1,26 +1,64 @@
 @import "tailwindcss";
 
+/* Proposed shared foundation. Landing compositions stay in their CSS Module. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ui-canvas: #f8f9f5;
+  --ui-surface: #ffffff;
+  --ui-subtle: #f0f3ed;
+  --ui-ink: #24392f;
+  --ui-muted: #59665d;
+  --ui-brand: #285b43;
+  --ui-brand-hover: #1c4632;
+  --ui-on-brand: #ffffff;
+  --ui-brand-soft: #e6eee5;
+  --ui-accent: #f4c994;
+  --ui-accent-soft: #fcf1e3;
+  --ui-on-accent: #654526;
+  --ui-line: #dce2d9;
+  --ui-allocated: #849182;
+  --font-body: Arial, Helvetica, sans-serif;
+  --font-heading: Georgia, "Times New Roman", serif;
+  --radius-control: 8px;
+  --radius-panel: 16px;
+  --container-width: 1224px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-24: 96px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--ui-canvas);
+  --color-foreground: var(--ui-ink);
+  --color-brand: var(--ui-brand);
+  --color-brand-hover: var(--ui-brand-hover);
+  --color-on-brand: var(--ui-on-brand);
+  --color-ink: var(--ui-ink);
+  --color-muted: var(--ui-muted);
+  --color-surface: var(--ui-surface);
+  --color-subtle: var(--ui-subtle);
+  --color-line: var(--ui-line);
+  --font-sans: var(--font-body);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+* { box-sizing: border-box; }
+html { scroll-padding-top: 112px; }
+body { margin: 0; background: var(--ui-canvas); color: var(--ui-ink); font-family: var(--font-body); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+button, input { font: inherit; }
+button, summary { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--ui-brand); outline-offset: 5px; }
+::selection { background: var(--ui-accent); color: var(--ui-ink); }
+.ui-container { width: min(var(--container-width), calc(100% - 64px)); margin-inline: auto; }
+.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ui-brand); font-size: 24px; font-weight: 700; letter-spacing: -.8px; text-decoration: none; white-space: nowrap; }
+.brand-inverse { color: var(--ui-on-brand); }
+.skip-link { position: fixed; top: 12px; left: 16px; z-index: 20; padding: 12px 20px; border-radius: var(--radius-control); background: var(--ui-brand); color: var(--ui-on-brand); transform: translateY(-160%); }
+.skip-link:focus { transform: translateY(0); outline-color: var(--ui-accent); }
+@media (max-width: 700px) { .ui-container { width: calc(100% - 40px); } html { scroll-padding-top: 96px; } }
+@media (max-width: 359px) { .ui-container { width: calc(100% - 32px); } }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

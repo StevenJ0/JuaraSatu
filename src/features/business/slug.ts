@@ -4,7 +4,7 @@ const SUFFIX_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
 const FALLBACK_BASE = "usaha";
 
 /** Mengubah teks bebas menjadi potongan URL lowercase yang hanya berisi a-z, 0-9, dan tanda hubung. */
-export function slugify(text: string, maxLength: number): string {
+export function slugify(text: string, maxLength: number, fallback: string = FALLBACK_BASE): string {
   const slug = text
     .normalize("NFKD")
     .replace(/[̀-ͯ]/g, "")
@@ -13,7 +13,7 @@ export function slugify(text: string, maxLength: number): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, maxLength)
     .replace(/-+$/g, "");
-  return slug || FALLBACK_BASE;
+  return slug || fallback;
 }
 
 export function randomSlugSuffix(): string {

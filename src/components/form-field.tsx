@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
+import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 
 // 16px di layar kecil agar iOS tidak auto-zoom saat fokus; `!` karena `input { font: inherit }` di globals.css mengalahkan utility biasa.
 const CONTROL_CLASS =
@@ -52,6 +52,19 @@ export function TextField({ name, label, errors, hint, ...inputProps }: TextFiel
   return (
     <FieldShell {...field}>
       <input {...inputProps} {...controlProps(field)} />
+    </FieldShell>
+  );
+}
+
+type SelectFieldProps = FieldBaseProps & Omit<SelectHTMLAttributes<HTMLSelectElement>, "name" | "id">;
+
+export function SelectField({ name, label, errors, hint, children, ...selectProps }: SelectFieldProps) {
+  const field = { name, label, errors, hint };
+  return (
+    <FieldShell {...field}>
+      <select {...selectProps} {...controlProps(field)}>
+        {children}
+      </select>
     </FieldShell>
   );
 }

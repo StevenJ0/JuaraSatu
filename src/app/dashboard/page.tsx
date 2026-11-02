@@ -1,15 +1,19 @@
 import Link from "next/link";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentBusinessProfile } from "@/features/business/guard";
+import { countActiveProducts } from "@/features/products/repository";
 
 type SetupStep = { label: string; done: boolean; href?: string; note?: string };
 
 export default async function DashboardOverviewPage() {
   const business = await getCurrentBusinessProfile();
+  const supabase = await createSupabaseServerClient();
+  const activeProductCount = await countActiveProducts(supabase, business.id);
 
-  // Status produk & kapasitas menyusul setelah modul masing-masing tersedia; jangan tampilkan angka fiktif.
+  // Status kapasitas menyusul setelah modulnya tersedia; jangan tampilkan angka fiktif.
   const setupSteps: SetupStep[] = [
     { label: "Profil usaha", done: true, href: "/dashboard/business" },
-    { label: "Produk, harga, dan biaya variabel", done: false, note: "Modul produk segera tersedia" },
+    { label: "Produk, harga, dan biaya variabel", done: activeProductCount > 0, href: "/dashboard/products" },
     { label: "Kapasitas produksi per tanggal", done: false, note: "Modul kapasitas segera tersedia" },
   ];
 

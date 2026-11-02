@@ -5,6 +5,7 @@ import { SignOutButton } from "@/features/auth/components/sign-out-button";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Ringkasan" },
+  { href: "/dashboard/products", label: "Produk" },
   { href: "/dashboard/business", label: "Profil Usaha" },
 ] as const;
 

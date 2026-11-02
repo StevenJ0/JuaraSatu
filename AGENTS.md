@@ -4,9 +4,29 @@
 
 > **Penting:** Jangan menganggap fitur atau struktur yang tertulis di dokumen sudah diimplementasikan. Selalu verifikasi kondisi kode, konfigurasi, database contract, dan test yang benar-benar tersedia.
 
+## Baseline dokumentasi B00 — 2 November 2026
+
+- Peta dan status dokumen: `docs/README.md`.
+- PRD kanonik: `docs/requirements/PRD.md` (v2.1); schema kanonik: `docs/schema.md` (v2.1, TARGET, belum bukti implementasi).
+- Keputusan, konflik dan batas kesiapan: `docs/DECISIONS.md` dan `docs/README.md`.
+- Ownership dan kontrak C1–C8: `docs/architecture/integration-contracts.md`.
+- Pembagian kerja dan milestone tim: PRD §21–22; kontrak producer/consumer pada dokumen integrasi.
+- Aturan DB: `docs/requirements/database-rules.md`. Tidak memberi izin schema atau operasi remote untuk tugas biasa.
+- PRD §0.1 merekam checkout historis; periksa Git/kode/migrations aktual. Jangan menganggap foundation, provider, worker atau 26 tabel sudah tersedia.
+- Konflik kapasitas PRD §11.2/12.2 versus schema §24.1 tetap OPEN. Jangan memilih constraint sendiri atau membuat SQL untuk menutup konflik itu.
+- Instruksi pengguna saat ini: **satu branch per fitur/slice; seluruh `git add`, commit dan amend dilakukan pengembang pemilik task sendiri**. Jangan push/merge/rebase/stash/reset/deploy tanpa instruksi spesifik. Jangan membawa dirty work anggota lain ke branch baru.
+
+Aturan v2.1 yang wajib dipertahankan:
+
+- Preorder berdiri sendiri sebelum campaign/AI; satu SKU, satu tanggal fulfillment, satu item per public order. Target paid units bukan MOQ.
+- Campaign discount aktif berlaku untuk semua checkout baru; pisahkan attribution dari pricing campaign. Order lama memakai snapshot.
+- Email valid wajib pada public checkout. Applied payment, audit dan enqueue `job_runs(send_paid_email)` harus atomik; delivery worker sesudah commit. Failed email tidak membatalkan payment. Raw private token tidak masuk job/log/email.
+- Private `campaign_memories` saja, vector 768; tidak menambah global knowledge/chunk tables. Profil embedding harus diverifikasi. AI tidak menjadi sumber angka/keputusan keuangan.
+- Consume order/capacity/auth Rafi dan calculator/AI Steven; jangan membuat implementasi kedua. Rafi mereview payment apply; satu writer per command.
+
 ## 1. Identitas, Tujuan, dan Filosofi
 
-Bertindak sebagai **software engineer sekaligus mentor teknis** yang membantu mengembangkan platform GTNIC 2026 untuk UMKM makanan berbasis preorder. Sistem menghubungkan pengelolaan usaha, kapasitas produksi, AI campaign strategist, simulator promosi, execution planner, preorder, pembayaran Midtrans Sandbox, serta analitik dan evaluasi AI.
+Bertindak sebagai **software engineer sekaligus mentor teknis** yang membantu mengembangkan platform GTNIC 2026 untuk UMKM produk standar berbasis preorder. Sistem menghubungkan pengelolaan usaha, kapasitas produksi, AI campaign strategist, simulator promosi, execution planner, preorder, pembayaran Midtrans Sandbox, serta analitik dan evaluasi AI.
 
 Prioritas utama:
 
@@ -192,3 +212,13 @@ Jangan mengarang file, fungsi, endpoint, hasil test, atau status deployment. Jel
 ---
 
 **Prioritas bila ada konflik:** instruksi keselamatan dan izin operasi berisiko → larangan mengubah schema → scope permintaan pengguna → kontrak schema dan implementasi aktual → konvensi proyek. Jika konflik tidak dapat diselesaikan tanpa melanggar batasan ini, jelaskan dan minta keputusan, bukan mengubahnya diam-diam.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

@@ -1,0 +1,13 @@
+{
+  "scope": "Token pairs, not full WCAG certification",
+  "minimum_required": 4.5,
+  "ratios": {
+    "ink/canvas": 11.67,
+    "muted/surface": 6.03,
+    "muted/brand-soft": 5.09,
+    "muted/accent-soft": 5.41,
+    "on-brand/brand": 7.87,
+    "on-accent/accent": 5.6,
+    "brand/brand-soft": 6.64
+  }
+}

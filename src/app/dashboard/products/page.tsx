@@ -75,9 +75,17 @@ export default async function ProductsPage() {
           <h1 className="text-2xl font-bold text-ink">Produk</h1>
           <p className="mt-1 text-sm text-muted">Produk nonaktif tidak bisa dipakai untuk preorder baru.</p>
         </div>
-        <Link href="/dashboard/products/new" className={ADD_LINK_CLASS}>
-          Tambah produk
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/dashboard/capacity"
+            className="rounded-lg border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink transition hover:bg-subtle"
+          >
+            Kapasitas produksi
+          </Link>
+          <Link href="/dashboard/products/new" className={ADD_LINK_CLASS}>
+            Tambah produk
+          </Link>
+        </div>
       </div>
 
       {products.length === 0 ? (

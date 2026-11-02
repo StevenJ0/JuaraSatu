@@ -26,7 +26,7 @@ export default async function BusinessProfilePage() {
             category: business.category,
             description: business.description ?? "",
             publicContact: business.publicContact ?? "",
-            pickupInstructions: business.pickupInstructions ?? "",
+            pickupInstructions: business.pickupInstructions,
           }}
         />
       </div>

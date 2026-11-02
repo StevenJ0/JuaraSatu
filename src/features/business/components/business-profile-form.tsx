@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { TextAreaField, TextField } from "@/components/form-field";
 import { FormMessage, PRIMARY_BUTTON_CLASS } from "@/components/form-message";
 import { initialFormState, type FormState } from "@/lib/form-state";
@@ -19,7 +19,46 @@ type BusinessProfileFormProps = {
   submitLabel: string;
 };
 
-const CATEGORY_SUGGESTIONS = ["bakery", "kue basah", "katering", "makanan rumahan", "minuman", "camilan"];
+const CATEGORY_SUGGESTIONS = ["Bakery", "Kue basah", "Katering", "Makanan rumahan", "Minuman", "Camilan"];
+
+function CategoryField({ defaultValue, errors }: { defaultValue?: string; errors?: string[] }) {
+  const [category, setCategory] = useState(defaultValue ?? "");
+
+  return (
+    <div className="flex flex-col gap-2">
+      <TextField
+        name="category"
+        label="Kategori"
+        required
+        maxLength={80}
+        hint="Pilih salah satu atau tulis sendiri."
+        value={category}
+        onChange={(event) => setCategory(event.target.value)}
+        errors={errors}
+      />
+      <div role="group" aria-label="Pilihan kategori" className="flex flex-wrap gap-2">
+        {CATEGORY_SUGGESTIONS.map((suggestion) => {
+          const isSelected = category.trim().toLowerCase() === suggestion.toLowerCase();
+          return (
+            <button
+              key={suggestion}
+              type="button"
+              aria-pressed={isSelected}
+              onClick={() => setCategory(isSelected ? "" : suggestion)}
+              className={`rounded-full border px-3 py-1.5 text-sm transition outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
+                isSelected
+                  ? "border-brand bg-brand text-on-brand"
+                  : "border-line bg-surface text-ink hover:border-brand hover:text-brand"
+              }`}
+            >
+              {suggestion}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export function BusinessProfileForm({ action, initialValues, submitLabel }: BusinessProfileFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialFormState);
@@ -36,21 +75,7 @@ export function BusinessProfileForm({ action, initialValues, submitLabel }: Busi
         defaultValue={values?.name}
         errors={state.fieldErrors?.name}
       />
-      <TextField
-        name="category"
-        label="Kategori"
-        required
-        maxLength={80}
-        list="business-category-suggestions"
-        hint="Contoh: bakery, katering, kue basah."
-        defaultValue={values?.category}
-        errors={state.fieldErrors?.category}
-      />
-      <datalist id="business-category-suggestions">
-        {CATEGORY_SUGGESTIONS.map((category) => (
-          <option key={category} value={category} />
-        ))}
-      </datalist>
+      <CategoryField defaultValue={values?.category} errors={state.fieldErrors?.category} />
       <TextAreaField
         name="description"
         label="Deskripsi singkat"
@@ -69,8 +94,9 @@ export function BusinessProfileForm({ action, initialValues, submitLabel }: Busi
       <TextAreaField
         name="pickupInstructions"
         label="Petunjuk pengambilan (pickup)"
+        required
         maxLength={1000}
-        hint="Hindari detail privat yang tidak perlu ditampilkan ke pelanggan."
+        hint="Tampil ke pembeli. Contoh: alamat titik ambil dan jam pengambilan. Hindari detail privat."
         defaultValue={values?.pickupInstructions}
         errors={state.fieldErrors?.pickupInstructions}
       />

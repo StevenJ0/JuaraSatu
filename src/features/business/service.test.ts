@@ -20,7 +20,7 @@ const input = {
   category: "bakery",
   description: null,
   publicContact: null,
-  pickupInstructions: null,
+  pickupInstructions: "Ambil di toko, Sabtu 10.00-15.00",
 };
 
 const uniqueViolation = () => new BusinessRepositoryError("createBusinessWithOwner", "23505");

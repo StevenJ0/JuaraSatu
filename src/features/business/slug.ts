@@ -22,7 +22,7 @@ export function randomSlugSuffix(): string {
 }
 
 /**
- * Slug business unik global (schema §4.1). Akhiran acak mencegah tabrakan antar-UMKM dengan nama sama
+ * Slug business unik global (schema v2.1 §4.2). Akhiran acak mencegah tabrakan antar-UMKM dengan nama sama
  * dan membuat slug tidak mudah ditebak; keunikan final tetap dijaga UNIQUE(slug) di database.
  */
 export function createBusinessSlug(name: string, suffix: string = randomSlugSuffix()): string {

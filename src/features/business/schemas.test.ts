@@ -6,7 +6,7 @@ const validInput = {
   category: "bakery",
   description: "",
   publicContact: " WA 0812 ",
-  pickupInstructions: "",
+  pickupInstructions: "  Ambil di toko, Sabtu 10.00-15.00 ",
 };
 
 describe("businessProfileSchema", () => {
@@ -16,14 +16,19 @@ describe("businessProfileSchema", () => {
       category: "bakery",
       description: null,
       publicContact: "WA 0812",
-      pickupInstructions: null,
+      pickupInstructions: "Ambil di toko, Sabtu 10.00-15.00",
     });
   });
 
-  it("menolak nama dan kategori kosong", () => {
-    const result = businessProfileSchema.safeParse({ ...validInput, name: "   ", category: "" });
+  it("menolak nama, kategori, dan petunjuk pengambilan kosong", () => {
+    const result = businessProfileSchema.safeParse({
+      ...validInput,
+      name: "   ",
+      category: "",
+      pickupInstructions: "  ",
+    });
     expect(result.success).toBe(false);
-    expect(result.error?.issues.map((issue) => issue.path[0])).toEqual(["name", "category"]);
+    expect(result.error?.issues.map((issue) => issue.path[0])).toEqual(["name", "category", "pickupInstructions"]);
   });
 
   it("menolak nama lebih dari 120 karakter", () => {

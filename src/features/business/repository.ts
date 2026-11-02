@@ -32,7 +32,7 @@ const businessRowSchema = z.object({
   category: z.string(),
   description: z.string().nullable(),
   public_contact: z.string().nullable(),
-  pickup_instructions: z.string().nullable(),
+  pickup_instructions: z.string(),
   timezone: z.string(),
 });
 
@@ -45,7 +45,7 @@ export type BusinessProfile = {
   category: string;
   description: string | null;
   publicContact: string | null;
-  pickupInstructions: string | null;
+  pickupInstructions: string;
   timezone: string;
 };
 
@@ -83,8 +83,8 @@ export async function getBusinessProfile(client: SupabaseClient, businessId: str
 
 /**
  * Membuat business + membership owner dalam satu transaksi melalui RPC `create_business_with_owner`.
- * Kontrak RPC (belum ada di schema §8.1, menunggu migration tim): SECURITY DEFINER, owner = auth.uid(),
- * role selalu 'owner', mengembalikan uuid business baru.
+ * Kontrak RPC (schema v2.1 §19): SECURITY DEFINER, owner = auth.uid(), role selalu 'owner',
+ * mengembalikan uuid business baru.
  */
 export async function createBusinessWithOwner(
   client: SupabaseClient,
@@ -115,7 +115,6 @@ export async function updateBusinessProfile(
       description: input.description,
       public_contact: input.publicContact,
       pickup_instructions: input.pickupInstructions,
-      updated_at: new Date().toISOString(),
     })
     .eq("id", businessId)
     .select("id");

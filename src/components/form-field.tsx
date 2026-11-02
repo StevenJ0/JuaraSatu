@@ -1,7 +1,8 @@
 import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
 
+// 16px di layar kecil agar iOS tidak auto-zoom saat fokus; `!` karena `input { font: inherit }` di globals.css mengalahkan utility biasa.
 const CONTROL_CLASS =
-  "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 aria-[invalid=true]:border-red-500";
+  "w-full rounded-lg border border-line bg-surface px-3 py-2 text-base! text-ink outline-none sm:text-sm! transition focus:border-brand focus:ring-2 focus:ring-brand/20 aria-[invalid=true]:border-red-500";
 
 type FieldBaseProps = {
   name: string;

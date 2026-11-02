@@ -45,7 +45,8 @@ function CategoryField({ defaultValue, errors }: { defaultValue?: string; errors
               type="button"
               aria-pressed={isSelected}
               onClick={() => setCategory(isSelected ? "" : suggestion)}
-              className={`rounded-full border px-3 py-1.5 text-sm transition outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
+              // `text-xs!`: aturan global `button { font: inherit }` di globals.css mengalahkan utility Tailwind biasa.
+              className={`rounded-full border px-3 py-1.5 text-xs! transition outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
                 isSelected
                   ? "border-brand bg-brand text-on-brand"
                   : "border-line bg-surface text-ink hover:border-brand hover:text-brand"

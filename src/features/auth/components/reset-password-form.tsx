@@ -30,7 +30,7 @@ export function ResetPasswordForm() {
         errors={state.fieldErrors?.confirmPassword}
       />
       <button type="submit" className={PRIMARY_BUTTON_CLASS} disabled={isPending}>
-        {isPending ? "Menyimpan..." : "Simpan password baru"}
+        {isPending ? "Menyimpan…" : "Simpan password baru"}
       </button>
     </form>
   );

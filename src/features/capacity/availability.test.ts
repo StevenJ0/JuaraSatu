@@ -1,5 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { summarizeCapacity } from "@/features/capacity/availability";
+import { summarizeCapacity, summarizeOpenCapacities } from "@/features/capacity/availability";
+
+describe("summarizeOpenCapacities", () => {
+  const now = new Date("2026-11-03T00:00:00Z");
+  const capacity = (intakeCutoffAt: string, available: number) => ({
+    intakeCutoffAt,
+    availability: { allocated: 0, effectiveHeld: 0, available },
+  });
+
+  it("hanya menghitung jadwal yang batas pesannya belum lewat", () => {
+    expect(
+      summarizeOpenCapacities([capacity("2026-11-05T00:00:00Z", 10), capacity("2026-11-01T00:00:00Z", 99)], now),
+    ).toEqual({ scheduleCount: 1, availableUnits: 10 });
+  });
+
+  it("menganggap batas pesan yang tepat sekarang sudah lewat", () => {
+    expect(summarizeOpenCapacities([capacity("2026-11-03T00:00:00Z", 10)], now).scheduleCount).toBe(0);
+  });
+
+  it("tidak mengurangi total dengan sisa minus", () => {
+    expect(
+      summarizeOpenCapacities([capacity("2026-11-05T00:00:00Z", -3), capacity("2026-11-06T00:00:00Z", 5)], now),
+    ).toEqual({ scheduleCount: 2, availableUnits: 5 });
+  });
+
+  it("mengembalikan nol bila belum ada jadwal", () => {
+    expect(summarizeOpenCapacities([], now)).toEqual({ scheduleCount: 0, availableUnits: 0 });
+  });
+});
 
 const NOW = new Date("2026-11-07T10:00:00Z");
 const FUTURE = "2026-11-07T10:15:00Z";

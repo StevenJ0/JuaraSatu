@@ -20,8 +20,8 @@ export default async function ForgotPasswordPage({ searchParams }: PageProps<"/f
 
   return (
     <>
-      <h1 className="mb-1 text-xl font-semibold text-ink">Lupa password</h1>
-      <p className="mb-6 text-sm text-muted">Masukkan email akun Anda. Kami kirim link untuk membuat password baru.</p>
+      <h1 className="mb-1 text-2xl font-bold text-ink">Lupa password</h1>
+      <p className="mb-6 text-base text-muted">Masukkan email akun Anda. Kami kirim link untuk membuat password baru.</p>
       <ForgotPasswordForm notice={NOTICES.get(notice)} />
     </>
   );

@@ -1,8 +1,10 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { useActionState, useState } from "react";
 import { TextAreaField, TextField } from "@/components/form-field";
 import { FormMessage, PRIMARY_BUTTON_CLASS } from "@/components/form-message";
+import { Toast } from "@/components/owner/toast";
 import { initialFormState, type FormState } from "@/lib/form-state";
 import {
   BUSINESS_CATEGORIES,
@@ -42,13 +44,14 @@ function CategoryChip({
       aria-pressed={isSelected}
       disabled={isDisabled}
       onClick={onToggle}
-      // `text-xs!`: aturan global `button { font: inherit }` di globals.css mengalahkan utility Tailwind biasa.
-      className={`rounded-full border px-3 py-1.5 text-xs! transition outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:cursor-not-allowed disabled:opacity-40 ${
+      // `text-sm!`: aturan global `button { font: inherit }` di globals.css mengalahkan utility Tailwind biasa.
+      className={`inline-flex min-h-9 items-center gap-1 rounded-full border px-3 py-1 text-sm! transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
         isSelected
-          ? "border-brand bg-brand text-on-brand"
-          : "border-line bg-surface text-ink enabled:hover:border-brand enabled:hover:text-brand"
+          ? "border-brand bg-[var(--owner-highlight)] font-semibold! text-[color:var(--owner-primary-strong)]"
+          : "border-line bg-surface font-medium! text-ink enabled:hover:border-brand"
       }`}
     >
+      {isSelected && <Check aria-hidden size={14} strokeWidth={2} />}
       {label}
     </button>
   );
@@ -104,10 +107,12 @@ function CategoryField({ initialCategories, errors }: { initialCategories?: stri
             onToggle={toggleOtherCategory}
           />
         </div>
-        <p id="categories-hint" aria-live="polite" className="text-xs text-muted">
+        <p id="categories-hint" aria-live="polite" className="text-sm text-muted">
           Pilih 1 sampai {MAX_BUSINESS_CATEGORIES} kategori. Dipilih {selectedCount} dari {MAX_BUSINESS_CATEGORIES}.
         </p>
-        {visibleErrors && visibleErrors.length > 0 && <p className="text-xs text-red-600">{visibleErrors.join(" ")}</p>}
+        {visibleErrors && visibleErrors.length > 0 && (
+          <p className="text-sm text-[color:var(--owner-danger-fg)]">{visibleErrors.join(" ")}</p>
+        )}
       </div>
       {selected.map((category) => (
         <input key={category} type="hidden" name="categories" value={category} />
@@ -132,10 +137,13 @@ function CategoryField({ initialCategories, errors }: { initialCategories?: stri
 export function BusinessProfileForm({ action, initialValues, submitLabel }: BusinessProfileFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialFormState);
   const values = state.values ?? initialValues;
+  const [dismissedToastState, setDismissedToastState] = useState<FormState>();
+  const showToast = state.status === "success" && state !== dismissedToastState;
 
   return (
     <form action={formAction} className="flex flex-col gap-4" noValidate>
-      <FormMessage state={state} />
+      {state.status === "error" && <FormMessage state={state} />}
+      {showToast && state.message && <Toast message={state.message} onDismiss={() => setDismissedToastState(state)} />}
       <TextField
         name="name"
         label="Nama usaha"
@@ -162,7 +170,7 @@ export function BusinessProfileForm({ action, initialValues, submitLabel }: Busi
       />
       <TextAreaField
         name="pickupInstructions"
-        label="Petunjuk pengambilan (pickup)"
+        label="Petunjuk pengambilan"
         required
         maxLength={1000}
         hint="Tampil ke pembeli. Contoh: alamat titik ambil dan jam pengambilan. Hindari detail privat."
@@ -170,7 +178,7 @@ export function BusinessProfileForm({ action, initialValues, submitLabel }: Busi
         errors={state.fieldErrors?.pickupInstructions}
       />
       <button type="submit" className={PRIMARY_BUTTON_CLASS} disabled={isPending}>
-        {isPending ? "Menyimpan..." : submitLabel}
+        {isPending ? "Menyimpan…" : submitLabel}
       </button>
     </form>
   );

@@ -14,8 +14,8 @@ export default async function ResetPasswordPage() {
 
   return (
     <AuthShell>
-      <h1 className="mb-1 text-xl font-semibold text-ink">Buat password baru</h1>
-      <p className="mb-6 text-sm text-muted">Setelah disimpan, Anda diminta masuk lagi dengan password baru.</p>
+      <h1 className="mb-1 text-2xl font-bold text-ink">Buat password baru</h1>
+      <p className="mb-6 text-base text-muted">Setelah disimpan, Anda diminta masuk lagi dengan password baru.</p>
       <ResetPasswordForm />
     </AuthShell>
   );

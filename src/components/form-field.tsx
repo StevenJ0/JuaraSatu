@@ -4,7 +4,7 @@ import { useEffect, useRef, type InputHTMLAttributes, type ReactNode, type Selec
 
 // 16px di layar kecil agar iOS tidak auto-zoom saat fokus; `!` karena `input { font: inherit }` di globals.css mengalahkan utility biasa.
 const CONTROL_CLASS =
-  "w-full rounded-lg border border-line bg-surface px-3 py-2 text-base! text-ink outline-none sm:text-sm! transition focus:border-brand focus:ring-2 focus:ring-brand/20 aria-[invalid=true]:border-red-500";
+  "min-h-11 w-full rounded-md border border-line bg-surface px-3 py-2 text-[16px]! text-ink transition sm:text-[15px]! focus:border-brand aria-[invalid=true]:border-[var(--owner-danger-fg)]";
 
 type FieldBaseProps = {
   name: string;
@@ -34,12 +34,12 @@ function FieldShell({ name, label, errors, hint, children }: FieldBaseProps & { 
       </label>
       {children}
       {hint && (
-        <p id={`${name}-hint`} className="text-xs text-muted">
+        <p id={`${name}-hint`} className="text-sm text-muted">
           {hint}
         </p>
       )}
       {errors && errors.length > 0 && (
-        <p id={`${name}-error`} className="text-xs text-red-600">
+        <p id={`${name}-error`} className="text-sm text-[color:var(--owner-danger-fg)]">
           {errors.join(" ")}
         </p>
       )}

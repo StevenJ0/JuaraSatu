@@ -17,3 +17,17 @@ export function summarizeCapacity(totalUnits: number, reservations: ReservationF
   }
   return { allocated, effectiveHeld, available: totalUnits - allocated - effectiveHeld };
 }
+
+type OpenCapacityFact = { intakeCutoffAt: string; availability: CapacityAvailability };
+
+/** Ringkasan jadwal yang batas pesannya belum lewat. Sisa minus (kapasitas diturunkan pihak lain) dihitung nol. */
+export function summarizeOpenCapacities(
+  capacities: readonly OpenCapacityFact[],
+  now: Date,
+): { scheduleCount: number; availableUnits: number } {
+  const open = capacities.filter((capacity) => Date.parse(capacity.intakeCutoffAt) > now.getTime());
+  return {
+    scheduleCount: open.length,
+    availableUnits: open.reduce((total, capacity) => total + Math.max(capacity.availability.available, 0), 0),
+  };
+}

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { TextField } from "@/components/form-field";
-import { FormMessage, PRIMARY_BUTTON_CLASS } from "@/components/form-message";
+import { FormMessage, PRIMARY_BUTTON_CLASS, TEXT_LINK_CLASS } from "@/components/form-message";
 import { initialFormState } from "@/lib/form-state";
 import { signUpAction } from "@/features/auth/actions";
 import { ResendConfirmation } from "@/features/auth/components/resend-confirmation";
@@ -16,7 +16,7 @@ export function SignUpForm() {
       <div className="flex flex-col gap-4">
         <FormMessage state={state} />
         <Link href="/login" className={PRIMARY_BUTTON_CLASS}>
-          Ke halaman masuk
+          Buka halaman masuk
         </Link>
         {state.values?.email && <ResendConfirmation email={state.values.email} />}
       </div>
@@ -53,11 +53,11 @@ export function SignUpForm() {
         errors={state.fieldErrors?.confirmPassword}
       />
       <button type="submit" className={PRIMARY_BUTTON_CLASS} disabled={isPending}>
-        {isPending ? "Memproses..." : "Daftar"}
+        {isPending ? "Memproses…" : "Daftar"}
       </button>
-      <p className="text-center text-sm text-muted">
+      <p className="text-center text-base text-muted">
         Sudah punya akun?{" "}
-        <Link href="/login" className="font-semibold text-brand underline decoration-line underline-offset-4 hover:decoration-current">
+        <Link href="/login" className={TEXT_LINK_CLASS}>
           Masuk
         </Link>
       </p>

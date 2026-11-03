@@ -22,8 +22,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
   return (
     <>
-      <h1 className="mb-1 text-xl font-semibold text-ink">Masuk</h1>
-      <p className="mb-6 text-sm text-muted">Kelola usaha dan preorder Anda.</p>
+      <h1 className="mb-1 text-2xl font-bold text-ink">Masuk</h1>
+      <p className="mb-6 text-base text-muted">Kelola usaha dan preorder Anda.</p>
       <SignInForm notice={NOTICES.get(notice)} />
     </>
   );

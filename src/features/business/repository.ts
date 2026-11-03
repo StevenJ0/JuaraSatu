@@ -34,9 +34,10 @@ const businessRowSchema = z.object({
   public_contact: z.string().nullable(),
   pickup_instructions: z.string(),
   timezone: z.string(),
+  is_demo: z.boolean(),
 });
 
-const BUSINESS_COLUMNS = "id, name, slug, categories, description, public_contact, pickup_instructions, timezone";
+const BUSINESS_COLUMNS = "id, name, slug, categories, description, public_contact, pickup_instructions, timezone, is_demo";
 
 export type BusinessProfile = {
   id: string;
@@ -47,6 +48,7 @@ export type BusinessProfile = {
   publicContact: string | null;
   pickupInstructions: string;
   timezone: string;
+  isDemo: boolean;
 };
 
 function toBusinessProfile(row: z.infer<typeof businessRowSchema>): BusinessProfile {
@@ -59,6 +61,7 @@ function toBusinessProfile(row: z.infer<typeof businessRowSchema>): BusinessProf
     publicContact: row.public_contact,
     pickupInstructions: row.pickup_instructions,
     timezone: row.timezone,
+    isDemo: row.is_demo,
   };
 }
 

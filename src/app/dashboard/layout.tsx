@@ -1,40 +1,30 @@
-import Link from "next/link";
 import { Brand } from "@/components/brand";
+import { OwnerNav } from "@/components/owner/owner-nav";
+import { OwnerTheme } from "@/components/owner/owner-theme";
 import { getCurrentBusinessProfile } from "@/features/business/guard";
 import { SignOutButton } from "@/features/auth/components/sign-out-button";
-
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Ringkasan" },
-  { href: "/dashboard/products", label: "Produk" },
-  { href: "/dashboard/business", label: "Profil Usaha" },
-] as const;
 
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   const business = await getCurrentBusinessProfile();
 
   return (
-    <div className="flex min-h-screen flex-col bg-background font-sans">
+    <OwnerTheme className="flex flex-col">
+      {business.isDemo && (
+        <p className="border-b border-dashed border-[var(--owner-sim-border)] bg-[var(--owner-sim-bg)] px-4 py-1 text-center text-sm text-[color:var(--owner-sim-fg)]">
+          Data sintetis untuk demonstrasi.
+        </p>
+      )}
       <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <div className="flex min-w-0 items-center gap-4">
-            <Brand href="/dashboard" />
-            <p className="truncate border-l border-line pl-4 text-sm font-semibold text-ink">{business.name}</p>
-          </div>
-          <nav className="flex items-center gap-1">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-lg px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-subtle"
-              >
-                {item.label}
-              </Link>
-            ))}
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2 md:py-3">
+          <Brand href="/dashboard" />
+          <OwnerNav className="order-last w-full md:order-none md:w-auto" />
+          <div className="ml-auto flex min-w-0 items-center gap-2">
+            <p className="hidden max-w-48 truncate text-sm font-medium text-ink sm:block">{business.name}</p>
             <SignOutButton />
-          </nav>
+          </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
-    </div>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:py-8">{children}</main>
+    </OwnerTheme>
   );
 }

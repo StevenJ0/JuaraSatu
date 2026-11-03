@@ -13,7 +13,7 @@ export function ResendConfirmation({ email }: { email: string }) {
       <input type="hidden" name="email" value={email} />
       <FormMessage state={state} />
       <button type="submit" className={SECONDARY_BUTTON_CLASS} disabled={isPending}>
-        {isPending ? "Mengirim..." : "Kirim ulang link verifikasi"}
+        {isPending ? "Mengirim…" : "Kirim ulang link"}
       </button>
     </form>
   );

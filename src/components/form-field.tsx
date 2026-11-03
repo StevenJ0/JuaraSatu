@@ -1,4 +1,6 @@
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+"use client";
+
+import { useEffect, useRef, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 
 // 16px di layar kecil agar iOS tidak auto-zoom saat fokus; `!` karena `input { font: inherit }` di globals.css mengalahkan utility biasa.
 const CONTROL_CLASS =
@@ -60,9 +62,21 @@ type SelectFieldProps = FieldBaseProps & Omit<SelectHTMLAttributes<HTMLSelectEle
 
 export function SelectField({ name, label, errors, hint, children, ...selectProps }: SelectFieldProps) {
   const field = { name, label, errors, hint };
+  const selectRef = useRef<HTMLSelectElement>(null);
+  const { value } = selectProps;
+
+  // React mereset form setelah action selesai, dan reset mengembalikan select ke opsi `defaultSelected`.
+  // Select terkontrol tidak punya default itu, sehingga tanpa ini tampil dan terkirim sebagai opsi pertama.
+  useEffect(() => {
+    if (value === undefined || !selectRef.current) return;
+    for (const option of Array.from(selectRef.current.options)) {
+      option.defaultSelected = option.value === String(value);
+    }
+  }, [value]);
+
   return (
     <FieldShell {...field}>
-      <select {...selectProps} {...controlProps(field)}>
+      <select {...selectProps} {...controlProps(field)} ref={selectRef}>
         {children}
       </select>
     </FieldShell>

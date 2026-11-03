@@ -4,10 +4,16 @@ import { useActionState, useState } from "react";
 import { TextAreaField, TextField } from "@/components/form-field";
 import { FormMessage, PRIMARY_BUTTON_CLASS } from "@/components/form-message";
 import { initialFormState, type FormState } from "@/lib/form-state";
+import {
+  BUSINESS_CATEGORIES,
+  MAX_BUSINESS_CATEGORIES,
+  OTHER_CATEGORY_LABEL,
+  toCategorySelection,
+} from "@/features/business/categories";
 
 type BusinessProfileValues = {
   name: string;
-  category: string;
+  categories: string[];
   description: string;
   publicContact: string;
   pickupInstructions: string;
@@ -19,44 +25,106 @@ type BusinessProfileFormProps = {
   submitLabel: string;
 };
 
-const CATEGORY_SUGGESTIONS = ["Bakery", "Kue basah", "Katering", "Makanan rumahan", "Minuman", "Camilan"];
+function CategoryChip({
+  label,
+  isSelected,
+  isDisabled,
+  onToggle,
+}: {
+  label: string;
+  isSelected: boolean;
+  isDisabled: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={isSelected}
+      disabled={isDisabled}
+      onClick={onToggle}
+      // `text-xs!`: aturan global `button { font: inherit }` di globals.css mengalahkan utility Tailwind biasa.
+      className={`rounded-full border px-3 py-1.5 text-xs! transition outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:cursor-not-allowed disabled:opacity-40 ${
+        isSelected
+          ? "border-brand bg-brand text-on-brand"
+          : "border-line bg-surface text-ink enabled:hover:border-brand enabled:hover:text-brand"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
 
-function CategoryField({ defaultValue, errors }: { defaultValue?: string; errors?: string[] }) {
-  const [category, setCategory] = useState(defaultValue ?? "");
+function CategoryField({ initialCategories, errors }: { initialCategories?: string[]; errors?: string[] }) {
+  const [initial] = useState(() => toCategorySelection(initialCategories ?? []));
+  const [selected, setSelected] = useState(initial.selected);
+  const [isOtherSelected, setIsOtherSelected] = useState(initial.customCategory !== "");
+  const [customCategory, setCustomCategory] = useState(initial.customCategory);
+  // Pesan error lama bisa bertentangan dengan pilihan baru, jadi disembunyikan sampai server memberi hasil berikutnya.
+  const [dismissedErrors, setDismissedErrors] = useState<string[]>();
+  const visibleErrors = errors === dismissedErrors ? undefined : errors;
+
+  const selectedCount = selected.length + (isOtherSelected ? 1 : 0);
+  const isFull = selectedCount >= MAX_BUSINESS_CATEGORIES;
+
+  function toggleCategory(category: string) {
+    setDismissedErrors(errors);
+    setSelected((current) =>
+      current.includes(category) ? current.filter((item) => item !== category) : [...current, category],
+    );
+  }
+
+  function toggleOtherCategory() {
+    setDismissedErrors(errors);
+    setIsOtherSelected((current) => !current);
+  }
 
   return (
-    <div className="flex flex-col gap-2">
-      <TextField
-        name="category"
-        label="Kategori"
-        required
-        maxLength={80}
-        hint="Pilih salah satu atau tulis sendiri."
-        value={category}
-        onChange={(event) => setCategory(event.target.value)}
-        errors={errors}
-      />
-      <div role="group" aria-label="Pilihan kategori" className="flex flex-wrap gap-2">
-        {CATEGORY_SUGGESTIONS.map((suggestion) => {
-          const isSelected = category.trim().toLowerCase() === suggestion.toLowerCase();
-          return (
-            <button
-              key={suggestion}
-              type="button"
-              aria-pressed={isSelected}
-              onClick={() => setCategory(isSelected ? "" : suggestion)}
-              // `text-xs!`: aturan global `button { font: inherit }` di globals.css mengalahkan utility Tailwind biasa.
-              className={`rounded-full border px-3 py-1.5 text-xs! transition outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
-                isSelected
-                  ? "border-brand bg-brand text-on-brand"
-                  : "border-line bg-surface text-ink hover:border-brand hover:text-brand"
-              }`}
-            >
-              {suggestion}
-            </button>
-          );
-        })}
+    <div className="flex flex-col gap-3">
+      <div role="group" aria-labelledby="categories-label" aria-describedby="categories-hint" className="flex flex-col gap-2">
+        <p id="categories-label" className="text-sm font-medium text-ink">
+          Kategori
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {BUSINESS_CATEGORIES.map((category) => {
+            const isSelected = selected.includes(category);
+            return (
+              <CategoryChip
+                key={category}
+                label={category}
+                isSelected={isSelected}
+                isDisabled={isFull && !isSelected}
+                onToggle={() => toggleCategory(category)}
+              />
+            );
+          })}
+          <CategoryChip
+            label={OTHER_CATEGORY_LABEL}
+            isSelected={isOtherSelected}
+            isDisabled={isFull && !isOtherSelected}
+            onToggle={toggleOtherCategory}
+          />
+        </div>
+        <p id="categories-hint" aria-live="polite" className="text-xs text-muted">
+          Pilih 1 sampai {MAX_BUSINESS_CATEGORIES} kategori. Dipilih {selectedCount} dari {MAX_BUSINESS_CATEGORIES}.
+        </p>
+        {visibleErrors && visibleErrors.length > 0 && <p className="text-xs text-red-600">{visibleErrors.join(" ")}</p>}
       </div>
+      {selected.map((category) => (
+        <input key={category} type="hidden" name="categories" value={category} />
+      ))}
+      {isOtherSelected && (
+        <TextField
+          name="customCategory"
+          label="Tulis kategori usaha Anda"
+          required
+          maxLength={80}
+          value={customCategory}
+          onChange={(event) => {
+            setDismissedErrors(errors);
+            setCustomCategory(event.target.value);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -76,7 +144,7 @@ export function BusinessProfileForm({ action, initialValues, submitLabel }: Busi
         defaultValue={values?.name}
         errors={state.fieldErrors?.name}
       />
-      <CategoryField defaultValue={values?.category} errors={state.fieldErrors?.category} />
+      <CategoryField initialCategories={initialValues?.categories} errors={state.fieldErrors?.categories} />
       <TextAreaField
         name="description"
         label="Deskripsi singkat"

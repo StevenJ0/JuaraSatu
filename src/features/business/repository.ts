@@ -29,20 +29,20 @@ const businessRowSchema = z.object({
   id: z.uuid(),
   name: z.string(),
   slug: z.string(),
-  category: z.string(),
+  categories: z.array(z.string()),
   description: z.string().nullable(),
   public_contact: z.string().nullable(),
   pickup_instructions: z.string(),
   timezone: z.string(),
 });
 
-const BUSINESS_COLUMNS = "id, name, slug, category, description, public_contact, pickup_instructions, timezone";
+const BUSINESS_COLUMNS = "id, name, slug, categories, description, public_contact, pickup_instructions, timezone";
 
 export type BusinessProfile = {
   id: string;
   name: string;
   slug: string;
-  category: string;
+  categories: string[];
   description: string | null;
   publicContact: string | null;
   pickupInstructions: string;
@@ -54,7 +54,7 @@ function toBusinessProfile(row: z.infer<typeof businessRowSchema>): BusinessProf
     id: row.id,
     name: row.name,
     slug: row.slug,
-    category: row.category,
+    categories: row.categories,
     description: row.description,
     publicContact: row.public_contact,
     pickupInstructions: row.pickup_instructions,
@@ -93,7 +93,7 @@ export async function createBusinessWithOwner(
   const { data, error } = await client.rpc("create_business_with_owner", {
     p_name: input.name,
     p_slug: input.slug,
-    p_category: input.category,
+    p_categories: input.categories,
     p_description: input.description,
     p_public_contact: input.publicContact,
     p_pickup_instructions: input.pickupInstructions,
@@ -111,7 +111,7 @@ export async function updateBusinessProfile(
     .from("businesses")
     .update({
       name: input.name,
-      category: input.category,
+      categories: input.categories,
       description: input.description,
       public_contact: input.publicContact,
       pickup_instructions: input.pickupInstructions,

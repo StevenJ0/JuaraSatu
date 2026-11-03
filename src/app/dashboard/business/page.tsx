@@ -23,7 +23,7 @@ export default async function BusinessProfilePage() {
           submitLabel="Simpan perubahan"
           initialValues={{
             name: business.name,
-            category: business.category,
+            categories: business.categories,
             description: business.description ?? "",
             publicContact: business.publicContact ?? "",
             pickupInstructions: business.pickupInstructions,

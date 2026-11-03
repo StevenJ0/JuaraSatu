@@ -17,7 +17,7 @@ const USER_ID = "11111111-1111-4111-8111-111111111111";
 const BUSINESS_ID = "22222222-2222-4222-8222-222222222222";
 const input = {
   name: "Brownies Sabtu",
-  category: "bakery",
+  categories: ["bakery"],
   description: null,
   publicContact: null,
   pickupInstructions: "Ambil di toko, Sabtu 10.00-15.00",

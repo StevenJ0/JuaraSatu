@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { readTextFields, type FormState } from "@/lib/form-state";
 import { requireUserId } from "@/features/auth/session";
+import { readCategoriesFromForm } from "@/features/business/categories";
 import { BUSINESS_PROFILE_FIELDS, businessProfileSchema } from "@/features/business/schemas";
 import { requireBusinessOwner } from "@/features/business/guard";
 import { createBusinessForOwner } from "@/features/business/service";
@@ -22,7 +23,7 @@ function logRepositoryFailure(context: string, error: unknown): void {
 export async function createBusinessAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const userId = await requireUserId();
   const fields = readTextFields(formData, BUSINESS_PROFILE_FIELDS);
-  const parsed = businessProfileSchema.safeParse(fields);
+  const parsed = businessProfileSchema.safeParse({ ...fields, categories: readCategoriesFromForm(formData) });
   if (!parsed.success) {
     return { status: "error", fieldErrors: z.flattenError(parsed.error).fieldErrors, values: fields };
   }
@@ -41,7 +42,7 @@ export async function createBusinessAction(_previous: FormState, formData: FormD
 export async function updateBusinessAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const { businessId } = await requireBusinessOwner();
   const fields = readTextFields(formData, BUSINESS_PROFILE_FIELDS);
-  const parsed = businessProfileSchema.safeParse(fields);
+  const parsed = businessProfileSchema.safeParse({ ...fields, categories: readCategoriesFromForm(formData) });
   if (!parsed.success) {
     return { status: "error", fieldErrors: z.flattenError(parsed.error).fieldErrors, values: fields };
   }

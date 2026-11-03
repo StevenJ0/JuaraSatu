@@ -25,7 +25,7 @@ export default async function DashboardOverviewPage() {
       <div>
         <h1 className="text-2xl font-bold text-ink">Ringkasan</h1>
         <p className="mt-1 text-sm text-muted">
-          {business.name} · {business.category}
+          {business.name} · {business.categories.join(", ")}
         </p>
       </div>
 

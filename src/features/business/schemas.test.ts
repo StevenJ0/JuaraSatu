@@ -3,7 +3,7 @@ import { businessProfileSchema } from "@/features/business/schemas";
 
 const validInput = {
   name: "  Brownies Homemade  ",
-  category: "bakery",
+  categories: [" Fashion ", "Katering"],
   description: "",
   publicContact: " WA 0812 ",
   pickupInstructions: "  Ambil di toko, Sabtu 10.00-15.00 ",
@@ -13,7 +13,7 @@ describe("businessProfileSchema", () => {
   it("men-trim teks dan mengubah field opsional kosong menjadi null", () => {
     expect(businessProfileSchema.parse(validInput)).toEqual({
       name: "Brownies Homemade",
-      category: "bakery",
+      categories: ["Fashion", "Katering"],
       description: null,
       publicContact: "WA 0812",
       pickupInstructions: "Ambil di toko, Sabtu 10.00-15.00",
@@ -24,11 +24,28 @@ describe("businessProfileSchema", () => {
     const result = businessProfileSchema.safeParse({
       ...validInput,
       name: "   ",
-      category: "",
+      categories: [],
       pickupInstructions: "  ",
     });
     expect(result.success).toBe(false);
-    expect(result.error?.issues.map((issue) => issue.path[0])).toEqual(["name", "category", "pickupInstructions"]);
+    expect(result.error?.issues.map((issue) => issue.path[0])).toEqual(["name", "categories", "pickupInstructions"]);
+  });
+
+  it("menerima sampai 3 kategori dan menolak yang ke-4", () => {
+    const three = ["Fashion", "Katering", "Kerajinan"];
+    expect(businessProfileSchema.safeParse({ ...validInput, categories: three }).success).toBe(true);
+    const result = businessProfileSchema.safeParse({ ...validInput, categories: [...three, "Merchandise"] });
+    expect(result.error?.issues[0]?.message).toBe("Pilih maksimal 3 kategori");
+  });
+
+  it("menolak kategori yang sama walau beda huruf besar atau spasi", () => {
+    const result = businessProfileSchema.safeParse({ ...validInput, categories: ["Fashion", " fashion "] });
+    expect(result.error?.issues[0]?.message).toBe("Kategori tidak boleh sama");
+  });
+
+  it("menolak kategori kosong dan yang terlalu panjang", () => {
+    expect(businessProfileSchema.safeParse({ ...validInput, categories: ["  "] }).error?.issues[0]?.message).toBe("Tulis kategori lainnya");
+    expect(businessProfileSchema.safeParse({ ...validInput, categories: ["a".repeat(81)] }).success).toBe(false);
   });
 
   it("menolak nama lebih dari 120 karakter", () => {

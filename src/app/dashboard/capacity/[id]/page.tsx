@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { site } from "@/config/site";
+import { BackLink } from "@/components/owner/back-link";
+import { Card } from "@/components/owner/card";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDateOnly, toWibDateTimeInput } from "@/lib/wib-time";
 import { requireBusinessOwner } from "@/features/business/guard";
@@ -24,14 +26,15 @@ export default async function EditCapacityPage({ params }: PageProps<"/dashboard
   const committedUnits = capacity.availability.allocated + capacity.availability.effectiveHeld;
 
   return (
-    <div className="flex max-w-lg flex-col gap-6">
+    <div className="flex max-w-lg flex-col gap-4">
+      <BackLink href="/dashboard/capacity" label="Kapasitas" />
       <div>
         <h1 className="text-2xl font-bold text-ink">Ubah kapasitas</h1>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-1 text-base text-muted">
           {capacity.productName} · {formatDateOnly(capacity.fulfillmentDate)}
         </p>
       </div>
-      <div className="rounded-2xl border border-line bg-surface p-6">
+      <Card>
         <CapacityForm
           action={updateCapacityAction}
           submitLabel="Simpan perubahan"
@@ -47,7 +50,7 @@ export default async function EditCapacityPage({ params }: PageProps<"/dashboard
             fulfillmentWindowEnd: toWibDateTimeInput(capacity.fulfillmentWindowEndAt),
           }}
         />
-      </div>
+      </Card>
     </div>
   );
 }

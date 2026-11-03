@@ -47,10 +47,10 @@ describe("isValidDateOnly", () => {
 
 describe("format tampilan", () => {
   it("menampilkan jam WIB", () => {
-    expect(formatWibDateTime("2026-11-07T10:00:00Z")).toMatch(/17\.00 WIB$/);
+    expect(formatWibDateTime("2026-11-07T07:30:00Z")).toBe("7 Nov 2026, 14.30 WIB");
   });
 
   it("hari tidak bergeser untuk kolom date", () => {
-    expect(formatDateOnly("2026-11-07")).toBe("Sabtu, 7 November 2026");
+    expect(formatDateOnly("2026-11-07")).toBe("Sabtu, 7 Nov");
   });
 });

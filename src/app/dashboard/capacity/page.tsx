@@ -1,79 +1,87 @@
 import type { Metadata } from "next";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { site } from "@/config/site";
+import { PRIMARY_BUTTON_CLASS, ROW_ACTION_CLASS } from "@/components/form-message";
+import { Badge } from "@/components/owner/badge";
+import { Card } from "@/components/owner/card";
+import { SavedToast } from "@/components/owner/saved-toast";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDateOnly, formatWibDateTime } from "@/lib/wib-time";
 import { requireBusinessOwner } from "@/features/business/guard";
+import { CapacityUsage } from "@/features/capacity/components/capacity-usage";
 import { listCapacities, type Capacity } from "@/features/capacity/repository";
 
 export const metadata: Metadata = { title: `Kapasitas Produksi — ${site.name}` };
 
-const ADD_LINK_CLASS =
-  "inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover";
-const EDIT_LINK_CLASS =
-  "rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink transition hover:bg-subtle";
+const SAVED_NOTICES = new Map<unknown, string>([
+  ["created", "Kapasitas ditambahkan."],
+  ["updated", "Perubahan kapasitas tersimpan."],
+]);
 
-function CapacityRow({ capacity }: { capacity: Capacity }) {
-  const { allocated, effectiveHeld, available } = capacity.availability;
+function CapacityRow({ capacity, now }: { capacity: Capacity; now: Date }) {
+  const isClosed = Date.parse(capacity.intakeCutoffAt) <= now.getTime();
 
   return (
-    <li className="flex flex-wrap items-center gap-4 p-4">
-      <div className="min-w-0 flex-1 basis-56">
-        <p className="text-sm font-semibold break-words text-ink">{capacity.productName}</p>
-        <p className="text-sm text-ink">{formatDateOnly(capacity.fulfillmentDate)}</p>
-        <p className="mt-1 text-xs text-muted">Batas pesan: {formatWibDateTime(capacity.intakeCutoffAt)}</p>
-        <p className="text-xs text-muted">Batas pengambilan: {formatWibDateTime(capacity.fulfillmentWindowEndAt)}</p>
+    <li className="flex flex-col gap-3 p-4 sm:px-6">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="flex flex-wrap items-center gap-2 text-base font-semibold break-words text-ink">
+            {capacity.productName}
+            {isClosed && <Badge tone="neutral">Batas pesan lewat</Badge>}
+          </p>
+          <p className="text-base text-ink">{formatDateOnly(capacity.fulfillmentDate)}</p>
+        </div>
+        <Link href={`/dashboard/capacity/${capacity.id}`} className={`shrink-0 ${ROW_ACTION_CLASS}`}>
+          Ubah
+        </Link>
       </div>
-      <dl className="flex gap-5 text-center">
-        <div>
-          <dt className="text-xs text-muted">Total</dt>
-          <dd className="text-sm font-semibold text-ink">{capacity.totalUnits}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted">Terpakai</dt>
-          <dd className="text-sm font-semibold text-ink">{allocated + effectiveHeld}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted">Sisa</dt>
-          <dd className="text-sm font-semibold text-ink">{available}</dd>
-        </div>
-      </dl>
-      <Link href={`/dashboard/capacity/${capacity.id}`} className={EDIT_LINK_CLASS}>
-        Ubah
-      </Link>
+      <CapacityUsage totalUnits={capacity.totalUnits} availability={capacity.availability} />
+      <div className="text-sm text-muted">
+        <p>Batas pesan: {formatWibDateTime(capacity.intakeCutoffAt)}</p>
+        <p>Batas pengambilan: {formatWibDateTime(capacity.fulfillmentWindowEndAt)}</p>
+      </div>
     </li>
   );
 }
 
-export default async function CapacityPage() {
+export default async function CapacityPage({ searchParams }: PageProps<"/dashboard/capacity">) {
   const { businessId } = await requireBusinessOwner();
   const supabase = await createSupabaseServerClient();
-  const capacities = await listCapacities(supabase, businessId);
+  const [capacities, { saved }] = await Promise.all([listCapacities(supabase, businessId), searchParams]);
+  const savedMessage = SAVED_NOTICES.get(saved);
+  const now = new Date();
 
   return (
     <div className="flex flex-col gap-6">
+      {savedMessage && <SavedToast message={savedMessage} />}
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+        <div className="max-w-[65ch]">
           <h1 className="text-2xl font-bold text-ink">Kapasitas produksi</h1>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-base text-muted">
             Jumlah yang sanggup dibuat per produk dan tanggal. Ini bukan jumlah penjualan.
           </p>
         </div>
-        <Link href="/dashboard/capacity/new" className={ADD_LINK_CLASS}>
+        <Link href="/dashboard/capacity/new" className={`gap-2 ${PRIMARY_BUTTON_CLASS}`}>
+          <Plus aria-hidden size={18} strokeWidth={1.5} />
           Tambah kapasitas
         </Link>
       </div>
 
       {capacities.length === 0 ? (
-        <p className="rounded-2xl border border-line bg-surface p-6 text-sm text-muted">
-          Belum ada kapasitas. Tentukan berapa unit yang sanggup dibuat pada tanggal tertentu.
-        </p>
+        <Card>
+          <p className="text-base text-muted">
+            Belum ada kapasitas. Tentukan berapa unit yang sanggup dibuat pada tanggal tertentu.
+          </p>
+        </Card>
       ) : (
-        <ul className="divide-y divide-line rounded-2xl border border-line bg-surface">
-          {capacities.map((capacity) => (
-            <CapacityRow key={capacity.id} capacity={capacity} />
-          ))}
-        </ul>
+        <Card padded={false}>
+          <ul className="divide-y divide-line">
+            {capacities.map((capacity) => (
+              <CapacityRow key={capacity.id} capacity={capacity} now={now} />
+            ))}
+          </ul>
+        </Card>
       )}
     </div>
   );

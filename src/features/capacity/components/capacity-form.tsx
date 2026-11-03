@@ -89,7 +89,7 @@ export function CapacityForm({ action, submitLabel, totalUnitsHint, initialValue
         errors={state.fieldErrors?.fulfillmentWindowEnd}
       />
       <button type="submit" className={PRIMARY_BUTTON_CLASS} disabled={isPending}>
-        {isPending ? "Menyimpan..." : submitLabel}
+        {isPending ? "Menyimpan…" : submitLabel}
       </button>
     </form>
   );

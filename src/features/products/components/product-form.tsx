@@ -108,9 +108,9 @@ export function ProductForm({ action, submitLabel, initialValues, existing }: Pr
               width={64}
               height={64}
               unoptimized
-              className="size-16 rounded-lg border border-line object-cover"
+              className="size-16 rounded-[10px] border border-line object-cover"
             />
-            <label className="flex items-center gap-2 text-sm text-ink">
+            <label className="flex min-h-11 items-center gap-2 text-base text-ink">
               <input type="checkbox" name="removePhoto" />
               Hapus foto ini
             </label>
@@ -156,7 +156,7 @@ export function ProductForm({ action, submitLabel, initialValues, existing }: Pr
         />
       )}
       <button type="submit" className={PRIMARY_BUTTON_CLASS} disabled={isPending}>
-        {isPending ? "Menyimpan..." : submitLabel}
+        {isPending ? "Menyimpan…" : submitLabel}
       </button>
     </form>
   );

@@ -4,7 +4,7 @@ import { useEffect, useRef, type InputHTMLAttributes, type ReactNode, type Selec
 
 // 16px di layar kecil agar iOS tidak auto-zoom saat fokus; `!` karena `input { font: inherit }` di globals.css mengalahkan utility biasa.
 const CONTROL_CLASS =
-  "min-h-11 w-full rounded-md border border-line bg-surface px-3 py-2 text-[16px]! text-ink transition sm:text-[15px]! focus:border-brand aria-[invalid=true]:border-[var(--owner-danger-fg)]";
+  "min-h-11 w-full rounded-md border border-line bg-surface px-3 py-2 text-[16px]! text-ink transition sm:text-[15px]! file:mr-3 file:rounded-md file:border-0 file:bg-subtle file:px-3 file:py-1 file:text-sm file:font-medium file:text-ink focus:border-brand aria-[invalid=true]:border-[var(--owner-danger-fg)]";
 
 type FieldBaseProps = {
   name: string;

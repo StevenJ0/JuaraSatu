@@ -57,7 +57,7 @@ export async function createProductAction(_previous: FormState, formData: FormDa
   }
 
   refreshProductPages();
-  redirect(PRODUCTS_PATH);
+  redirect(`${PRODUCTS_PATH}?saved=created`);
 }
 
 export async function updateProductAction(_previous: FormState, formData: FormData): Promise<FormState> {
@@ -95,7 +95,7 @@ export async function updateProductAction(_previous: FormState, formData: FormDa
   }
 
   refreshProductPages();
-  redirect(PRODUCTS_PATH);
+  redirect(`${PRODUCTS_PATH}?saved=updated`);
 }
 
 /** Produk dinonaktifkan, bukan dihapus, agar histori preorder dan order tetap utuh (schema §5.1). */

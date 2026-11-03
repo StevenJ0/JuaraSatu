@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { site } from "@/config/site";
+import { PRIMARY_BUTTON_CLASS } from "@/components/form-message";
+import { BackLink } from "@/components/owner/back-link";
+import { Card } from "@/components/owner/card";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireBusinessOwner } from "@/features/business/guard";
 import { createCapacityAction } from "@/features/capacity/actions";
@@ -18,17 +21,17 @@ export default async function NewCapacityPage() {
     .map((product) => ({ id: product.id, name: product.name }));
 
   return (
-    <div className="flex max-w-lg flex-col gap-6">
+    <div className="flex max-w-lg flex-col gap-4">
+      <BackLink href="/dashboard/capacity" label="Kapasitas" />
       <h1 className="text-2xl font-bold text-ink">Tambah kapasitas</h1>
-      <div className="rounded-2xl border border-line bg-surface p-6">
+      <Card>
         {activeProducts.length === 0 ? (
-          <p className="text-sm text-muted">
-            Belum ada produk aktif.{" "}
-            <Link href="/dashboard/products/new" className="font-medium text-brand hover:underline">
-              Tambah produk dulu
+          <div className="flex flex-col items-start gap-4">
+            <p className="text-base text-muted">Belum ada produk aktif. Tambahkan produk sebelum mengatur kapasitas.</p>
+            <Link href="/dashboard/products/new" className={PRIMARY_BUTTON_CLASS}>
+              Tambah produk
             </Link>
-            .
-          </p>
+          </div>
         ) : (
           <CapacityForm
             action={createCapacityAction}
@@ -37,7 +40,7 @@ export default async function NewCapacityPage() {
             products={activeProducts}
           />
         )}
-      </div>
+      </Card>
     </div>
   );
 }

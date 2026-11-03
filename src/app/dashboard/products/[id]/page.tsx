@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { site } from "@/config/site";
+import { BackLink } from "@/components/owner/back-link";
+import { Card } from "@/components/owner/card";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireBusinessOwner } from "@/features/business/guard";
 import { updateProductAction } from "@/features/products/actions";
@@ -21,9 +23,10 @@ export default async function EditProductPage({ params }: PageProps<"/dashboard/
   if (!product) notFound();
 
   return (
-    <div className="flex max-w-lg flex-col gap-6">
+    <div className="flex max-w-lg flex-col gap-4">
+      <BackLink href="/dashboard/products" label="Produk" />
       <h1 className="text-2xl font-bold text-ink">Ubah produk</h1>
-      <div className="rounded-2xl border border-line bg-surface p-6">
+      <Card>
         <ProductForm
           action={updateProductAction}
           submitLabel="Simpan perubahan"
@@ -36,7 +39,7 @@ export default async function EditProductPage({ params }: PageProps<"/dashboard/
             variableCost: product.variableCostIdr === null ? "" : String(product.variableCostIdr),
           }}
         />
-      </div>
+      </Card>
     </div>
   );
 }

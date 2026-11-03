@@ -18,6 +18,25 @@ export function summarizeCapacity(totalUnits: number, reservations: ReservationF
   return { allocated, effectiveHeld, available: totalUnits - allocated - effectiveHeld };
 }
 
+const NEARLY_FULL_RATIO = 0.9;
+
+/** Angka untuk progress kapasitas; lebar segmen dibatasi agar total tidak melebihi 100%. */
+export function describeCapacityUsage(
+  totalUnits: number,
+  { allocated, effectiveHeld }: Pick<CapacityAvailability, "allocated" | "effectiveHeld">,
+): { usedUnits: number; allocatedPercent: number; heldPercent: number; isNearlyFull: boolean } {
+  const usedUnits = allocated + effectiveHeld;
+  if (totalUnits <= 0) return { usedUnits, allocatedPercent: 0, heldPercent: 0, isNearlyFull: false };
+
+  const allocatedPercent = Math.min((allocated / totalUnits) * 100, 100);
+  return {
+    usedUnits,
+    allocatedPercent,
+    heldPercent: Math.min((effectiveHeld / totalUnits) * 100, 100 - allocatedPercent),
+    isNearlyFull: usedUnits / totalUnits >= NEARLY_FULL_RATIO,
+  };
+}
+
 type OpenCapacityFact = { intakeCutoffAt: string; availability: CapacityAvailability };
 
 /** Ringkasan jadwal yang batas pesannya belum lewat. Sisa minus (kapasitas diturunkan pihak lain) dihitung nol. */

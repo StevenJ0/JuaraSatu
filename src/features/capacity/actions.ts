@@ -69,7 +69,7 @@ export async function createCapacityAction(_previous: FormState, formData: FormD
   }
 
   refreshCapacityPages();
-  redirect(CAPACITY_PATH);
+  redirect(`${CAPACITY_PATH}?saved=created`);
 }
 
 export async function updateCapacityAction(_previous: FormState, formData: FormData): Promise<FormState> {
@@ -93,5 +93,5 @@ export async function updateCapacityAction(_previous: FormState, formData: FormD
   }
 
   refreshCapacityPages();
-  redirect(CAPACITY_PATH);
+  redirect(`${CAPACITY_PATH}?saved=updated`);
 }

@@ -1,5 +1,43 @@
 import { describe, expect, it } from "vitest";
-import { summarizeCapacity, summarizeOpenCapacities } from "@/features/capacity/availability";
+import { describeCapacityUsage, summarizeCapacity, summarizeOpenCapacities } from "@/features/capacity/availability";
+
+describe("describeCapacityUsage", () => {
+  it("menghitung lebar segmen terpesan dan ditahan", () => {
+    expect(describeCapacityUsage(40, { allocated: 10, effectiveHeld: 2 })).toEqual({
+      usedUnits: 12,
+      allocatedPercent: 25,
+      heldPercent: 5,
+      isNearlyFull: false,
+    });
+  });
+
+  it.each([
+    [36, true],
+    [35, false],
+    [40, true],
+  ])("%i dari 40 unit: hampir penuh %s", (used, expected) => {
+    expect(describeCapacityUsage(40, { allocated: used, effectiveHeld: 0 }).isNearlyFull).toBe(expected);
+  });
+
+  it("menghitung unit ditahan untuk status hampir penuh", () => {
+    expect(describeCapacityUsage(40, { allocated: 30, effectiveHeld: 6 }).isNearlyFull).toBe(true);
+  });
+
+  it("tidak melebihi 100% walau komitmen melebihi total", () => {
+    const usage = describeCapacityUsage(10, { allocated: 8, effectiveHeld: 5 });
+    expect(usage.allocatedPercent + usage.heldPercent).toBe(100);
+    expect(usage.usedUnits).toBe(13);
+  });
+
+  it("kapasitas nol tidak membagi dengan nol dan tidak dianggap hampir penuh", () => {
+    expect(describeCapacityUsage(0, { allocated: 0, effectiveHeld: 0 })).toEqual({
+      usedUnits: 0,
+      allocatedPercent: 0,
+      heldPercent: 0,
+      isNearlyFull: false,
+    });
+  });
+});
 
 describe("summarizeOpenCapacities", () => {
   const now = new Date("2026-11-03T00:00:00Z");

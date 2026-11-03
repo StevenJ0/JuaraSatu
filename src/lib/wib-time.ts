@@ -12,8 +12,7 @@ const DATE_TIME_FORMAT = new Intl.DateTimeFormat("id-ID", {
 const DATE_ONLY_FORMAT = new Intl.DateTimeFormat("id-ID", {
   weekday: "long",
   day: "numeric",
-  month: "long",
-  year: "numeric",
+  month: "short",
   timeZone: "UTC",
 });
 

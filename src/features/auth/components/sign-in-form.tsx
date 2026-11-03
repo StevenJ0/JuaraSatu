@@ -4,42 +4,55 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { TextField } from "@/components/form-field";
 import { FormMessage, PRIMARY_BUTTON_CLASS } from "@/components/form-message";
-import { initialFormState } from "@/lib/form-state";
+import { initialFormState, type FormState } from "@/lib/form-state";
 import { signInAction } from "@/features/auth/actions";
+import { ResendConfirmation } from "@/features/auth/components/resend-confirmation";
 
-export function SignInForm({ notice }: { notice?: string }) {
+export function SignInForm({ notice }: { notice?: FormState }) {
   const [state, formAction, isPending] = useActionState(signInAction, initialFormState);
+  const unverifiedEmail = state.code === "email_not_confirmed" ? state.values?.email : undefined;
 
   return (
-    <form action={formAction} className="flex flex-col gap-4" noValidate>
-      {notice && state.status === "idle" && <FormMessage state={{ status: "error", message: notice }} />}
+    <div className="flex flex-col gap-4">
+      {notice && state.status === "idle" && <FormMessage state={notice} />}
       <FormMessage state={state} />
-      <TextField
-        name="email"
-        label="Email"
-        type="email"
-        autoComplete="email"
-        required
-        defaultValue={state.values?.email}
-        errors={state.fieldErrors?.email}
-      />
-      <TextField
-        name="password"
-        label="Password"
-        type="password"
-        autoComplete="current-password"
-        required
-        errors={state.fieldErrors?.password}
-      />
-      <button type="submit" className={PRIMARY_BUTTON_CLASS} disabled={isPending}>
-        {isPending ? "Memproses..." : "Masuk"}
-      </button>
-      <p className="text-center text-sm text-muted">
-        Belum punya akun?{" "}
-        <Link href="/register" className="font-semibold text-brand underline decoration-line underline-offset-4 hover:decoration-current">
-          Daftar
-        </Link>
-      </p>
-    </form>
+      {unverifiedEmail && <ResendConfirmation key={unverifiedEmail} email={unverifiedEmail} />}
+      <form action={formAction} className="flex flex-col gap-4" noValidate>
+        <TextField
+          name="email"
+          label="Email"
+          type="email"
+          autoComplete="email"
+          required
+          defaultValue={state.values?.email}
+          errors={state.fieldErrors?.email}
+        />
+        <div className="flex flex-col gap-1.5">
+          <TextField
+            name="password"
+            label="Password"
+            type="password"
+            autoComplete="current-password"
+            required
+            errors={state.fieldErrors?.password}
+          />
+          <Link
+            href="/forgot-password"
+            className="self-end text-xs font-semibold text-brand underline decoration-line underline-offset-4 hover:decoration-current"
+          >
+            Lupa password?
+          </Link>
+        </div>
+        <button type="submit" className={PRIMARY_BUTTON_CLASS} disabled={isPending}>
+          {isPending ? "Memproses..." : "Masuk"}
+        </button>
+        <p className="text-center text-sm text-muted">
+          Belum punya akun?{" "}
+          <Link href="/register" className="font-semibold text-brand underline decoration-line underline-offset-4 hover:decoration-current">
+            Daftar
+          </Link>
+        </p>
+      </form>
+    </div>
   );
 }

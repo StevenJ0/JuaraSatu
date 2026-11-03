@@ -6,6 +6,7 @@ import { TextField } from "@/components/form-field";
 import { FormMessage, PRIMARY_BUTTON_CLASS } from "@/components/form-message";
 import { initialFormState } from "@/lib/form-state";
 import { signUpAction } from "@/features/auth/actions";
+import { ResendConfirmation } from "@/features/auth/components/resend-confirmation";
 
 export function SignUpForm() {
   const [state, formAction, isPending] = useActionState(signUpAction, initialFormState);
@@ -17,6 +18,7 @@ export function SignUpForm() {
         <Link href="/login" className={PRIMARY_BUTTON_CLASS}>
           Ke halaman masuk
         </Link>
+        {state.values?.email && <ResendConfirmation email={state.values.email} />}
       </div>
     );
   }

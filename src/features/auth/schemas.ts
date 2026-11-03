@@ -13,16 +13,26 @@ export const signInSchema = z.object({
   password: z.string().min(1, "Password wajib diisi"),
 });
 
+const passwordsMatch = (input: { password: string; confirmPassword: string }) =>
+  input.password === input.confirmPassword;
+const PASSWORD_MISMATCH = { message: "Konfirmasi password tidak sama", path: ["confirmPassword"] };
+
 export const signUpSchema = z
   .object({
     email: emailSchema,
     password: passwordSchema,
     confirmPassword: z.string(),
   })
-  .refine((input) => input.password === input.confirmPassword, {
-    message: "Konfirmasi password tidak sama",
-    path: ["confirmPassword"],
-  });
+  .refine(passwordsMatch, PASSWORD_MISMATCH);
+
+export const emailRequestSchema = z.object({ email: emailSchema });
+
+export const newPasswordSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine(passwordsMatch, PASSWORD_MISMATCH);
 
 export type SignInInput = z.infer<typeof signInSchema>;
 export type SignUpInput = z.infer<typeof signUpSchema>;

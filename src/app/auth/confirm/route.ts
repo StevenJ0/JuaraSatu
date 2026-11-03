@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { LOGIN_PATH } from "@/lib/supabase/proxy";
+import { resolveConfirmRedirect } from "@/features/auth/confirm-redirect";
 
 const EMAIL_OTP_TYPES: readonly EmailOtpType[] = ["signup", "invite", "magiclink", "recovery", "email_change", "email"];
 
@@ -10,9 +10,9 @@ function isEmailOtpType(value: string | null): value is EmailOtpType {
 }
 
 /**
- * Tujuan link konfirmasi email Supabase. Mendukung dua format:
- * - `?code=` (PKCE, template email bawaan Supabase)
- * - `?token_hash=&type=` (template email kustom yang direkomendasikan Supabase untuk SSR)
+ * Tujuan link verifikasi email dan reset password Supabase. Mendukung dua format:
+ * - `?code=` (PKCE, template email bawaan Supabase; hanya berhasil di browser yang memulai permintaan)
+ * - `?token_hash=&type=` (template di `supabase/templates`; bisa dibuka di browser/perangkat lain)
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -31,9 +31,5 @@ export async function GET(request: NextRequest) {
     confirmed = !error;
   }
 
-  const destination = request.nextUrl.clone();
-  destination.search = "";
-  destination.pathname = confirmed ? "/dashboard" : LOGIN_PATH;
-  if (!confirmed) destination.searchParams.set("error", "confirm_failed");
-  return NextResponse.redirect(destination);
+  return NextResponse.redirect(new URL(resolveConfirmRedirect(type, confirmed), request.nextUrl));
 }

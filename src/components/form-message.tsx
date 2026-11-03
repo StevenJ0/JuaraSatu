@@ -20,3 +20,6 @@ export function FormMessage({ state }: { state: FormState }) {
 // `!` diperlukan karena globals.css (`button { font: inherit }`, di luar layer) mengalahkan utility ukuran/ketebalan font.
 export const PRIMARY_BUTTON_CLASS =
   "inline-flex min-h-12 items-center justify-center rounded-lg bg-brand px-5 py-3 text-sm! font-semibold! text-on-brand transition-colors duration-150 hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60";
+
+export const SECONDARY_BUTTON_CLASS =
+  "inline-flex min-h-12 items-center justify-center rounded-lg border border-line bg-surface px-5 py-3 text-sm! font-semibold! text-ink transition-colors duration-150 hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-60";

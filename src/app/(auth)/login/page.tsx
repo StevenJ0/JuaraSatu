@@ -1,22 +1,30 @@
 import type { Metadata } from "next";
 import { site } from "@/config/site";
+import type { FormState } from "@/lib/form-state";
 import { SignInForm } from "@/features/auth/components/sign-in-form";
 
 export const metadata: Metadata = { title: `Masuk — ${site.name}` };
 
-const NOTICES: Record<string, string> = {
-  confirm_failed: "Link konfirmasi tidak valid atau sudah kedaluwarsa. Silakan masuk atau daftar ulang.",
-};
+const NOTICES = new Map<unknown, FormState>([
+  [
+    "confirm_failed",
+    {
+      status: "error",
+      message:
+        "Link verifikasi tidak valid, sudah dipakai, atau kedaluwarsa. Coba masuk; jika email belum terverifikasi, Anda bisa meminta link baru.",
+    },
+  ],
+  ["password_updated", { status: "success", message: "Password berhasil diubah. Silakan masuk dengan password baru." }],
+]);
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
-  const { error } = await searchParams;
-  const notice = typeof error === "string" ? NOTICES[error] : undefined;
+  const { notice } = await searchParams;
 
   return (
     <>
       <h1 className="mb-1 text-xl font-semibold text-ink">Masuk</h1>
       <p className="mb-6 text-sm text-muted">Kelola usaha dan preorder Anda.</p>
-      <SignInForm notice={notice} />
+      <SignInForm notice={NOTICES.get(notice)} />
     </>
   );
 }

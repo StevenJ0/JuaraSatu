@@ -2,6 +2,8 @@
 export type FormState = {
   status: "idle" | "error" | "success";
   message?: string;
+  /** Kode error mesin, untuk memilih langkah lanjutan di UI tanpa mencocokkan teks pesan. */
+  code?: string;
   fieldErrors?: Partial<Record<string, string[]>>;
   /** Nilai yang dikirim ulang agar input tidak kosong setelah gagal validasi. Jangan isi password. */
   values?: Record<string, string>;

@@ -1,8 +1,7 @@
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   invalid_credentials: "Email atau password salah.",
-  email_not_confirmed: "Email belum dikonfirmasi. Buka link konfirmasi yang dikirim ke email Anda.",
-  user_already_exists: "Email sudah terdaftar. Silakan masuk.",
-  email_exists: "Email sudah terdaftar. Silakan masuk.",
+  email_not_confirmed: "Email belum diverifikasi. Buka link verifikasi yang dikirim ke email Anda, atau kirim ulang di bawah.",
+  same_password: "Password baru harus berbeda dari password lama.",
   weak_password: "Password terlalu lemah. Gunakan kombinasi yang lebih kuat.",
   over_email_send_rate_limit: "Terlalu banyak email dikirim. Coba lagi beberapa saat lagi.",
   over_request_rate_limit: "Terlalu banyak percobaan. Coba lagi beberapa saat lagi.",

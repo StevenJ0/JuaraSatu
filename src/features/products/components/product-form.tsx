@@ -150,7 +150,7 @@ export function ProductForm({ action, submitLabel, initialValues, existing }: Pr
         <RupiahField
           name="variableCost"
           label="Biaya variabel per unit"
-          hint="Bahan dan kemasan per unit. Isi 0 hanya bila memang tanpa biaya."
+          hint="Biaya bahan, produksi, dan kemasan per unit. Isi 0 hanya bila memang tanpa biaya."
           defaultValue={values?.variableCost}
           errors={state.fieldErrors?.variableCost}
         />

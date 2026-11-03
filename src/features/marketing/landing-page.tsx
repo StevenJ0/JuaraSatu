@@ -1,7 +1,7 @@
 import { Brand } from "@/components/brand";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Icon } from "@/components/ui/icon";
-import { landingNavigation, site } from "@/config/site";
+import { authLinks, landingNavigation, site } from "@/config/site";
 import { MobileNavigation } from "./mobile-navigation";
 import { campaignContribution, campaignStartAvailable, campaignUnattributedUnits, demo, discountPercent, finalPaidUnits, initialAvailable, initialTargetGap, offerPrice, rupiah, unitContribution } from "./demo-data";
 import { OfferBreakdown, ProductPreview } from "./product-preview";
@@ -46,22 +46,25 @@ export function LandingPage() {
           <nav className={styles.desktopNav} aria-label="Navigasi utama">
             {landingNavigation.map((item) => <a href={item.href} key={item.href}>{item.label}</a>)}
           </nav>
-          <ButtonLink className={styles.headerCta} href="#contoh-penggunaan">Lihat contoh alur<Icon name="arrow-up-right" /></ButtonLink>
+          <div className={styles.authActions}>
+            <ButtonLink variant="secondary" href={authLinks.signIn.href}>{authLinks.signIn.label}</ButtonLink>
+            <ButtonLink className={styles.signUpAction} href={authLinks.signUp.href}>{authLinks.signUp.label}</ButtonLink>
+          </div>
           <MobileNavigation />
         </div>
       </header>
       <main id="konten-utama" tabIndex={-1}>
         <section className={`ui-container ${styles.hero}`} aria-labelledby="hero-title">
           <div className={styles.heroCopy}>
-            <p className={styles.audience}><span aria-hidden="true" />Untuk UMKM produk standar berbasis preorder</p>
+            <p className={styles.audience}><span aria-hidden="true" />Untuk UMKM berbasis preorder, dari makanan sampai fashion</p>
             <h1 id="hero-title">Buka preorder. Promosi saat perlu.</h1>
             <p className={styles.heroLead}>Pesanan tertata. Promosi punya arah.</p>
             <p className={styles.heroDescription}>{site.name} menghubungkan kuota, pesanan, dan pembayaran. Saat ingin menambah penjualan, rencanakan promosi sesuai biaya dan slot yang tersedia.</p>
             <div className={styles.heroActions}>
-              <ButtonLink href="#contoh-penggunaan">Lihat contoh penggunaan<Icon name="arrow-right" /></ButtonLink>
-              <a className={styles.textLink} href="#cara-kerja">Pelajari cara kerja</a>
+              <ButtonLink href={authLinks.signUp.href}>Daftar sekarang<Icon name="arrow-right" /></ButtonLink>
+              <a className={styles.textLink} href="#contoh-penggunaan">Lihat contoh penggunaan</a>
             </div>
-            <p className={styles.previewNotice}>Pratinjau dengan data sintetis. Fitur operasional belum terhubung.</p>
+            <p className={styles.previewNotice}>Pratinjau memakai data sintetis. Pemesanan, pembayaran, dan AI masih dikembangkan.</p>
           </div>
           <ProductPreview />
         </section>
@@ -70,7 +73,7 @@ export function LandingPage() {
           <div className="ui-container">
             <div className={styles.sectionIntro}>
               <div><p className={styles.sectionLabel}>Masalah yang ingin dibantu</p><h2 id="problem-title">Dari pesanan masuk,<br />sampai keputusan berikutnya.</h2></div>
-              <p>Untuk usaha kaos, merchandise, dan produk standar lainnya, pesanan, kuota, serta promosi perlu bertemu dalam catatan yang sama.</p>
+              <p>Untuk usaha makanan, fashion, kerajinan, dan bidang lainnya, pesanan, kuota, serta promosi perlu bertemu dalam catatan yang sama.</p>
             </div>
             <div className={styles.problemColumns}>
               {problems.map((problem) => (
@@ -136,13 +139,13 @@ export function LandingPage() {
         <section className={styles.closing} aria-labelledby="closing-title">
           <div className={`ui-container ${styles.closingInner}`}>
             <div><p className={styles.closingLabel}>Buka preorder. Rencanakan promosi. Pahami hasilnya.</p><h2 id="closing-title">Mulai dari preorder<br />yang bisa kamu kelola.</h2><p>Lihat bagaimana pesanan, biaya, dan slot tersedia memberi arah pada keputusan promosi berikutnya.</p></div>
-            <div className={styles.closingAction}><ButtonLink variant="inverse" href="#contoh-penggunaan">Lihat contoh penggunaan<Icon name="arrow-up-right" /></ButtonLink><span>Pratinjau berlabel data sintetis.</span></div>
+            <div className={styles.closingAction}><ButtonLink variant="inverse" href={authLinks.signUp.href}>Daftar sekarang<Icon name="arrow-up-right" /></ButtonLink><span>Contoh di halaman ini memakai data sintetis.</span></div>
           </div>
         </section>
       </main>
       <footer className={`ui-container ${styles.footer}`}>
-        <div className={styles.footerTop}><Brand /><p>Rancangan platform preorder untuk UMKM produk standar.<br />Dikembangkan untuk GTNIC 2026, Web Development.</p><a className={styles.textLink} href="#beranda">Kembali ke atas<Icon name="arrow-up-right" /></a></div>
-        <div className={styles.footerNote}><p><strong>Pembayaran demo direncanakan melalui satu akun Midtrans Sandbox tim, tanpa uang nyata.</strong> Halaman ini belum terhubung ke database, AI, pemesanan, pembayaran, atau email.</p><span>{site.name} · pratinjau pengembangan</span></div>
+        <div className={styles.footerTop}><Brand /><p>Rancangan platform preorder untuk UMKM dari berbagai bidang.<br />Dikembangkan untuk GTNIC 2026, Web Development.</p><a className={styles.textLink} href="#beranda">Kembali ke atas<Icon name="arrow-up-right" /></a></div>
+        <div className={styles.footerNote}><p><strong>Pembayaran demo direncanakan melalui satu akun Midtrans Sandbox tim, tanpa uang nyata.</strong> Pendaftaran, profil usaha, produk, dan kapasitas sudah berjalan; pemesanan, pembayaran, AI, dan email masih dikembangkan.</p><span>{site.name} · pratinjau pengembangan</span></div>
       </footer>
     </div>
   );

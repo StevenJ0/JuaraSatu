@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { site } from "@/config/site";
 import { SignUpForm } from "@/features/auth/components/sign-up-form";
 
-export const metadata: Metadata = { title: `Daftar — ${site.name}` };
+export const metadata: Metadata = { title: `Daftar | ${site.name}` };
 
 export default function RegisterPage() {
   return (

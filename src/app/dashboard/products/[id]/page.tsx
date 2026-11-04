@@ -10,7 +10,7 @@ import { updateProductAction } from "@/features/products/actions";
 import { ProductForm } from "@/features/products/components/product-form";
 import { findProduct } from "@/features/products/repository";
 
-export const metadata: Metadata = { title: `Ubah Produk — ${site.name}` };
+export const metadata: Metadata = { title: `Ubah Produk | ${site.name}` };
 
 export default async function EditProductPage({ params }: PageProps<"/dashboard/products/[id]">) {
   const { id } = await params;

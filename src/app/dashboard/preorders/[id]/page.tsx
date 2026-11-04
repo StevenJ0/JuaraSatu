@@ -21,7 +21,7 @@ import { PreorderTransition } from "@/features/preorders/components/preorder-tra
 import { findPreorder, type Preorder } from "@/features/preorders/repository";
 import { findProduct, type Product } from "@/features/products/repository";
 
-export const metadata: Metadata = { title: `Detail Preorder — ${site.name}` };
+export const metadata: Metadata = { title: `Detail Preorder | ${site.name}` };
 
 const SAVED_NOTICES = new Map<unknown, string>([
   ["created", "Draf preorder tersimpan."],

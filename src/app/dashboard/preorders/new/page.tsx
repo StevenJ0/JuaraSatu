@@ -10,7 +10,7 @@ import { createPreorderAction } from "@/features/preorders/actions";
 import { listPreorderCapacityOptions } from "@/features/preorders/capacity-options";
 import { PreorderForm } from "@/features/preorders/components/preorder-form";
 
-export const metadata: Metadata = { title: `Buat Preorder — ${site.name}` };
+export const metadata: Metadata = { title: `Buat Preorder | ${site.name}` };
 
 export default async function NewPreorderPage() {
   const { businessId } = await requireBusinessOwner();

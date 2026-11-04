@@ -11,7 +11,7 @@ import { updateCapacityAction } from "@/features/capacity/actions";
 import { CapacityForm } from "@/features/capacity/components/capacity-form";
 import { findCapacity } from "@/features/capacity/repository";
 
-export const metadata: Metadata = { title: `Ubah Kapasitas — ${site.name}` };
+export const metadata: Metadata = { title: `Ubah Kapasitas | ${site.name}` };
 
 export default async function EditCapacityPage({ params }: PageProps<"/dashboard/capacity/[id]">) {
   const { id } = await params;
@@ -43,11 +43,11 @@ export default async function EditCapacityPage({ params }: PageProps<"/dashboard
               ? `Sudah dipesan ${committedUnits} unit, jadi tidak bisa lebih kecil dari itu.`
               : "Belum ada pesanan. Isi 0 bila tidak berproduksi pada tanggal ini."
           }
-          existing={{ capacityId: capacity.id, version: capacity.version }}
+          existing={{ capacityId: capacity.id, version: capacity.version, fulfillmentDate: capacity.fulfillmentDate }}
           initialValues={{
             totalUnits: String(capacity.totalUnits),
             intakeCutoff: toWibDateTimeInput(capacity.intakeCutoffAt),
-            fulfillmentWindowEnd: toWibDateTimeInput(capacity.fulfillmentWindowEndAt),
+            fulfillmentWindowEndTime: toWibDateTimeInput(capacity.fulfillmentWindowEndAt).slice(11),
           }}
         />
       </Card>

@@ -12,7 +12,7 @@ import { CapacityUsage } from "@/features/capacity/components/capacity-usage";
 import { PreorderStatusBadge } from "@/features/preorders/components/preorder-status-badge";
 import { listPreorders, type Preorder } from "@/features/preorders/repository";
 
-export const metadata: Metadata = { title: `Preorder — ${site.name}` };
+export const metadata: Metadata = { title: `Preorder | ${site.name}` };
 
 function PreorderRow({ preorder }: { preorder: Preorder }) {
   return (

@@ -1,5 +1,7 @@
+import type { Metadata } from "next";
 import { Circle, CircleCheck } from "lucide-react";
 import Link from "next/link";
+import { site } from "@/config/site";
 import { PRIMARY_BUTTON_CLASS } from "@/components/form-message";
 import { Badge } from "@/components/owner/badge";
 import { Card } from "@/components/owner/card";
@@ -9,6 +11,8 @@ import { getCurrentBusinessProfile } from "@/features/business/guard";
 import { summarizeOpenCapacities } from "@/features/capacity/availability";
 import { listCapacities } from "@/features/capacity/repository";
 import { countActiveProducts } from "@/features/products/repository";
+
+export const metadata: Metadata = { title: `Ringkasan | ${site.name}` };
 
 type SetupStep = { label: string; done: boolean; href: string; nextAction?: string };
 

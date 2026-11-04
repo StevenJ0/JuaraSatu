@@ -1,16 +1,19 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { SelectField, TextField } from "@/components/form-field";
+import { SelectField, TextField, UnitsField } from "@/components/form-field";
 import { FormMessage, PRIMARY_BUTTON_CLASS } from "@/components/form-message";
 import { initialFormState, type FormState } from "@/lib/form-state";
 import { submitWithoutReset } from "@/lib/submit-without-reset";
+import { formatWibDateTime, parseWibDateTime, toWibDateTimeInput } from "@/lib/wib-time";
 
 export type PreorderCapacityOption = {
   id: string;
   label: string;
   priceLabel: string;
   cutoffLabel: string;
+  /** Batas pesan dalam format kolom waktu, untuk isian otomatis dan batas atas. */
+  cutoffInput: string;
   availableUnits: number;
 };
 
@@ -32,11 +35,30 @@ type PreorderFormProps = {
   existing?: { preorderId: string; version: number };
 };
 
+function describePreorderWindow(startsAt: string, endsAt: string): string | null {
+  const start = parseWibDateTime(startsAt);
+  const end = parseWibDateTime(endsAt);
+  return start && end ? `Pembeli bisa memesan dari ${formatWibDateTime(start)} sampai ${formatWibDateTime(end)}.` : null;
+}
+
 export function PreorderForm({ action, submitLabel, capacityOptions, initialValues, existing }: PreorderFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialFormState);
   const values = state.values ?? initialValues;
-  const [capacityId, setCapacityId] = useState(values?.capacityId ?? "");
+  const [capacityId, setCapacityId] = useState(initialValues?.capacityId ?? "");
+  const [startsAt, setStartsAt] = useState(initialValues?.startsAt ?? "");
+  const [endsAt, setEndsAt] = useState(initialValues?.endsAt ?? "");
+  // Saran jadwal hanya mengisi kolom yang belum disentuh, agar isian pemilik tidak tertimpa saat jadwal produksi diganti.
+  const [hasEditedEndsAt, setHasEditedEndsAt] = useState(Boolean(initialValues));
   const selected = capacityOptions.find((option) => option.id === capacityId);
+  const windowSummary = describePreorderWindow(startsAt, endsAt);
+
+  function handleCapacityChange(value: string) {
+    setCapacityId(value);
+    const option = capacityOptions.find((candidate) => candidate.id === value);
+    if (!option) return;
+    if (!hasEditedEndsAt) setEndsAt(option.cutoffInput);
+    if (!startsAt) setStartsAt(toWibDateTimeInput(new Date().toISOString()));
+  }
 
   return (
     <form action={formAction} onSubmit={submitWithoutReset(formAction)} className="flex flex-col gap-4" noValidate>
@@ -61,7 +83,7 @@ export function PreorderForm({ action, submitLabel, capacityOptions, initialValu
         label="Produk dan tanggal pengambilan"
         required
         value={capacityId}
-        onChange={(event) => setCapacityId(event.target.value)}
+        onChange={(event) => handleCapacityChange(event.target.value)}
         hint={
           selected
             ? `Harga ${selected.priceLabel} · sisa kapasitas ${selected.availableUnits} unit · batas pesan ${selected.cutoffLabel}`
@@ -77,20 +99,18 @@ export function PreorderForm({ action, submitLabel, capacityOptions, initialValu
         ))}
       </SelectField>
       <div className="grid gap-4 sm:grid-cols-2">
-        <TextField
+        <UnitsField
           name="targetUnits"
           label="Target penjualan (unit)"
           required
-          inputMode="numeric"
           hint="Bukan syarat produksi. Tidak tercapai pun pesanan tetap berjalan."
           defaultValue={values?.targetUnits}
           errors={state.fieldErrors?.targetUnits}
         />
-        <TextField
+        <UnitsField
           name="quotaUnits"
           label="Kuota (unit)"
           required
-          inputMode="numeric"
           hint="Batas pesanan. Minimal sama dengan target dan tidak melebihi sisa kapasitas saat diterbitkan."
           defaultValue={values?.quotaUnits}
           errors={state.fieldErrors?.quotaUnits}
@@ -102,7 +122,9 @@ export function PreorderForm({ action, submitLabel, capacityOptions, initialValu
           label="Mulai dibuka (WIB)"
           type="datetime-local"
           required
-          defaultValue={values?.startsAt}
+          hint="Terisi otomatis dan bisa diubah."
+          value={startsAt}
+          onChange={(event) => setStartsAt(event.target.value)}
           errors={state.fieldErrors?.startsAt}
         />
         <TextField
@@ -110,11 +132,17 @@ export function PreorderForm({ action, submitLabel, capacityOptions, initialValu
           label="Ditutup (WIB)"
           type="datetime-local"
           required
+          max={selected?.cutoffInput}
           hint="Tidak boleh melewati batas pesan jadwal produksi."
-          defaultValue={values?.endsAt}
+          value={endsAt}
+          onChange={(event) => {
+            setHasEditedEndsAt(true);
+            setEndsAt(event.target.value);
+          }}
           errors={state.fieldErrors?.endsAt}
         />
       </div>
+      {windowSummary && <p className="rounded-[10px] bg-[var(--owner-highlight)] px-3 py-2 text-base text-ink">{windowSummary}</p>}
       <button type="submit" className={PRIMARY_BUTTON_CLASS} disabled={isPending}>
         {isPending ? "Menyimpan…" : submitLabel}
       </button>

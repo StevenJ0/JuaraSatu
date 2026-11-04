@@ -5,7 +5,7 @@ import { getCurrentBusinessProfile } from "@/features/business/guard";
 import { updateBusinessAction } from "@/features/business/actions";
 import { BusinessProfileForm } from "@/features/business/components/business-profile-form";
 
-export const metadata: Metadata = { title: `Profil Usaha — ${site.name}` };
+export const metadata: Metadata = { title: `Profil Usaha | ${site.name}` };
 
 export default async function BusinessProfilePage() {
   const business = await getCurrentBusinessProfile();

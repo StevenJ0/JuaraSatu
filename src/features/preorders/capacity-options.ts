@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatIdr } from "@/lib/format-idr";
-import { formatDateOnly, formatWibDateTime } from "@/lib/wib-time";
+import { formatDateOnly, formatWibDateTime, toWibDateTimeInput } from "@/lib/wib-time";
 import { listCapacities } from "@/features/capacity/repository";
 import { listProducts } from "@/features/products/repository";
 import type { PreorderCapacityOption } from "@/features/preorders/components/preorder-form";
@@ -26,6 +26,7 @@ export async function listPreorderCapacityOptions(
         label: `${capacity.productName} · ${formatDateOnly(capacity.fulfillmentDate)}`,
         priceLabel: product ? formatIdr(product.basePriceIdr) : "produk nonaktif",
         cutoffLabel: formatWibDateTime(capacity.intakeCutoffAt),
+        cutoffInput: toWibDateTimeInput(capacity.intakeCutoffAt),
         availableUnits: capacity.availability.available,
       },
     ];

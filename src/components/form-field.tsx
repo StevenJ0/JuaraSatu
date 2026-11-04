@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { sanitizeUnitsInput } from "@/lib/units-input";
 
 // 16px di layar kecil agar iOS tidak auto-zoom saat fokus; `!` karena `input { font: inherit }` di globals.css mengalahkan utility biasa.
 const CONTROL_CLASS =
@@ -55,6 +56,22 @@ export function TextField({ name, label, errors, hint, ...inputProps }: TextFiel
     <FieldShell {...field}>
       <input {...inputProps} {...controlProps(field)} />
     </FieldShell>
+  );
+}
+
+type UnitsFieldProps = FieldBaseProps & { required?: boolean; defaultValue?: string };
+
+/** Kolom jumlah unit: huruf dan tanda lain langsung dibuang saat diketik atau ditempel. */
+export function UnitsField({ defaultValue, ...fieldProps }: UnitsFieldProps) {
+  const [units, setUnits] = useState(sanitizeUnitsInput(defaultValue ?? ""));
+  return (
+    <TextField
+      {...fieldProps}
+      inputMode="numeric"
+      autoComplete="off"
+      value={units}
+      onChange={(event) => setUnits(sanitizeUnitsInput(event.target.value))}
+    />
   );
 }
 

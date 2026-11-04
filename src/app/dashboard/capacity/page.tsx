@@ -12,7 +12,7 @@ import { requireBusinessOwner } from "@/features/business/guard";
 import { CapacityUsage } from "@/features/capacity/components/capacity-usage";
 import { listCapacities, type Capacity } from "@/features/capacity/repository";
 
-export const metadata: Metadata = { title: `Kapasitas Produksi — ${site.name}` };
+export const metadata: Metadata = { title: `Kapasitas Produksi | ${site.name}` };
 
 const SAVED_NOTICES = new Map<unknown, string>([
   ["created", "Kapasitas ditambahkan."],

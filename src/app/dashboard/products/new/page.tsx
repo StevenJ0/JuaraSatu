@@ -6,7 +6,7 @@ import { requireBusinessOwner } from "@/features/business/guard";
 import { createProductAction } from "@/features/products/actions";
 import { ProductForm } from "@/features/products/components/product-form";
 
-export const metadata: Metadata = { title: `Tambah Produk — ${site.name}` };
+export const metadata: Metadata = { title: `Tambah Produk | ${site.name}` };
 
 export default async function NewProductPage() {
   await requireBusinessOwner();

@@ -52,8 +52,9 @@ export const capacityCreateSchema = z
 export type CapacityScheduleInput = z.output<typeof capacityScheduleSchema>;
 export type CapacityCreateInput = z.output<typeof capacityCreateSchema>;
 
-export const CAPACITY_SCHEDULE_FIELDS = ["totalUnits", "intakeCutoff", "fulfillmentWindowEnd"] as const;
-export const CAPACITY_CREATE_FIELDS = ["productId", "fulfillmentDate", ...CAPACITY_SCHEDULE_FIELDS] as const;
+/** Nama kolom form. `fulfillmentWindowEnd` untuk skema dibentuk di server dari tanggal dan jam ini. */
+export const CAPACITY_SCHEDULE_FIELDS = ["fulfillmentDate", "totalUnits", "intakeCutoff", "fulfillmentWindowEndTime"] as const;
+export const CAPACITY_CREATE_FIELDS = ["productId", ...CAPACITY_SCHEDULE_FIELDS] as const;
 
 export const capacityRefSchema = z.object({
   capacityId: z.uuid(),

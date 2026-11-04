@@ -3,7 +3,7 @@ import { site } from "@/config/site";
 import type { FormState } from "@/lib/form-state";
 import { SignInForm } from "@/features/auth/components/sign-in-form";
 
-export const metadata: Metadata = { title: `Masuk — ${site.name}` };
+export const metadata: Metadata = { title: `Masuk | ${site.name}` };
 
 const NOTICES = new Map<unknown, FormState>([
   [
@@ -11,7 +11,7 @@ const NOTICES = new Map<unknown, FormState>([
     {
       status: "error",
       message:
-        "Link verifikasi tidak valid, sudah dipakai, atau kedaluwarsa. Coba masuk; jika email belum terverifikasi, Anda bisa meminta link baru.",
+        "Link verifikasi tidak valid, sudah dipakai, atau kedaluwarsa. Coba masuk. Jika email belum terverifikasi, Anda bisa meminta link baru.",
     },
   ],
   ["password_updated", { status: "success", message: "Password berhasil diubah. Silakan masuk dengan password baru." }],

@@ -14,6 +14,7 @@ import {
   capacityScheduleSchema,
 } from "@/features/capacity/schemas";
 import { CapacityRepositoryError } from "@/features/capacity/repository";
+import { combineWindowEnd } from "@/features/capacity/schedule-form";
 import {
   changeCapacitySchedule,
   createCapacity,
@@ -46,6 +47,10 @@ function logRepositoryFailure(context: string, error: unknown): void {
   console.error(`[capacity] ${context} gagal`, { code });
 }
 
+function withWindowEnd<Fields extends { fulfillmentDate: string; fulfillmentWindowEndTime: string }>(fields: Fields) {
+  return { ...fields, fulfillmentWindowEnd: combineWindowEnd(fields.fulfillmentDate, fields.fulfillmentWindowEndTime) };
+}
+
 function refreshCapacityPages(): void {
   // Layout dashboard ikut diperbarui karena checklist Ringkasan bergantung pada kapasitas.
   revalidatePath("/dashboard", "layout");
@@ -54,7 +59,7 @@ function refreshCapacityPages(): void {
 export async function createCapacityAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const { businessId } = await requireBusinessOwner();
   const fields = readTextFields(formData, CAPACITY_CREATE_FIELDS);
-  const parsed = capacityCreateSchema.safeParse(fields);
+  const parsed = capacityCreateSchema.safeParse(withWindowEnd(fields));
   if (!parsed.success) {
     return { status: "error", fieldErrors: z.flattenError(parsed.error).fieldErrors, values: fields };
   }
@@ -78,7 +83,8 @@ export async function updateCapacityAction(_previous: FormState, formData: FormD
   const ref = capacityRefSchema.safeParse(readTextFields(formData, ["capacityId", "version"]));
   if (!ref.success) return { status: "error", message: SAVE_FAILED_MESSAGE, values: fields };
 
-  const parsed = capacityScheduleSchema.safeParse(fields);
+  // Tanggal dari form hanya membentuk nilai; service membandingkannya dengan tanggal kapasitas yang tersimpan.
+  const parsed = capacityScheduleSchema.safeParse(withWindowEnd(fields));
   if (!parsed.success) {
     return { status: "error", fieldErrors: z.flattenError(parsed.error).fieldErrors, values: fields };
   }

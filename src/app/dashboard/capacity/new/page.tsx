@@ -5,12 +5,13 @@ import { PRIMARY_BUTTON_CLASS } from "@/components/form-message";
 import { BackLink } from "@/components/owner/back-link";
 import { Card } from "@/components/owner/card";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { wibDateOf } from "@/lib/wib-time";
 import { requireBusinessOwner } from "@/features/business/guard";
 import { createCapacityAction } from "@/features/capacity/actions";
 import { CapacityForm } from "@/features/capacity/components/capacity-form";
 import { listProducts } from "@/features/products/repository";
 
-export const metadata: Metadata = { title: `Tambah Kapasitas — ${site.name}` };
+export const metadata: Metadata = { title: `Tambah Kapasitas | ${site.name}` };
 
 export default async function NewCapacityPage() {
   const { businessId } = await requireBusinessOwner();
@@ -38,6 +39,7 @@ export default async function NewCapacityPage() {
             submitLabel="Simpan kapasitas"
             totalUnitsHint="Isi 0 bila tidak berproduksi pada tanggal ini."
             products={activeProducts}
+            minDate={wibDateOf(new Date().toISOString())}
           />
         )}
       </Card>

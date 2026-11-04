@@ -13,7 +13,7 @@ import { requireBusinessOwner } from "@/features/business/guard";
 import { setProductActiveAction } from "@/features/products/actions";
 import { listProducts, type Product } from "@/features/products/repository";
 
-export const metadata: Metadata = { title: `Produk — ${site.name}` };
+export const metadata: Metadata = { title: `Produk | ${site.name}` };
 
 const SAVED_NOTICES = new Map<unknown, string>([
   ["created", "Produk ditambahkan."],

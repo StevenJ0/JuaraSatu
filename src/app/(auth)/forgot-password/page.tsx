@@ -3,7 +3,7 @@ import { site } from "@/config/site";
 import type { FormState } from "@/lib/form-state";
 import { ForgotPasswordForm } from "@/features/auth/components/forgot-password-form";
 
-export const metadata: Metadata = { title: `Lupa Password — ${site.name}` };
+export const metadata: Metadata = { title: `Lupa Password | ${site.name}` };
 
 const NOTICES = new Map<unknown, FormState>([
   [

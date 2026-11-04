@@ -6,7 +6,7 @@ import { AuthShell } from "@/features/auth/components/auth-shell";
 import { ResetPasswordForm } from "@/features/auth/components/reset-password-form";
 import { getCurrentUserId } from "@/features/auth/session";
 
-export const metadata: Metadata = { title: `Password Baru — ${site.name}` };
+export const metadata: Metadata = { title: `Password Baru | ${site.name}` };
 
 // Di luar grup (auth): link reset memberi session, sedangkan layout grup itu mengalihkan user ber-session ke dashboard.
 export default async function ResetPasswordPage() {

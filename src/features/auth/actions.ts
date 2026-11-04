@@ -108,7 +108,7 @@ export async function resendConfirmationAction(_previous: FormState, formData: F
   return toEmailRequestState(
     error,
     parsed.data.email,
-    "Jika akun ini belum terverifikasi, link baru sudah dikirim. Periksa folder spam; bila belum ada, coba lagi beberapa menit lagi.",
+    "Jika akun ini belum terverifikasi, link baru sudah dikirim. Periksa folder spam. Bila belum ada, coba lagi beberapa menit lagi.",
   );
 }
 
@@ -133,7 +133,7 @@ export async function requestPasswordResetAction(_previous: FormState, formData:
   return toEmailRequestState(
     error,
     parsed.data.email,
-    "Jika email ini terdaftar, link untuk membuat password baru sudah dikirim. Periksa folder spam; bila belum ada, coba lagi beberapa menit lagi.",
+    "Jika email ini terdaftar, link untuk membuat password baru sudah dikirim. Periksa folder spam. Bila belum ada, coba lagi beberapa menit lagi.",
   );
 }
 

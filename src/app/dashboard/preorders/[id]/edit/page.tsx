@@ -12,7 +12,7 @@ import { listPreorderCapacityOptions } from "@/features/preorders/capacity-optio
 import { PreorderForm } from "@/features/preorders/components/preorder-form";
 import { findPreorder } from "@/features/preorders/repository";
 
-export const metadata: Metadata = { title: `Ubah Preorder — ${site.name}` };
+export const metadata: Metadata = { title: `Ubah Preorder | ${site.name}` };
 
 export default async function EditPreorderPage({ params }: PageProps<"/dashboard/preorders/[id]/edit">) {
   const { id } = await params;

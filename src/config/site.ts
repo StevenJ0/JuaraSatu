@@ -1,18 +1,13 @@
 /** Working product identity; no domain or trademark availability claim. */
 export const site = {
   name: "Campaign Lab",
-  title: "Campaign Lab — Buka preorder. Rencanakan promosi. Pahami hasilnya.",
+  title: "Campaign Lab — Preorder sesuai kapasitas usahamu",
   description:
-    "Pratinjau platform preorder untuk UMKM dari berbagai bidang, mulai makanan, fashion, hingga kerajinan. Kelola kuota dan pesanan, rencanakan promosi sesuai biaya, lalu pahami hasil preorder dan kampanye secara terpisah.",
+    "Kenali Campaign Lab, platform preorder untuk usaha produk standar. Lihat kapasitas tersedia, tinjau penawaran berdasarkan biaya, dan pisahkan hasil preorder dari hasil promosi. Pratinjau dengan data contoh.",
 };
 
-export const authLinks = {
-  signIn: { href: "/login", label: "Masuk" },
-  signUp: { href: "/register", label: "Daftar" },
-} as const;
-
 export const landingNavigation = [
-  { href: "#cara-kerja", label: "Cara kerja" },
-  { href: "#contoh-penggunaan", label: "Contoh penggunaan" },
-  { href: "#contoh-hasil", label: "Dua laporan" },
+  { href: "#contoh-penggunaan", label: "Preorder" },
+  { href: "#cara-kerja", label: "Penawaran" },
+  { href: "#contoh-hasil", label: "Hasil" },
 ] as const;

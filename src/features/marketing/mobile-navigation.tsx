@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { authLinks, landingNavigation } from "@/config/site";
+import { landingNavigation } from "@/config/site";
 import styles from "./landing.module.css";
 
 /** Native disclosure works without hydration; JavaScript adds Escape/outside close. */
@@ -23,7 +23,9 @@ export function MobileNavigation() {
   }
 
   return (
-    <details className={styles.mobileMenu} ref={menu} onKeyDown={(event) => {
+    <details className={styles.mobileMenu} ref={menu} onBlur={(event) => {
+      if (event.relatedTarget instanceof Node && !event.currentTarget.contains(event.relatedTarget)) closeMenu();
+    }} onKeyDown={(event) => {
       if (event.key === "Escape") {
         closeMenu();
         menu.current?.querySelector("summary")?.focus();
@@ -37,8 +39,7 @@ export function MobileNavigation() {
         {landingNavigation.map((item) => (
           <a key={item.href} href={item.href} onClick={closeMenu}>{item.label}</a>
         ))}
-        <a href={authLinks.signIn.href} onClick={closeMenu}>{authLinks.signIn.label}</a>
-        <a href={authLinks.signUp.href} onClick={closeMenu}>{authLinks.signUp.label}</a>
+        <a href="#contoh-penggunaan" onClick={closeMenu}>Lihat contoh preorder</a>
       </nav>
     </details>
   );

@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import type { ReservationFact } from "@/features/capacity/availability";
-import { summarizePreorder, type PreorderMetrics } from "@/features/preorders/metrics";
+import { summarizePreorder, type PreorderMetrics, type PreorderReservationFact } from "@/features/preorders/metrics";
 import type { PreorderInput } from "@/features/preorders/schemas";
 
 const UNIQUE_VIOLATION = "23505";
@@ -54,6 +54,7 @@ const reservationRowSchema = z.object({
   state: z.enum(["held", "allocated", "released"]),
   expires_at: z.string().nullable(),
   preorder_item_id: z.string().nullable(),
+  orders: z.object({ order_status: z.string(), external_payment_status: z.string().nullable() }),
 });
 
 const preorderRowSchema = z.object({
@@ -96,7 +97,7 @@ const preorderRowSchema = z.object({
 const PREORDER_COLUMNS = `id, name, slug, status, fulfillment_date, starts_at, ends_at, version, pickup_terms_snapshot,
   preorder_items(id, product_id, capacity_id, target_units, quota_units, base_price_snapshot_idr, product_name_snapshot,
     production_capacity(total_units, intake_cutoff_at, fulfillment_window_end_at,
-      capacity_reservations(quantity, state, expires_at, preorder_item_id)))`;
+      capacity_reservations(quantity, state, expires_at, preorder_item_id, orders(order_status, external_payment_status))))`;
 
 export type PreorderStatus = z.infer<typeof preorderRowSchema>["status"];
 export type PickupTerms = { pickupInstructions: string; publicContact: string | null };
@@ -125,6 +126,12 @@ export type Preorder = {
 
 function toReservationFact(row: z.infer<typeof reservationRowSchema>): ReservationFact {
   return { quantity: row.quantity, state: row.state, expiresAt: row.expires_at };
+}
+
+function toPreorderReservationFact(row: z.infer<typeof reservationRowSchema>): PreorderReservationFact {
+  const { order_status: orderStatus, external_payment_status: externalPayment } = row.orders;
+  const isVoid = orderStatus === "cancelled" || orderStatus === "expired";
+  return { ...toReservationFact(row), payment: isVoid ? "void" : externalPayment === "unpaid" ? "awaiting" : "paid" };
 }
 
 function toPreorder(row: z.infer<typeof preorderRowSchema>): Preorder {
@@ -158,7 +165,7 @@ function toPreorder(row: z.infer<typeof preorderRowSchema>): Preorder {
         capacityReservations: capacity.capacity_reservations.map(toReservationFact),
         preorderReservations: capacity.capacity_reservations
           .filter((reservation) => reservation.preorder_item_id === item.id)
-          .map(toReservationFact),
+          .map(toPreorderReservationFact),
       },
       new Date(),
     ),

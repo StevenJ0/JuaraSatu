@@ -29,6 +29,7 @@
   --owner-sim-border: #94a3b8;
 
   --font-body: var(--font-owner), Arial, Helvetica, sans-serif;
+  --font-mono: var(--font-owner-mono), ui-monospace, monospace;
 
   --text-xs: 12px;
   --text-xs--line-height: 16px;

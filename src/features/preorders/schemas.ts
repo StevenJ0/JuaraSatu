@@ -4,7 +4,7 @@ import { wibDateTime } from "@/features/capacity/schemas";
 // Batas aplikasi mengikuti batas kuantitas P0 (PRD §9.1).
 const MAX_UNITS = 10_000;
 
-function positiveUnits(message: string) {
+export function positiveUnits(message: string) {
   return z
     .string()
     .trim()

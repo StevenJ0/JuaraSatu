@@ -24,6 +24,10 @@ export const PRIMARY_BUTTON_CLASS =
 export const SECONDARY_BUTTON_CLASS =
   "inline-flex min-h-12 items-center justify-center rounded-[10px] border border-line bg-surface px-5 py-3 text-base! font-semibold! text-ink transition-colors duration-150 hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-60";
 
+/** Biru hanya untuk aksi utama, jadi aksi yang tidak bisa diurungkan memakai warna bahaya. */
+export const DANGER_BUTTON_CLASS =
+  "inline-flex min-h-12 items-center justify-center rounded-[10px] border border-[var(--owner-danger-fg)] bg-surface px-5 py-3 text-base! font-semibold! text-[color:var(--owner-danger-fg)] transition-colors duration-150 hover:bg-[var(--owner-danger-bg)] disabled:cursor-not-allowed disabled:opacity-60";
+
 export const ROW_ACTION_CLASS =
   "inline-flex min-h-10 items-center justify-center rounded-[10px] border border-line bg-surface px-3 py-1.5 text-sm! font-medium! text-ink transition-colors hover:bg-subtle";
 

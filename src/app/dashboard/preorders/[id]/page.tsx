@@ -167,7 +167,7 @@ export default async function PreorderDetailPage({ params, searchParams }: PageP
   const product = await findProduct(supabase, business.id, preorder.productId);
 
   const savedMessage = SAVED_NOTICES.get(saved);
-  const { paidUnits, heldUnits, paidTargetGap, orderableUnits, quotaUsage } = preorder.metrics;
+  const { paidUnits, awaitingPaymentUnits, paidTargetGap, orderableUnits, quotaUsage } = preorder.metrics;
 
   return (
     <div className="flex flex-col gap-6">
@@ -186,13 +186,18 @@ export default async function PreorderDetailPage({ params, searchParams }: PageP
       <section aria-label="Angka preorder" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard label="Sudah dibayar" value={`${paidUnits} unit`} note={`Target ${preorder.targetUnits} unit`} />
         <KpiCard label="Kurang dari target" value={`${paidTargetGap} unit`} note="Bukan jumlah yang bisa dijual" />
-        <KpiCard label="Menunggu bayar" value={`${heldUnits} unit`} note="Slot sedang ditahan" />
+        <KpiCard label="Menunggu bayar" value={`${awaitingPaymentUnits} unit`} note="Slot terpakai, belum lunas" />
         <KpiCard label="Bisa dipesan" value={`${orderableUnits} unit`} note={`Dari kuota ${preorder.quotaUnits} unit`} />
       </section>
 
       <Card>
         <h2 className="mb-3 text-lg font-semibold text-ink">Pemakaian kuota</h2>
         <CapacityUsage totalUnits={preorder.quotaUnits} availability={quotaUsage} />
+        {preorder.status !== "draft" && (
+          <Link href={`/dashboard/preorders/${preorder.id}/orders`} className={`mt-4 w-full sm:w-fit ${SECONDARY_BUTTON_CLASS}`}>
+            Lihat pesanan
+          </Link>
+        )}
       </Card>
 
       <PreorderActions preorder={preorder} />

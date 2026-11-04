@@ -4,6 +4,19 @@ export const PHOTO_TOO_LARGE_MESSAGE = "Ukuran foto maksimal 5MB";
 
 const PHOTO_INVALID_MESSAGE = "Foto harus berformat JPG, PNG, atau WebP";
 const PHOTO_REQUIRED_MESSAGE = "Foto produk wajib diisi";
+export const PHOTO_UNREADABLE_MESSAGE = "Foto rusak atau resolusinya terlalu besar. Coba foto lain.";
+
+const FULL_PHOTO_SUFFIX = "-full.webp";
+const THUMBNAIL_PHOTO_SUFFIX = "-thumb.webp";
+
+export function fullPhotoPath(basePath: string): string {
+  return `${basePath}${FULL_PHOTO_SUFFIX}`;
+}
+
+/** Versi kecil hanya ada untuk foto hasil olahan; foto yang lebih lama tidak punya, sehingga hasilnya null. */
+export function thumbnailPathOf(photoPath: string): string | null {
+  return photoPath.endsWith(FULL_PHOTO_SUFFIX) ? `${photoPath.slice(0, -FULL_PHOTO_SUFFIX.length)}${THUMBNAIL_PHOTO_SUFFIX}` : null;
+}
 
 export type PhotoUpload = { bytes: Uint8Array; contentType: string; extension: string };
 export type PhotoReadResult = { kind: "none" } | { kind: "invalid"; message: string } | { kind: "ok"; photo: PhotoUpload };

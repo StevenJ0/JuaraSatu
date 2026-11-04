@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { PhotoUpload } from "@/features/products/photo";
+import type { ProductPhotoFiles } from "@/features/products/photo-processing";
 import type { ProductInput } from "@/features/products/schemas";
 import {
   ProductRepositoryError,
@@ -14,7 +14,7 @@ import { createProductSku } from "@/features/products/sku";
 
 const MAX_SKU_ATTEMPTS = 3;
 
-export type PhotoChange = { kind: "keep" } | { kind: "replace"; photo: PhotoUpload };
+export type PhotoChange = { kind: "keep" } | { kind: "replace"; photo: ProductPhotoFiles };
 export type UpdateProductResult = "updated" | "conflict" | "not_found";
 
 /** File yang tertinggal hanya memakan ruang, sedangkan data produk sudah benar, jadi kegagalan di sini tidak menggagalkan proses. */
@@ -32,7 +32,7 @@ export async function createProductWithPhoto(
   client: SupabaseClient,
   businessId: string,
   input: ProductInput,
-  photo: PhotoUpload,
+  photo: ProductPhotoFiles,
 ): Promise<void> {
   const photoPath = await uploadProductPhoto(client, businessId, photo);
   try {

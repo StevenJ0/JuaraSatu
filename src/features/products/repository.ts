@@ -2,7 +2,8 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
-import type { PhotoUpload } from "@/features/products/photo";
+import { fullPhotoPath, thumbnailPathOf } from "@/features/products/photo";
+import type { ProductPhotoFiles } from "@/features/products/photo-processing";
 import { COST_QUALITIES, type CostQuality, type ProductInput } from "@/features/products/schemas";
 
 const UNIQUE_VIOLATION = "23505";
@@ -49,6 +50,8 @@ export type Product = {
   description: string | null;
   photoPath: string | null;
   photoUrl: string | null;
+  /** Versi kecil untuk daftar; foto lama yang belum punya versi kecil memakai foto utamanya. */
+  thumbnailUrl: string | null;
   basePriceIdr: number;
   variableCostIdr: number | null;
   costQuality: CostQuality;
@@ -57,12 +60,16 @@ export type Product = {
 };
 
 function toProduct(client: SupabaseClient, row: z.infer<typeof productRowSchema>): Product {
+  const publicUrl = (path: string) => client.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
+  const thumbnailPath = row.photo_path ? thumbnailPathOf(row.photo_path) : null;
+
   return {
     id: row.id,
     name: row.name,
     description: row.description,
     photoPath: row.photo_path,
-    photoUrl: row.photo_path ? client.storage.from(PHOTO_BUCKET).getPublicUrl(row.photo_path).data.publicUrl : null,
+    photoUrl: row.photo_path ? publicUrl(row.photo_path) : null,
+    thumbnailUrl: row.photo_path ? publicUrl(thumbnailPath ?? row.photo_path) : null,
     basePriceIdr: row.base_price_idr,
     variableCostIdr: row.variable_cost_idr,
     costQuality: row.cost_quality,
@@ -177,19 +184,28 @@ async function applyVersionedUpdate(
 export async function uploadProductPhoto(
   client: SupabaseClient,
   businessId: string,
-  photo: PhotoUpload,
+  files: ProductPhotoFiles,
 ): Promise<string> {
-  const path = `${businessId}/${randomUUID()}.${photo.extension}`;
-  const { error } = await client.storage.from(PHOTO_BUCKET).upload(path, photo.bytes, {
-    contentType: photo.contentType,
-    cacheControl: PHOTO_CACHE_SECONDS,
-    upsert: false,
-  });
+  const path = fullPhotoPath(`${businessId}/${randomUUID()}`);
+  const thumbnailPath = thumbnailPathOf(path);
+  if (!thumbnailPath) throw new ProductRepositoryError("uploadProductPhoto: path versi kecil", undefined);
+
+  const bucket = client.storage.from(PHOTO_BUCKET);
+  const options = { contentType: "image/webp", cacheControl: PHOTO_CACHE_SECONDS, upsert: false };
+  const { error } = await bucket.upload(path, files.full, options);
   if (error) throw new ProductRepositoryError("uploadProductPhoto", error.name);
+
+  const { error: thumbnailError } = await bucket.upload(thumbnailPath, files.thumbnail, options);
+  if (thumbnailError) {
+    await removeProductPhoto(client, path);
+    throw new ProductRepositoryError("uploadProductPhoto: versi kecil", thumbnailError.name);
+  }
   return path;
 }
 
+/** Menghapus foto beserta versi kecilnya; menghapus file yang tidak ada bukan error di Storage. */
 export async function removeProductPhoto(client: SupabaseClient, path: string): Promise<void> {
-  const { error } = await client.storage.from(PHOTO_BUCKET).remove([path]);
+  const thumbnailPath = thumbnailPathOf(path);
+  const { error } = await client.storage.from(PHOTO_BUCKET).remove(thumbnailPath ? [path, thumbnailPath] : [path]);
   if (error) throw new ProductRepositoryError("removeProductPhoto", error.name);
 }

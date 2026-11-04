@@ -35,9 +35,9 @@ function CostSummary({ product }: { product: Product }) {
 function ProductRow({ product }: { product: Product }) {
   return (
     <li className="flex flex-wrap items-center gap-4 p-4 sm:px-6">
-      {product.photoUrl ? (
+      {product.thumbnailUrl ? (
         <Image
-          src={product.photoUrl}
+          src={product.thumbnailUrl}
           alt=""
           width={64}
           height={64}

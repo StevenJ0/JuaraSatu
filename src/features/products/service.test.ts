@@ -35,7 +35,7 @@ const BUSINESS_ID = "22222222-2222-4222-8222-222222222222";
 const PRODUCT_ID = "33333333-3333-4333-8333-333333333333";
 const OLD_PATH = `${BUSINESS_ID}/lama.jpg`;
 const NEW_PATH = `${BUSINESS_ID}/baru.jpg`;
-const photo = { bytes: new Uint8Array([1]), contentType: "image/jpeg", extension: "jpg" };
+const photo = { full: new Uint8Array([1]), thumbnail: new Uint8Array([2]) };
 const input = {
   name: "Brownies",
   description: null,
@@ -49,6 +49,7 @@ const current: Product = {
   description: null,
   photoPath: OLD_PATH,
   photoUrl: null,
+  thumbnailUrl: null,
   basePriceIdr: 20000,
   variableCostIdr: null,
   costQuality: "unknown",

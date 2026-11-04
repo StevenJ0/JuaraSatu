@@ -41,6 +41,7 @@ const activeProduct: Product = {
   description: null,
   photoPath: null,
   photoUrl: null,
+  thumbnailUrl: null,
   basePriceIdr: 25000,
   variableCostIdr: null,
   costQuality: "unknown",

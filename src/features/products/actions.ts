@@ -6,7 +6,8 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { readTextFields, type FormState } from "@/lib/form-state";
 import { requireBusinessOwner } from "@/features/business/guard";
-import { readPhotoUpload, requirePhoto, type PhotoReadResult } from "@/features/products/photo";
+import { PHOTO_UNREADABLE_MESSAGE, readPhotoUpload, requirePhoto, type PhotoReadResult } from "@/features/products/photo";
+import { optimizeProductPhoto } from "@/features/products/photo-processing";
 import { PRODUCT_FIELDS, productRefSchema, productSchema } from "@/features/products/schemas";
 import { ProductRepositoryError, setProductActive } from "@/features/products/repository";
 import { createProductWithPhoto, updateProductWithPhoto, type PhotoChange } from "@/features/products/service";
@@ -14,6 +15,7 @@ import { createProductWithPhoto, updateProductWithPhoto, type PhotoChange } from
 const PRODUCTS_PATH = "/dashboard/products";
 const SAVE_FAILED_MESSAGE = "Produk gagal disimpan. Coba lagi beberapa saat lagi.";
 const CONFLICT_MESSAGE = "Produk baru saja berubah di tempat lain. Muat ulang halaman, lalu ulangi perubahan.";
+const UNREADABLE_PHOTO: PhotoReadResult = { kind: "invalid", message: PHOTO_UNREADABLE_MESSAGE };
 
 function logRepositoryFailure(context: string, error: unknown): void {
   // Hanya kode error yang dicatat; jangan log input produk atau identitas user.
@@ -48,9 +50,12 @@ export async function createProductAction(_previous: FormState, formData: FormDa
   const photo = requirePhoto(await readPhotoUpload(formData.get("photo")));
   if (!parsed.success || photo.kind !== "ok") return invalidFormState(parsed, photo, fields);
 
+  const photoFiles = await optimizeProductPhoto(photo.photo.bytes);
+  if (!photoFiles) return invalidFormState(parsed, UNREADABLE_PHOTO, fields);
+
   try {
     const supabase = await createSupabaseServerClient();
-    await createProductWithPhoto(supabase, businessId, parsed.data, photo.photo);
+    await createProductWithPhoto(supabase, businessId, parsed.data, photoFiles);
   } catch (error) {
     logRepositoryFailure("createProduct", error);
     return { status: "error", message: SAVE_FAILED_MESSAGE, values: fields };
@@ -70,7 +75,9 @@ export async function updateProductAction(_previous: FormState, formData: FormDa
   const photo = await readPhotoUpload(formData.get("photo"));
   if (!parsed.success || photo.kind === "invalid") return invalidFormState(parsed, photo, fields);
 
-  const photoChange: PhotoChange = photo.kind === "ok" ? { kind: "replace", photo: photo.photo } : { kind: "keep" };
+  const photoFiles = photo.kind === "ok" ? await optimizeProductPhoto(photo.photo.bytes) : null;
+  if (photo.kind === "ok" && !photoFiles) return invalidFormState(parsed, UNREADABLE_PHOTO, fields);
+  const photoChange: PhotoChange = photoFiles ? { kind: "replace", photo: photoFiles } : { kind: "keep" };
 
   try {
     const supabase = await createSupabaseServerClient();

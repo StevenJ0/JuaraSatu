@@ -30,7 +30,7 @@ export default async function EditProductPage({ params }: PageProps<"/dashboard/
         <ProductForm
           action={updateProductAction}
           submitLabel="Simpan perubahan"
-          existing={{ productId: product.id, version: product.version, photoUrl: product.photoUrl }}
+          existing={{ productId: product.id, version: product.version, photoUrl: product.thumbnailUrl }}
           initialValues={{
             name: product.name,
             description: product.description ?? "",

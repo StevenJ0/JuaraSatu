@@ -1,5 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { MAX_PHOTO_BYTES, detectPhotoType, readPhotoUpload, requirePhoto } from "@/features/products/photo";
+import {
+  MAX_PHOTO_BYTES,
+  detectPhotoType,
+  fullPhotoPath,
+  readPhotoUpload,
+  requirePhoto,
+  thumbnailPathOf,
+} from "@/features/products/photo";
+
+describe("thumbnailPathOf", () => {
+  it("menurunkan path versi kecil dari foto olahan", () => {
+    expect(thumbnailPathOf(fullPhotoPath("bisnis/abc"))).toBe("bisnis/abc-thumb.webp");
+  });
+
+  it("foto lama tidak punya versi kecil", () => {
+    expect(thumbnailPathOf("bisnis/abc.jpg")).toBeNull();
+    expect(thumbnailPathOf("bisnis/abc.webp")).toBeNull();
+  });
+});
 
 describe("requirePhoto", () => {
   it("menolak bila foto tidak ada", () => {

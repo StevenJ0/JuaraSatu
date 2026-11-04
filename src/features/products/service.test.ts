@@ -70,7 +70,8 @@ describe("createProductWithPhoto", () => {
   });
 
   it("membuat SKU dari nama produk", async () => {
-    await createProductWithPhoto(client, BUSINESS_ID, input, null);
+    upload.mockResolvedValue(NEW_PATH);
+    await createProductWithPhoto(client, BUSINESS_ID, input, photo);
     expect(insert.mock.calls[0]?.[3]).toMatch(/^BROWNIES-[A-Z0-9]{6}$/);
   });
 
@@ -93,9 +94,11 @@ describe("createProductWithPhoto", () => {
   });
 
   it("tidak mencoba ulang untuk error selain bentrok SKU", async () => {
+    upload.mockResolvedValue(NEW_PATH);
     insert.mockRejectedValue(new ProductRepositoryError("insertProduct", "42501"));
-    await expect(createProductWithPhoto(client, BUSINESS_ID, input, null)).rejects.toThrow(/42501/);
+    await expect(createProductWithPhoto(client, BUSINESS_ID, input, photo)).rejects.toThrow(/42501/);
     expect(insert).toHaveBeenCalledTimes(1);
+    expect(remove).toHaveBeenCalledWith(client, NEW_PATH);
   });
 });
 
@@ -134,12 +137,6 @@ describe("updateProductWithPhoto", () => {
     expect(remove).toHaveBeenCalledTimes(1);
     expect(remove).toHaveBeenCalledWith(client, OLD_PATH);
     expect(update.mock.invocationCallOrder[0]).toBeLessThan(remove.mock.invocationCallOrder[0] ?? 0);
-  });
-
-  it("mengosongkan foto saat remove", async () => {
-    await expect(run({ kind: "remove" })).resolves.toBe("updated");
-    expect(update).toHaveBeenCalledWith(client, BUSINESS_ID, PRODUCT_ID, 3, input, null);
-    expect(remove).toHaveBeenCalledWith(client, OLD_PATH);
   });
 
   it("membuang foto baru dan menjaga foto lama bila kalah balapan versi", async () => {

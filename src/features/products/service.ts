@@ -14,7 +14,7 @@ import { createProductSku } from "@/features/products/sku";
 
 const MAX_SKU_ATTEMPTS = 3;
 
-export type PhotoChange = { kind: "keep" } | { kind: "remove" } | { kind: "replace"; photo: PhotoUpload };
+export type PhotoChange = { kind: "keep" } | { kind: "replace"; photo: PhotoUpload };
 export type UpdateProductResult = "updated" | "conflict" | "not_found";
 
 /** File yang tertinggal hanya memakan ruang, sedangkan data produk sudah benar, jadi kegagalan di sini tidak menggagalkan proses. */
@@ -32,9 +32,9 @@ export async function createProductWithPhoto(
   client: SupabaseClient,
   businessId: string,
   input: ProductInput,
-  photo: PhotoUpload | null,
+  photo: PhotoUpload,
 ): Promise<void> {
-  const photoPath = photo ? await uploadProductPhoto(client, businessId, photo) : null;
+  const photoPath = await uploadProductPhoto(client, businessId, photo);
   try {
     await insertWithGeneratedSku(client, businessId, input, photoPath);
   } catch (error) {
@@ -47,7 +47,7 @@ async function insertWithGeneratedSku(
   client: SupabaseClient,
   businessId: string,
   input: ProductInput,
-  photoPath: string | null,
+  photoPath: string,
 ): Promise<void> {
   for (let attempt = 1; ; attempt++) {
     try {
@@ -74,7 +74,7 @@ export async function updateProductWithPhoto(
   if (current.version !== expectedVersion) return "conflict";
 
   const uploadedPath = photoChange.kind === "replace" ? await uploadProductPhoto(client, businessId, photoChange.photo) : null;
-  const nextPath = photoChange.kind === "keep" ? current.photoPath : uploadedPath;
+  const nextPath = uploadedPath ?? current.photoPath;
 
   let updated: boolean;
   try {

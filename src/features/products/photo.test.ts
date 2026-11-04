@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { MAX_PHOTO_BYTES, detectPhotoType, readPhotoUpload } from "@/features/products/photo";
+import { MAX_PHOTO_BYTES, detectPhotoType, readPhotoUpload, requirePhoto } from "@/features/products/photo";
+
+describe("requirePhoto", () => {
+  it("menolak bila foto tidak ada", () => {
+    expect(requirePhoto({ kind: "none" })).toEqual({ kind: "invalid", message: "Foto produk wajib diisi" });
+  });
+
+  it("tidak mengubah hasil yang lain", () => {
+    const invalid = { kind: "invalid", message: "Ukuran foto maksimal 5MB" } as const;
+    expect(requirePhoto(invalid)).toBe(invalid);
+    const ok = { kind: "ok", photo: { bytes: new Uint8Array(), contentType: "image/png", extension: "png" } } as const;
+    expect(requirePhoto(ok)).toBe(ok);
+  });
+});
 
 const JPEG = [0xff, 0xd8, 0xff, 0xe0, 0x00];
 const PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00];

@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { SelectField, TextField } from "@/components/form-field";
 import { FormMessage, PRIMARY_BUTTON_CLASS } from "@/components/form-message";
 import { initialFormState, type FormState } from "@/lib/form-state";
+import { submitWithoutReset } from "@/lib/submit-without-reset";
 
 type CapacityScheduleValues = {
   totalUnits: string;
@@ -27,7 +28,7 @@ export function CapacityForm({ action, submitLabel, totalUnitsHint, initialValue
   const values = state.values ?? initialValues;
 
   return (
-    <form action={formAction} className="flex flex-col gap-4" noValidate>
+    <form action={formAction} onSubmit={submitWithoutReset(formAction)} className="flex flex-col gap-4" noValidate>
       <FormMessage state={state} />
       {existing && (
         <>

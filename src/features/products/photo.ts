@@ -3,6 +3,7 @@ export const PHOTO_ACCEPT = "image/jpeg,image/png,image/webp";
 export const PHOTO_TOO_LARGE_MESSAGE = "Ukuran foto maksimal 5MB";
 
 const PHOTO_INVALID_MESSAGE = "Foto harus berformat JPG, PNG, atau WebP";
+const PHOTO_REQUIRED_MESSAGE = "Foto produk wajib diisi";
 
 export type PhotoUpload = { bytes: Uint8Array; contentType: string; extension: string };
 export type PhotoReadResult = { kind: "none" } | { kind: "invalid"; message: string } | { kind: "ok"; photo: PhotoUpload };
@@ -35,4 +36,9 @@ export async function readPhotoUpload(value: FormDataEntryValue | null): Promise
   const type = detectPhotoType(bytes);
   if (!type) return { kind: "invalid", message: PHOTO_INVALID_MESSAGE };
   return { kind: "ok", photo: { bytes, ...type } };
+}
+
+/** Foto wajib saat produk dibuat, supaya setiap produk baru punya tampilan untuk pembeli. */
+export function requirePhoto(result: PhotoReadResult): PhotoReadResult {
+  return result.kind === "none" ? { kind: "invalid", message: PHOTO_REQUIRED_MESSAGE } : result;
 }

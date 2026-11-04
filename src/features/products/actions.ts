@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { readTextFields, type FormState } from "@/lib/form-state";
 import { requireBusinessOwner } from "@/features/business/guard";
-import { readPhotoUpload, type PhotoReadResult } from "@/features/products/photo";
+import { readPhotoUpload, requirePhoto, type PhotoReadResult } from "@/features/products/photo";
 import { PRODUCT_FIELDS, productRefSchema, productSchema } from "@/features/products/schemas";
 import { ProductRepositoryError, setProductActive } from "@/features/products/repository";
 import { createProductWithPhoto, updateProductWithPhoto, type PhotoChange } from "@/features/products/service";
@@ -45,12 +45,12 @@ export async function createProductAction(_previous: FormState, formData: FormDa
   const { businessId } = await requireBusinessOwner();
   const fields = readTextFields(formData, PRODUCT_FIELDS);
   const parsed = productSchema.safeParse(fields);
-  const photo = await readPhotoUpload(formData.get("photo"));
-  if (!parsed.success || photo.kind === "invalid") return invalidFormState(parsed, photo, fields);
+  const photo = requirePhoto(await readPhotoUpload(formData.get("photo")));
+  if (!parsed.success || photo.kind !== "ok") return invalidFormState(parsed, photo, fields);
 
   try {
     const supabase = await createSupabaseServerClient();
-    await createProductWithPhoto(supabase, businessId, parsed.data, photo.kind === "ok" ? photo.photo : null);
+    await createProductWithPhoto(supabase, businessId, parsed.data, photo.photo);
   } catch (error) {
     logRepositoryFailure("createProduct", error);
     return { status: "error", message: SAVE_FAILED_MESSAGE, values: fields };
@@ -70,12 +70,7 @@ export async function updateProductAction(_previous: FormState, formData: FormDa
   const photo = await readPhotoUpload(formData.get("photo"));
   if (!parsed.success || photo.kind === "invalid") return invalidFormState(parsed, photo, fields);
 
-  const photoChange: PhotoChange =
-    photo.kind === "ok"
-      ? { kind: "replace", photo: photo.photo }
-      : formData.get("removePhoto") === "on"
-        ? { kind: "remove" }
-        : { kind: "keep" };
+  const photoChange: PhotoChange = photo.kind === "ok" ? { kind: "replace", photo: photo.photo } : { kind: "keep" };
 
   try {
     const supabase = await createSupabaseServerClient();

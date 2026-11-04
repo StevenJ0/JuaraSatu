@@ -15,11 +15,11 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
         </p>
       )}
       <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2 md:py-3">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2 lg:py-3">
           <Brand href="/dashboard" />
-          <OwnerNav className="order-last w-full md:order-none md:w-auto" />
+          <OwnerNav className="order-last w-full lg:order-none lg:w-auto" />
           <div className="ml-auto flex min-w-0 items-center gap-2">
-            <p className="hidden max-w-48 truncate text-sm font-medium text-ink sm:block">{business.name}</p>
+            <p className="hidden max-w-48 truncate text-sm font-medium text-ink sm:block lg:max-w-24">{business.name}</p>
             <SignOutButton />
           </div>
         </div>

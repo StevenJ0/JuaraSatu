@@ -4,7 +4,7 @@ import { isValidDateOnly, parseWibDateTime } from "@/lib/wib-time";
 // Batas aplikasi mengikuti batas kuantitas P0 (PRD §9.1).
 const MAX_UNITS = 10_000;
 
-function wibDateTime(message: string) {
+export function wibDateTime(message: string) {
   return z
     .string()
     .trim()

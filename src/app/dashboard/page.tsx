@@ -63,7 +63,7 @@ export default async function DashboardOverviewPage() {
         <p className="mt-1 text-base text-muted">
           {nextStep
             ? "Lengkapi langkah berikut sebelum membuka preorder."
-            : "Persiapan selesai. Fitur membuka preorder sedang dikembangkan."}
+            : "Persiapan selesai. Anda sudah bisa membuka preorder."}
         </p>
         <ul className="mt-4 flex flex-col divide-y divide-line">
           {setupSteps.map((step) => (
@@ -80,11 +80,12 @@ export default async function DashboardOverviewPage() {
             </li>
           ))}
         </ul>
-        {nextStep?.nextAction && (
-          <Link href={`${nextStep.href}/new`} className={`mt-4 w-full sm:w-auto ${PRIMARY_BUTTON_CLASS}`}>
-            {nextStep.nextAction}
-          </Link>
-        )}
+        <Link
+          href={nextStep ? `${nextStep.href}/new` : "/dashboard/preorders/new"}
+          className={`mt-4 w-full sm:w-auto ${PRIMARY_BUTTON_CLASS}`}
+        >
+          {nextStep?.nextAction ?? "Buat preorder"}
+        </Link>
       </Card>
     </div>
   );

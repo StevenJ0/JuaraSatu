@@ -9,7 +9,8 @@ export function SignOutButton() {
         className="inline-flex min-h-11 items-center gap-2 rounded-[10px] px-3 py-1.5 text-sm! font-medium! text-muted transition-colors hover:bg-subtle hover:text-ink"
       >
         <LogOut aria-hidden size={18} strokeWidth={1.5} />
-        Keluar
+        {/* Di layar sangat sempit hanya ikon, agar tetap sebaris dengan logo. */}
+        <span className="max-[359px]:sr-only">Keluar</span>
       </button>
     </form>
   );

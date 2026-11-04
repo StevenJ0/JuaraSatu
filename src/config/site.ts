@@ -6,6 +6,11 @@ export const site = {
     "Kenali Campaign Lab, platform preorder untuk usaha produk standar. Lihat kapasitas tersedia, tinjau penawaran berdasarkan biaya, dan pisahkan hasil preorder dari hasil promosi. Pratinjau dengan data contoh.",
 };
 
+export const authLinks = {
+  signIn: { href: "/login", label: "Masuk" },
+  signUp: { href: "/register", label: "Daftar" },
+} as const;
+
 export const landingNavigation = [
   { href: "#contoh-penggunaan", label: "Preorder" },
   { href: "#cara-kerja", label: "Penawaran" },

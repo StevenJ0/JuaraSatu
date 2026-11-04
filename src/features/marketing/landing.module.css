@@ -13,6 +13,9 @@
 .desktopNav a:hover { color: var(--ui-brand); text-decoration: underline; text-underline-offset: 5px; }
 .landing .headerCta { background: var(--ui-ink); color: var(--ui-on-brand); border-radius: 14px; min-height: 44px; padding-inline: 20px; }
 .landing .headerCta:hover { background: var(--ui-brand); }
+.authActions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.landing .headerSecondary { border-radius: 14px; min-height: 44px; padding-inline: 20px; }
+.heroExampleLink { display: block; width: fit-content; margin: 16px auto 0; padding-block: 6px; color: var(--ui-brand); font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }
 .downArrow { transform: rotate(90deg); }
 .mobileMenu { display: none; }
 .hero { padding-top: 56px; }
@@ -234,6 +237,12 @@
   .faqSection h2 { max-width: 25ch; }
   .faqLead { max-width: 48ch; }
 }
+@media (min-width: 701px) and (max-width: 900px) {
+  .headerInner { gap: 16px; }
+  .desktopNav { gap: 16px; }
+  .landing .headerCta, .landing .headerSecondary { padding-inline: 16px; }
+}
+
 @media (max-width: 700px) {
   .productPreview > .phoneFrame { max-width: calc(100% - 64px); border-width: 7px; border-radius: 42px; padding-top: 12px; }
   .productPreview .orderSheet { padding: 18px 16px 20px; }
@@ -253,7 +262,7 @@
   .productPreview .capacityLedger dd { font-size: 14px; }
   .productPreview .sheetNote { font-size: 12px; padding-top: 14px; }
   .headerInner { min-height: 72px; justify-content: space-between; gap: 16px; }
-  .desktopNav, .landing .headerCta { display: none; }
+  .desktopNav, .authActions { display: none; }
   .mobileMenu { display: block; }
   .mobileMenu summary { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 0 8px 12px; list-style: none; font-size: 14px; }
   .mobileMenu summary::-webkit-details-marker { display: none; }

@@ -1,7 +1,7 @@
 import { Brand } from "@/components/brand";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Icon } from "@/components/ui/icon";
-import { landingNavigation } from "@/config/site";
+import { authLinks, landingNavigation } from "@/config/site";
 import { demo, initialAvailable, initialTargetGap } from "./demo-data";
 import { MobileNavigation } from "./mobile-navigation";
 import { OfferBreakdown, PreorderPhone, ProductPreview } from "./product-preview";
@@ -42,7 +42,10 @@ export function LandingPage() {
           <nav className={styles.desktopNav} aria-label="Navigasi utama">
             {landingNavigation.map((item) => <a href={item.href} key={item.href}>{item.label}</a>)}
           </nav>
-          <ButtonLink className={styles.headerCta} href="#contoh-penggunaan">Lihat contoh</ButtonLink>
+          <div className={styles.authActions}>
+            <ButtonLink className={styles.headerSecondary} variant="secondary" href={authLinks.signIn.href}>{authLinks.signIn.label}</ButtonLink>
+            <ButtonLink className={styles.headerCta} href={authLinks.signUp.href}>{authLinks.signUp.label}</ButtonLink>
+          </div>
           <MobileNavigation />
         </div>
       </header>
@@ -53,7 +56,8 @@ export function LandingPage() {
             <p className={styles.eyebrow}>Campaign Lab untuk usaha preorder</p>
             <h1 id="hero-title">Kelola preorder dan promosi <span>sesuai kapasitas usahamu.</span></h1>
             <p className={styles.heroDescription}>Bagikan halaman pesanan ke pelanggan. Rencanakan penawaran dengan melihat sisa kuota dan biaya produk.</p>
-            <ButtonLink className={styles.primaryAction} href="#contoh-penggunaan">Lihat contoh preorder<Icon name="arrow-right" /></ButtonLink>
+            <ButtonLink className={styles.primaryAction} href={authLinks.signUp.href}>Daftar sekarang<Icon name="arrow-right" /></ButtonLink>
+            <a className={styles.heroExampleLink} href="#contoh-penggunaan">Lihat contoh preorder</a>
             <p className={styles.previewNotice}>Pratinjau produk · data contoh · belum menerima transaksi</p>
           </div>
           <ProductPreview />
@@ -118,7 +122,7 @@ export function LandingPage() {
             <div className={styles.closingCopy}>
               <h2 id="closing-title">Mulai dari preorder yang bisa kamu penuhi.</h2>
               <div className={styles.closingActions}>
-                <ButtonLink className={styles.inverseAction} variant="inverse" href="#contoh-penggunaan">Lihat contoh preorder</ButtonLink>
+                <ButtonLink className={styles.inverseAction} variant="inverse" href={authLinks.signUp.href}>Daftar sekarang</ButtonLink>
                 <ButtonLink className={styles.closingSecondary} variant="secondary" href="#cara-kerja">Cara kerja</ButtonLink>
               </div>
             </div>

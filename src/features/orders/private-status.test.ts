@@ -7,10 +7,12 @@ const facts = {
   orderStatus: "pending_payment" as const,
   fulfillmentStatus: "pending_confirmation" as const,
   paymentState: "none" as const,
+  paymentVerifiedAt: null,
   paymentDueAt: "2026-11-10T05:15:00.000Z",
   businessName: "Toko Contoh",
   preorderName: "Preorder Kaos",
   productName: "Kaos",
+  sku: "KAOS-1",
   quantity: 2,
   baseUnitPriceIdr: 120000,
   discountPerUnitIdr: 0,
@@ -39,6 +41,14 @@ describe("toPrivateOrderStatus", () => {
   it("status lain tidak terpengaruh tenggat yang lewat", () => {
     const paid = { ...facts, orderStatus: "awaiting_confirmation" as const, paymentDueAt: "2026-11-10T04:00:00.000Z" };
     expect(toPrivateOrderStatus(paid, now).orderStatus).toBe("awaiting_confirmation");
+  });
+
+  it("pembayaran hanya bisa dilanjutkan selama menunggu bayar dan tenggat belum lewat", () => {
+    expect(toPrivateOrderStatus(facts, now).canContinuePayment).toBe(true);
+    expect(toPrivateOrderStatus({ ...facts, paymentDueAt: now.toISOString() }, now).canContinuePayment).toBe(false);
+    for (const orderStatus of ["awaiting_confirmation", "active", "expired", "cancelled", "requires_review"] as const) {
+      expect(toPrivateOrderStatus({ ...facts, orderStatus }, now).canContinuePayment).toBe(false);
+    }
   });
 
   it("pembayaran dan pemenuhan tetap terpisah", () => {

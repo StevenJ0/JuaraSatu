@@ -15,8 +15,8 @@ import type { PaymentCharge, VerifiedPaymentFact } from "@/features/payments/sch
 
 /**
  * Kontrak C5 untuk adapter Midtrans. Semua fungsi di sini wajib memakai client service role dan tidak memanggil provider.
- * Urutan pakainya: `claimPaymentAttempt`, panggil Midtrans di luar transaksi, `recordPaymentCharge`, lalu webhook atau
- * rekonsiliasi memanggil `applyVerifiedPayment` dengan fakta yang sudah diverifikasi.
+ * Urutan pakainya: `claimPaymentAttempt`, panggil Midtrans di luar transaksi hanya bila `action` mengizinkan, `recordPaymentCharge`,
+ * lalu webhook atau rekonsiliasi memanggil `applyVerifiedPayment` dengan fakta yang sudah diverifikasi.
  */
 export type PaymentOutcome<Value> = { kind: "ok"; value: Value } | { kind: "rejected"; violation: PaymentViolation };
 
@@ -29,7 +29,7 @@ async function toOutcome<Value>(run: () => Promise<Value>): Promise<PaymentOutco
   }
 }
 
-/** Token salah dan token tidak berbentuk token sama-sama ORDER_NOT_FOUND. Dua tab mendapat percobaan yang sama. */
+/** Token salah dan token tidak berbentuk token sama-sama ORDER_NOT_FOUND. Dua tab mendapat percobaan yang sama, tapi hanya satu yang boleh menagih. */
 export async function claimPaymentAttempt(client: SupabaseClient, token: string): Promise<PaymentOutcome<PaymentAttempt>> {
   const parsed = privateOrderTokenSchema.safeParse(token);
   if (!parsed.success) return { kind: "rejected", violation: "ORDER_NOT_FOUND" };

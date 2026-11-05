@@ -2,7 +2,7 @@
 --
 -- Fungsi di sini tidak memanggil Midtrans. Adapter memverifikasi signature, lalu mengirim fakta yang sudah terverifikasi ke
 -- `apply_verified_payment`. Hanya fungsi ini yang menulis status pembayaran, agar tidak ada dua penulis untuk status yang sama.
--- Urutan kunci: preorder, kapasitas, pesanan, lalu pembayaran dan reservasi (schema §19.1).
+-- Urutan kunci: preorder, kapasitas, pesanan, lalu pembayaran dan reservasi, sama dengan R4. Schema §19.1 menulis kapasitas lebih dulu.
 
 create table public.payments (
   id uuid primary key default gen_random_uuid(),

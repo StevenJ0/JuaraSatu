@@ -29,6 +29,7 @@ const PAYMENT_STATUSES = ["initiating", "pending", "paid_sandbox", "expired", "f
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
 const paymentAttemptSchema = z.object({
+  action: z.enum(["create_charge", "reuse_qr", "wait", "reconcile"]),
   payment_id: z.uuid(),
   provider_order_id: z.string(),
   attempt_number: z.number(),
@@ -36,10 +37,15 @@ const paymentAttemptSchema = z.object({
   status: z.enum(PAYMENT_STATUSES),
   qr_content: z.string().nullable(),
   qr_expires_at: z.string().nullable(),
-  reused: z.boolean(),
 });
 
 export type PaymentAttempt = {
+  /**
+   * Yang boleh dilakukan pemanggil. `create_charge`: buat tagihan, hanya satu pemanggil yang mendapatkannya. `reuse_qr`: pakai QR yang
+   * ada. `wait`: pemanggil lain sedang menagih, jangan menagih. `reconcile`: penagih sebelumnya tidak selesai, cek status memakai
+   * `providerOrderId` yang sama, dan jangan membuat referensi baru.
+   */
+  action: z.infer<typeof paymentAttemptSchema>["action"];
   paymentId: string;
   providerOrderId: string;
   attemptNumber: number;
@@ -47,8 +53,6 @@ export type PaymentAttempt = {
   status: PaymentStatus;
   qrContent: string | null;
   qrExpiresAt: string | null;
-  /** True berarti percobaan aktif dipakai ulang: jangan membuat tagihan baru bila `qrContent` sudah ada. */
-  reused: boolean;
 };
 
 export async function claimPaymentAttemptRecord(client: SupabaseClient, tokenHash: string): Promise<PaymentAttempt> {
@@ -56,6 +60,7 @@ export async function claimPaymentAttemptRecord(client: SupabaseClient, tokenHas
   if (error) fail("claimPaymentAttempt", error);
   const row = paymentAttemptSchema.parse(data);
   return {
+    action: row.action,
     paymentId: row.payment_id,
     providerOrderId: row.provider_order_id,
     attemptNumber: row.attempt_number,
@@ -63,7 +68,6 @@ export async function claimPaymentAttemptRecord(client: SupabaseClient, tokenHas
     status: row.status,
     qrContent: row.qr_content,
     qrExpiresAt: row.qr_expires_at,
-    reused: row.reused,
   };
 }
 
@@ -79,17 +83,21 @@ export async function recordPaymentChargeRecord(client: SupabaseClient, charge: 
 }
 
 const applyResultSchema = z.object({
-  outcome: z.enum(["applied", "duplicate", "review", "recorded", "ignored", "amount_mismatch"]),
+  outcome: z.enum(["applied", "duplicate", "conflict", "review", "recorded", "ignored", "amount_mismatch"]),
   payment_id: z.uuid(),
   order_id: z.uuid(),
   order_status: z.string(),
+  payload_changed: z.boolean(),
 });
 
 export type ApplyPaymentResult = {
+  /** `conflict`: kunci event sama, tapi status atau nominalnya berbeda. Tidak ada yang berubah, dan perlu dicatat di log. */
   outcome: z.infer<typeof applyResultSchema>["outcome"];
   paymentId: string;
   orderId: string;
   orderStatus: string;
+  /** True bila kunci event sama tapi hash isinya berbeda. Bukan pembayaran kedua, misalnya format notifikasi berubah. */
+  payloadChanged: boolean;
 };
 
 export async function applyVerifiedPaymentRecord(client: SupabaseClient, fact: VerifiedPaymentFact): Promise<ApplyPaymentResult> {
@@ -104,7 +112,7 @@ export async function applyVerifiedPaymentRecord(client: SupabaseClient, fact: V
   });
   if (error) fail("applyVerifiedPayment", error);
   const row = applyResultSchema.parse(data);
-  return { outcome: row.outcome, paymentId: row.payment_id, orderId: row.order_id, orderStatus: row.order_status };
+  return { outcome: row.outcome, paymentId: row.payment_id, orderId: row.order_id, orderStatus: row.order_status, payloadChanged: row.payload_changed };
 }
 
 const orderPaymentRowSchema = z.object({

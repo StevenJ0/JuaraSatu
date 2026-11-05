@@ -34,7 +34,7 @@ beforeEach(() => {
 
 describe("claimPaymentAttempt", () => {
   it("hanya mengirim hash token ke database", async () => {
-    claim.mockResolvedValue({ paymentId: ID, providerOrderId: "CL-ABC-1", attemptNumber: 1, amountIdr: 1000, status: "initiating", qrContent: null, qrExpiresAt: null, reused: false });
+    claim.mockResolvedValue({ action: "create_charge", paymentId: ID, providerOrderId: "CL-ABC-1", attemptNumber: 1, amountIdr: 1000, status: "initiating", qrContent: null, qrExpiresAt: null });
 
     await expect(claimPaymentAttempt(client, TOKEN)).resolves.toMatchObject({ kind: "ok" });
 
@@ -62,7 +62,7 @@ describe("recordPaymentCharge", () => {
 
 describe("applyVerifiedPayment", () => {
   it("meneruskan hasil penerapan", async () => {
-    apply.mockResolvedValue({ outcome: "applied", paymentId: ID, orderId: ID, orderStatus: "awaiting_confirmation" });
+    apply.mockResolvedValue({ outcome: "applied", paymentId: ID, orderId: ID, orderStatus: "awaiting_confirmation", payloadChanged: false });
     await expect(applyVerifiedPayment(client, fact)).resolves.toMatchObject({ kind: "ok", value: { outcome: "applied" } });
   });
 

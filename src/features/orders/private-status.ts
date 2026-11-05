@@ -11,10 +11,15 @@ export type PrivateOrderStatus = {
   fulfillmentStatus: FulfillmentStatus;
   /** Terpisah dari status pesanan. Ini simulasi sandbox, bukan uang sungguhan, dan halaman pembeli wajib menyatakannya. */
   paymentState: PaymentState;
+  /** Waktu server memverifikasi pembayaran yang diterapkan. Null bila belum ada. */
+  paymentVerifiedAt: string | null;
+  /** True bila checkout masih boleh menampilkan atau membuat pembayaran. */
+  canContinuePayment: boolean;
   paymentDueAt: string | null;
   businessName: string;
   preorderName: string;
   productName: string;
+  sku: string;
   quantity: number;
   baseUnitPriceIdr: number;
   discountPerUnitIdr: number;
@@ -30,7 +35,7 @@ export type PrivateOrderStatus = {
 };
 
 export function toPrivateOrderStatus(
-  facts: Omit<PrivateOrderStatus, "asOf">,
+  facts: Omit<PrivateOrderStatus, "asOf" | "canContinuePayment">,
   now: Date,
 ): PrivateOrderStatus {
   const isOverdue = isPaymentOverdue({ ...facts, externalPaymentStatus: null }, now);
@@ -39,10 +44,13 @@ export function toPrivateOrderStatus(
     orderStatus: isOverdue ? "expired" : facts.orderStatus,
     fulfillmentStatus: facts.fulfillmentStatus,
     paymentState: facts.paymentState,
+    paymentVerifiedAt: facts.paymentVerifiedAt,
+    canContinuePayment: facts.orderStatus === "pending_payment" && !isOverdue,
     paymentDueAt: facts.paymentDueAt,
     businessName: facts.businessName,
     preorderName: facts.preorderName,
     productName: facts.productName,
+    sku: facts.sku,
     quantity: facts.quantity,
     baseUnitPriceIdr: facts.baseUnitPriceIdr,
     discountPerUnitIdr: facts.discountPerUnitIdr,

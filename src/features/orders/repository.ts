@@ -200,17 +200,18 @@ const privateOrderRowSchema = z.object({
       discount_per_unit_idr: z.number(),
       final_unit_price_idr: z.number(),
       product_name_snapshot: z.string(),
+      sku_snapshot: z.string(),
     }),
   ]),
-  payments: z.array(orderPaymentFactSchema),
+  payments: z.array(orderPaymentFactSchema.extend({ verified_at: z.string().nullable() })),
 });
 
 // Kolom pelanggan, biaya, dan alasan batal sengaja tidak diambil, jadi tidak pernah keluar dari database untuk permintaan ini.
 const PRIVATE_ORDER_COLUMNS = `public_order_number, order_status, fulfillment_status, payment_due_at, subtotal_idr, discount_total_idr, total_idr, fulfillment_date,
   businesses(name),
   preorders(name, pickup_terms_snapshot),
-  order_items(quantity, base_unit_price_idr, discount_per_unit_idr, final_unit_price_idr, product_name_snapshot),
-  payments(status, applied_at)`;
+  order_items(quantity, base_unit_price_idr, discount_per_unit_idr, final_unit_price_idr, product_name_snapshot, sku_snapshot),
+  payments(status, applied_at, verified_at)`;
 
 export async function findOrderByTokenHash(client: SupabaseClient, tokenHash: string, now: Date): Promise<PrivateOrderStatus | null> {
   const { data, error } = await client.from("orders").select(PRIVATE_ORDER_COLUMNS).eq("private_token_hash", tokenHash).maybeSingle();
@@ -226,10 +227,12 @@ export async function findOrderByTokenHash(client: SupabaseClient, tokenHash: st
       orderStatus: row.order_status,
       fulfillmentStatus: row.fulfillment_status,
       paymentState: toPaymentState(row.payments),
+      paymentVerifiedAt: row.payments.find((payment) => payment.applied_at !== null)?.verified_at ?? null,
       paymentDueAt: row.payment_due_at,
       businessName: row.businesses.name,
       preorderName: row.preorders.name,
       productName: item.product_name_snapshot,
+      sku: item.sku_snapshot,
       quantity: item.quantity,
       baseUnitPriceIdr: item.base_unit_price_idr,
       discountPerUnitIdr: item.discount_per_unit_idr,

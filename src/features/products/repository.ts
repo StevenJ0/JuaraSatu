@@ -59,17 +59,19 @@ export type Product = {
   version: number;
 };
 
-function toProduct(client: SupabaseClient, row: z.infer<typeof productRowSchema>): Product {
+export function productPhotoUrls(client: SupabaseClient, photoPath: string | null): { photoUrl: string | null; thumbnailUrl: string | null } {
+  if (!photoPath) return { photoUrl: null, thumbnailUrl: null };
   const publicUrl = (path: string) => client.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
-  const thumbnailPath = row.photo_path ? thumbnailPathOf(row.photo_path) : null;
+  return { photoUrl: publicUrl(photoPath), thumbnailUrl: publicUrl(thumbnailPathOf(photoPath) ?? photoPath) };
+}
 
+function toProduct(client: SupabaseClient, row: z.infer<typeof productRowSchema>): Product {
   return {
     id: row.id,
     name: row.name,
     description: row.description,
     photoPath: row.photo_path,
-    photoUrl: row.photo_path ? publicUrl(row.photo_path) : null,
-    thumbnailUrl: row.photo_path ? publicUrl(thumbnailPath ?? row.photo_path) : null,
+    ...productPhotoUrls(client, row.photo_path),
     basePriceIdr: row.base_price_idr,
     variableCostIdr: row.variable_cost_idr,
     costQuality: row.cost_quality,

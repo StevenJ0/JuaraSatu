@@ -25,6 +25,21 @@ function allocatedUnits(reservations: PreorderReservationFact[], payment: Preord
     .reduce((total, reservation) => total + reservation.quantity, 0);
 }
 
+/** Satu rumus untuk dashboard dan halaman pembeli, agar angkanya tidak berbeda. Tidak pernah minus. */
+export function computeOrderableUnits(
+  input: {
+    quotaUnits: number;
+    capacityTotalUnits: number;
+    capacityReservations: ReservationFact[];
+    preorderReservations: ReservationFact[];
+  },
+  now: Date,
+): number {
+  const quotaUsage = summarizeCapacity(input.quotaUnits, input.preorderReservations, now);
+  const capacityUsage = summarizeCapacity(input.capacityTotalUnits, input.capacityReservations, now);
+  return Math.max(Math.min(capacityUsage.available, quotaUsage.available), 0);
+}
+
 /** Rumus PRD §9.2 untuk tampilan pemilik. Keputusan yang mengikat tetap dihitung di database. */
 export function summarizePreorder(
   input: {
@@ -37,14 +52,13 @@ export function summarizePreorder(
   now: Date,
 ): PreorderMetrics {
   const quotaUsage = summarizeCapacity(input.quotaUnits, input.preorderReservations, now);
-  const capacityUsage = summarizeCapacity(input.capacityTotalUnits, input.capacityReservations, now);
   const paidUnits = allocatedUnits(input.preorderReservations, "paid");
 
   return {
     paidUnits,
     awaitingPaymentUnits: quotaUsage.effectiveHeld + allocatedUnits(input.preorderReservations, "awaiting"),
     paidTargetGap: Math.max(input.targetUnits - paidUnits, 0),
-    orderableUnits: Math.max(Math.min(capacityUsage.available, quotaUsage.available), 0),
+    orderableUnits: computeOrderableUnits(input, now),
     quotaUsage,
   };
 }

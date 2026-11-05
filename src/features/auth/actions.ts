@@ -9,7 +9,7 @@ import type { AuthError } from "@supabase/supabase-js";
 import { readTextFields, type FormState } from "@/lib/form-state";
 import { emailRequestSchema, newPasswordSchema, signInSchema, signUpSchema } from "@/features/auth/schemas";
 import { toAuthErrorMessage } from "@/features/auth/errors";
-import { getCurrentUserId } from "@/features/auth/session";
+import { hasRecoverySession } from "@/features/auth/session";
 import { RECOVERY_FAILED_URL } from "@/features/auth/confirm-redirect";
 
 const INVALID_REQUEST_MESSAGE = "Permintaan tidak valid. Muat ulang halaman lalu coba lagi.";
@@ -144,7 +144,7 @@ export async function updatePasswordAction(_previous: FormState, formData: FormD
   }
 
   // Link reset bisa kedaluwarsa selagi form terbuka.
-  if (!(await getCurrentUserId())) redirect(RECOVERY_FAILED_URL);
+  if (!(await hasRecoverySession())) redirect(RECOVERY_FAILED_URL);
 
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });

@@ -4,13 +4,13 @@ import { site } from "@/config/site";
 import { RECOVERY_FAILED_URL } from "@/features/auth/confirm-redirect";
 import { AuthShell } from "@/features/auth/components/auth-shell";
 import { ResetPasswordForm } from "@/features/auth/components/reset-password-form";
-import { getCurrentUserId } from "@/features/auth/session";
+import { hasRecoverySession } from "@/features/auth/session";
 
 export const metadata: Metadata = { title: `Password Baru | ${site.name}` };
 
 // Di luar grup (auth): link reset memberi session, sedangkan layout grup itu mengalihkan user ber-session ke dashboard.
 export default async function ResetPasswordPage() {
-  if (!(await getCurrentUserId())) redirect(RECOVERY_FAILED_URL);
+  if (!(await hasRecoverySession())) redirect(RECOVERY_FAILED_URL);
 
   return (
     <AuthShell>

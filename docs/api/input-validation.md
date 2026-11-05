@@ -63,3 +63,11 @@ Typecheck pertama sebelum typegen menemukan `LayoutProps` belum tersedia pada st
 Tidak menjalankan build aplikasi, browser E2E, database atau provider pada tugas pure helpers ini. UI dan wiring aplikasi tidak berubah. Hasil unit test tidak membuktikan otorisasi tenant, atomic reservation/payment, delivery email atau query analytics.
 
 Bagian independen B01 siap direview; B01 secara keseluruhan tetap menunggu kontrak producer/consumer dan fondasi yang dikonfirmasi. Tidak ada staging/commit/push/merge/deploy.
+
+## Pembaruan kontrak C5 — 5 November 2026
+
+Kesepakatan perilaku payment attempt, verified apply, tracking, dan durable email dicatat pada [C5 — kontrak pembayaran](payment-integration.md), berdasarkan konfirmasi pengguna bahwa Rafi dan Indro menyetujui usulan integrasi.
+
+Ini penutupan bagian kesepakatan perilaku C5, bukan seluruh B01. Signature RPC/export/types final masih mengikuti R5; database/provider belum diuji. Kontrak C1–C4/C6–C8 dan perbedaan helper B01 dengan producer R4 tetap harus diperiksa saat integrasi; jangan menimpa validator producer secara otomatis.
+
+Perubahan putaran ini hanya dokumentasi. Tidak mengubah schema/SQL, helper, dependency, atau konfigurasi; tidak membaca secret, menjalankan preview, atau memanggil API transaksi provider.

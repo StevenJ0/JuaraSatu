@@ -6,6 +6,7 @@ const facts = {
   publicOrderNumber: "CL-ABC123",
   orderStatus: "pending_payment" as const,
   fulfillmentStatus: "pending_confirmation" as const,
+  paymentState: "none" as const,
   paymentDueAt: "2026-11-10T05:15:00.000Z",
   businessName: "Toko Contoh",
   preorderName: "Preorder Kaos",

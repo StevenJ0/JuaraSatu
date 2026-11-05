@@ -49,6 +49,17 @@ describe("paymentBadge", () => {
     expect(paymentBadge({ ...cancelled, externalPaymentStatus: null }, now).label).toBe("Tidak ditagih");
   });
 
+  it("pesanan batal yang sudah dibayar tetap terbaca lunas", () => {
+    const cancelled = { ...base, orderStatus: "cancelled" as const, fulfillmentStatus: "cancelled" as const, externalPaymentStatus: null };
+    expect(paymentBadge({ ...cancelled, paymentState: "applied" }, now).label).toBe("Lunas (sandbox)");
+  });
+
+  it("pembayaran terlambat tidak terbaca lunas maupun tidak ditagih", () => {
+    const review = { ...publicPending, orderStatus: "requires_review" as const, fulfillmentStatus: "cancelled" as const, paymentState: "unapplied" as const };
+    expect(paymentBadge(review, now)).toEqual({ label: "Dibayar, belum diterapkan", tone: "warning" });
+    expect(paymentBadge({ ...review, orderStatus: "expired" }, now).label).toBe("Dibayar, belum diterapkan");
+  });
+
   it("pesanan pembeli yang belum dibayar tidak pernah terbaca lunas", () => {
     expect(paymentBadge(publicPending, now).label).toBe("Menunggu bayar");
     expect(paymentBadge(overdue, now).label).toBe("Kedaluwarsa");
@@ -81,6 +92,10 @@ describe("pembatalan", () => {
   it("pesanan selesai tidak bisa dibatalkan", () => {
     expect(canCancelOrder(active("fulfilled"))).toBe(false);
     expect(canCancelOrder(active("ready"))).toBe(true);
+  });
+
+  it("pesanan dalam tinjauan diselesaikan lewat tinjauan, bukan dibatalkan", () => {
+    expect(canCancelOrder({ ...base, orderStatus: "requires_review", fulfillmentStatus: "cancelled" })).toBe(false);
   });
 
   it("slot hanya kembali bila produksi belum mulai", () => {

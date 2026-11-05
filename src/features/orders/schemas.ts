@@ -71,3 +71,9 @@ export const orderActionSchema = orderRefSchema.extend({ action: z.enum(ORDER_AC
 export const cancelOrderSchema = orderRefSchema.extend({
   reason: z.string().trim().min(1, "Tulis alasan pembatalan").max(CANCEL_REASON_MAX, `Maksimal ${CANCEL_REASON_MAX} karakter`),
 });
+
+export const acceptLatePaymentSchema = orderRefSchema.extend({ paymentId: z.uuid() });
+
+export const declineLatePaymentSchema = orderRefSchema.extend({
+  note: z.string().trim().min(1, "Tulis catatan tindak lanjut").max(CANCEL_REASON_MAX, `Maksimal ${CANCEL_REASON_MAX} karakter`),
+});

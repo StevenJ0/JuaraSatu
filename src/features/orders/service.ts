@@ -6,10 +6,12 @@ import type { PrivateOrderStatus } from "@/features/orders/private-status";
 import { privateOrderTokenSchema, type ManualOrderInput, type OrderAction, type PublicOrderInput } from "@/features/orders/schemas";
 import {
   OrderRepositoryError,
+  acceptLatePaymentRecord,
   advanceOrder,
   closeOrder,
   createManualOrderRecord,
   createPublicOrderRecord,
+  declineLatePaymentRecord,
   findOrderByTokenHash,
   type OrderResult,
   type OrderViolation,
@@ -119,6 +121,15 @@ export function runOrderAction(client: SupabaseClient, orderId: string, version:
 
 export function cancelOrder(client: SupabaseClient, orderId: string, version: number, reason: string): Promise<OrderOutcome<void>> {
   return toOutcome(() => closeOrder(client, orderId, version, "cancel", reason));
+}
+
+/** Kapasitas dan kuota dicek ulang di database, jadi penolakan `CAPACITY_UNAVAILABLE` berarti slotnya sudah terpakai pesanan lain. */
+export function acceptLatePayment(client: SupabaseClient, orderId: string, version: number, paymentId: string): Promise<OrderOutcome<void>> {
+  return toOutcome(() => acceptLatePaymentRecord(client, orderId, version, paymentId));
+}
+
+export function declineLatePayment(client: SupabaseClient, orderId: string, version: number, note: string): Promise<OrderOutcome<void>> {
+  return toOutcome(() => declineLatePaymentRecord(client, orderId, version, note));
 }
 
 /** Slot yang tenggatnya lewat sudah tidak dihitung; ini hanya merapikan status dan aman diulang. */

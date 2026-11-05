@@ -7,11 +7,21 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { readTextFields, type FormState } from "@/lib/form-state";
 import { requireBusinessOwner } from "@/features/business/guard";
 import { OrderRepositoryError, type OrderViolation } from "@/features/orders/repository";
-import { MANUAL_ORDER_FIELDS, cancelOrderSchema, manualOrderSchema, orderActionSchema, orderRefSchema } from "@/features/orders/schemas";
-import { cancelOrder, createManualOrder, expireOrder, runOrderAction, type OrderOutcome } from "@/features/orders/service";
+import {
+  MANUAL_ORDER_FIELDS,
+  acceptLatePaymentSchema,
+  cancelOrderSchema,
+  declineLatePaymentSchema,
+  manualOrderSchema,
+  orderActionSchema,
+  orderRefSchema,
+} from "@/features/orders/schemas";
+import { acceptLatePayment, cancelOrder, createManualOrder, declineLatePayment, expireOrder, runOrderAction, type OrderOutcome } from "@/features/orders/service";
 
 const ORDERS_PATH = "/dashboard/orders";
 const FAILED_MESSAGE = "Pesanan gagal diproses. Coba lagi beberapa saat lagi.";
+
+const LATE_PAYMENT_FULL_MESSAGE = "Kuota atau kapasitas sudah terpakai pesanan lain, jadi pembayaran ini belum bisa diterima. Pilih tidak diterima atau tambah kapasitas.";
 
 const VIOLATION_MESSAGES: Record<OrderViolation, string> = {
   VALIDATION_ERROR: "Isian pesanan tidak valid. Periksa lagi lalu ulangi.",
@@ -92,6 +102,30 @@ export async function cancelOrderAction(_previous: FormState, formData: FormData
   const { orderId, version, reason } = parsed.data;
   const supabase = await createSupabaseServerClient();
   return finishOrderChange(orderId, "cancelled", () => cancelOrder(supabase, orderId, version, reason), "cancelOrder");
+}
+
+export async function acceptLatePaymentAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  await requireBusinessOwner();
+  const parsed = acceptLatePaymentSchema.safeParse(readTextFields(formData, ["orderId", "version", "paymentId"]));
+  if (!parsed.success) return { status: "error", message: FAILED_MESSAGE };
+
+  const { orderId, version, paymentId } = parsed.data;
+  const supabase = await createSupabaseServerClient();
+  const state = await finishOrderChange(orderId, "late_accepted", () => acceptLatePayment(supabase, orderId, version, paymentId), "acceptLatePayment");
+  return state.message === VIOLATION_MESSAGES.CAPACITY_UNAVAILABLE ? { ...state, message: LATE_PAYMENT_FULL_MESSAGE } : state;
+}
+
+export async function declineLatePaymentAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  await requireBusinessOwner();
+  const fields = readTextFields(formData, ["orderId", "version", "note"]);
+  const parsed = declineLatePaymentSchema.safeParse(fields);
+  if (!parsed.success) {
+    return { status: "error", fieldErrors: z.flattenError(parsed.error).fieldErrors, values: { note: fields.note } };
+  }
+
+  const { orderId, version, note } = parsed.data;
+  const supabase = await createSupabaseServerClient();
+  return finishOrderChange(orderId, "late_declined", () => declineLatePayment(supabase, orderId, version, note), "declineLatePayment");
 }
 
 export async function expireOrderAction(_previous: FormState, formData: FormData): Promise<FormState> {

@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { toPrivateOrderStatus, type PrivateOrderStatus } from "@/features/orders/private-status";
 import type { ManualOrderInput, OrderAction } from "@/features/orders/schemas";
-import type { ExternalPaymentStatus, FulfillmentStatus, OrderStatus } from "@/features/orders/status";
+import type { ExternalPaymentStatus, FulfillmentStatus, OrderStatus, PaymentState } from "@/features/orders/status";
 
 export const ORDER_VIOLATIONS = [
   "VALIDATION_ERROR",
@@ -66,6 +66,13 @@ function toOrderResult(data: unknown): OrderResult {
   };
 }
 
+const orderPaymentFactSchema = z.object({ status: z.string(), applied_at: z.string().nullable() });
+
+function toPaymentState(payments: z.infer<typeof orderPaymentFactSchema>[]): PaymentState {
+  if (payments.some((payment) => payment.applied_at !== null)) return "applied";
+  return payments.some((payment) => payment.status === "paid_sandbox") ? "unapplied" : "none";
+}
+
 const orderRowSchema = z.object({
   id: z.uuid(),
   preorder_id: z.uuid().nullable(),
@@ -81,6 +88,7 @@ const orderRowSchema = z.object({
   total_idr: z.number(),
   payment_due_at: z.string().nullable(),
   cancel_reason: z.string().nullable(),
+  review_reason: z.string().nullable(),
   version: z.number(),
   created_at: z.string(),
   order_items: z.tuple([
@@ -90,11 +98,13 @@ const orderRowSchema = z.object({
       product_name_snapshot: z.string(),
     }),
   ]),
+  payments: z.array(orderPaymentFactSchema),
 });
 
 const ORDER_COLUMNS = `id, preorder_id, public_order_number, source, customer_name, customer_email, customer_contact, fulfillment_date,
-  external_payment_status, order_status, fulfillment_status, total_idr, payment_due_at, cancel_reason, version, created_at,
-  order_items(quantity, final_unit_price_idr, product_name_snapshot)`;
+  external_payment_status, order_status, fulfillment_status, total_idr, payment_due_at, cancel_reason, review_reason, version, created_at,
+  order_items(quantity, final_unit_price_idr, product_name_snapshot),
+  payments(status, applied_at)`;
 
 export type Order = {
   id: string;
@@ -111,6 +121,9 @@ export type Order = {
   totalIdr: number;
   paymentDueAt: string | null;
   cancelReason: string | null;
+  /** Saat ditinjau berisi kode alasan dari database. Setelah ditolak pemilik berisi catatannya. */
+  reviewReason: string | null;
+  paymentState: PaymentState;
   version: number;
   createdAt: string;
   quantity: number;
@@ -135,6 +148,8 @@ function toOrder(row: z.infer<typeof orderRowSchema>): Order {
     totalIdr: row.total_idr,
     paymentDueAt: row.payment_due_at,
     cancelReason: row.cancel_reason,
+    reviewReason: row.review_reason,
+    paymentState: toPaymentState(row.payments),
     version: row.version,
     createdAt: row.created_at,
     quantity: item.quantity,
@@ -187,13 +202,15 @@ const privateOrderRowSchema = z.object({
       product_name_snapshot: z.string(),
     }),
   ]),
+  payments: z.array(orderPaymentFactSchema),
 });
 
 // Kolom pelanggan, biaya, dan alasan batal sengaja tidak diambil, jadi tidak pernah keluar dari database untuk permintaan ini.
 const PRIVATE_ORDER_COLUMNS = `public_order_number, order_status, fulfillment_status, payment_due_at, subtotal_idr, discount_total_idr, total_idr, fulfillment_date,
   businesses(name),
   preorders(name, pickup_terms_snapshot),
-  order_items(quantity, base_unit_price_idr, discount_per_unit_idr, final_unit_price_idr, product_name_snapshot)`;
+  order_items(quantity, base_unit_price_idr, discount_per_unit_idr, final_unit_price_idr, product_name_snapshot),
+  payments(status, applied_at)`;
 
 export async function findOrderByTokenHash(client: SupabaseClient, tokenHash: string, now: Date): Promise<PrivateOrderStatus | null> {
   const { data, error } = await client.from("orders").select(PRIVATE_ORDER_COLUMNS).eq("private_token_hash", tokenHash).maybeSingle();
@@ -208,6 +225,7 @@ export async function findOrderByTokenHash(client: SupabaseClient, tokenHash: st
       publicOrderNumber: row.public_order_number,
       orderStatus: row.order_status,
       fulfillmentStatus: row.fulfillment_status,
+      paymentState: toPaymentState(row.payments),
       paymentDueAt: row.payment_due_at,
       businessName: row.businesses.name,
       preorderName: row.preorders.name,
@@ -311,6 +329,16 @@ export async function createPublicOrderRecord(client: SupabaseClient, record: Pu
 export async function advanceOrder(client: SupabaseClient, orderId: string, expectedVersion: number, action: OrderAction): Promise<void> {
   const { error } = await client.rpc("advance_fulfillment", { p_order_id: orderId, p_expected_version: expectedVersion, p_action: action });
   if (error) fail("advanceFulfillment", error);
+}
+
+export async function acceptLatePaymentRecord(client: SupabaseClient, orderId: string, expectedVersion: number, paymentId: string): Promise<void> {
+  const { error } = await client.rpc("accept_late_payment", { p_order_id: orderId, p_expected_version: expectedVersion, p_payment_id: paymentId });
+  if (error) fail("acceptLatePayment", error);
+}
+
+export async function declineLatePaymentRecord(client: SupabaseClient, orderId: string, expectedVersion: number, note: string): Promise<void> {
+  const { error } = await client.rpc("decline_late_payment", { p_order_id: orderId, p_expected_version: expectedVersion, p_note: note });
+  if (error) fail("declineLatePayment", error);
 }
 
 export async function closeOrder(

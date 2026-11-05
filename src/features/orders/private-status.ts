@@ -1,15 +1,16 @@
-import { isPaymentOverdue, type FulfillmentStatus, type OrderStatus } from "@/features/orders/status";
+import { isPaymentOverdue, type FulfillmentStatus, type OrderStatus, type PaymentState } from "@/features/orders/status";
 
 /**
  * Status pesanan untuk pemegang token privat (FR-PAY-06). Field disebut satu per satu dan sengaja seminimal mungkin:
  * token bisa bocor lewat riwayat browser, jadi nama, email, kontak, alasan batal, dan biaya tidak ikut.
- * Status bayar belum ada di sini; datanya baru tersedia setelah tabel pembayaran R5.
  */
 export type PrivateOrderStatus = {
   publicOrderNumber: string;
   /** `expired` juga berlaku bila tenggat bayar sudah lewat walau statusnya belum dirapikan, karena slotnya memang sudah dilepas. */
   orderStatus: OrderStatus;
   fulfillmentStatus: FulfillmentStatus;
+  /** Terpisah dari status pesanan. Ini simulasi sandbox, bukan uang sungguhan, dan halaman pembeli wajib menyatakannya. */
+  paymentState: PaymentState;
   paymentDueAt: string | null;
   businessName: string;
   preorderName: string;
@@ -37,6 +38,7 @@ export function toPrivateOrderStatus(
     publicOrderNumber: facts.publicOrderNumber,
     orderStatus: isOverdue ? "expired" : facts.orderStatus,
     fulfillmentStatus: facts.fulfillmentStatus,
+    paymentState: facts.paymentState,
     paymentDueAt: facts.paymentDueAt,
     businessName: facts.businessName,
     preorderName: facts.preorderName,

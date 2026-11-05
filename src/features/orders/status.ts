@@ -5,11 +5,15 @@ export type OrderStatus = "pending_payment" | "awaiting_confirmation" | "active"
 export type FulfillmentStatus = "pending_confirmation" | "confirmed" | "in_production" | "ready" | "fulfilled" | "cancelled";
 export type ExternalPaymentStatus = "unpaid" | "confirmed" | "voided";
 
+/** `applied` berarti sudah diterapkan ke pesanan. `unapplied` berarti uangnya masuk tapi tidak diterapkan, misalnya terlambat. */
+export type PaymentState = "none" | "applied" | "unapplied";
+
 export type OrderStatusFacts = {
   orderStatus: OrderStatus;
   fulfillmentStatus: FulfillmentStatus;
   externalPaymentStatus: ExternalPaymentStatus | null;
   paymentDueAt: string | null;
+  paymentState?: PaymentState;
 };
 
 export type StatusBadge = { label: string; tone: BadgeTone };
@@ -41,6 +45,8 @@ export function paymentBadge(order: OrderStatusFacts, now: Date): StatusBadge {
   if (order.externalPaymentStatus === "voided") return { label: "Tidak ditagih", tone: "neutral" };
   if (order.externalPaymentStatus === "unpaid") return { label: "Menunggu bayar", tone: "warning" };
 
+  if (order.paymentState === "applied") return { label: "Lunas (sandbox)", tone: "success" };
+  if (order.paymentState === "unapplied") return { label: "Dibayar, belum diterapkan", tone: "warning" };
   if (order.orderStatus === "expired" || isPaymentOverdue(order, now)) return { label: "Kedaluwarsa", tone: "danger" };
   if (order.orderStatus === "pending_payment") return { label: "Menunggu bayar", tone: "warning" };
   if (order.orderStatus === "cancelled") return { label: "Tidak ditagih", tone: "neutral" };
@@ -63,7 +69,12 @@ export function nextOrderStep(order: OrderStatusFacts): NextOrderStep | null {
 }
 
 export function canCancelOrder(order: OrderStatusFacts): boolean {
-  return order.orderStatus !== "expired" && order.orderStatus !== "cancelled" && order.fulfillmentStatus !== "fulfilled";
+  return (
+    order.orderStatus !== "expired" &&
+    order.orderStatus !== "cancelled" &&
+    order.fulfillmentStatus !== "fulfilled" &&
+    order.fulfillmentStatus !== "cancelled"
+  );
 }
 
 /** Setelah produksi mulai, slot dan biaya tetap ada walau dibatalkan (PRD §Cancel after production). */

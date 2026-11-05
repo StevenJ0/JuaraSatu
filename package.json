@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "spike:midtrans": "node --conditions=react-server --experimental-strip-types scripts/midtrans-spike.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

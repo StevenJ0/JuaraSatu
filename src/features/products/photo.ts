@@ -1,6 +1,7 @@
-export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+// Foto dari kamera HP sering di atas 5MB. Yang disimpan tetap hasil kompres, jadi batas ini hanya untuk file yang dikirim.
+export const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 export const PHOTO_ACCEPT = "image/jpeg,image/png,image/webp";
-export const PHOTO_TOO_LARGE_MESSAGE = "Ukuran foto maksimal 5MB";
+export const PHOTO_TOO_LARGE_MESSAGE = "Ukuran foto maksimal 10MB";
 
 const PHOTO_INVALID_MESSAGE = "Foto harus berformat JPG, PNG, atau WebP";
 const PHOTO_REQUIRED_MESSAGE = "Foto produk wajib diisi";

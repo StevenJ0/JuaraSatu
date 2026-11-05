@@ -121,7 +121,7 @@ export function ProductForm({ action, submitLabel, initialValues, existing }: Pr
           type="file"
           accept={PHOTO_ACCEPT}
           required={!existing}
-          hint={`${existing ? "" : "Wajib. "}JPG, PNG, atau WebP, maksimal 5MB. Foto tampil ke pembeli.`}
+          hint={`${existing ? "" : "Wajib. "}JPG, PNG, atau WebP, maksimal 10MB. Foto tampil ke pembeli.`}
           onChange={handlePhotoChange}
           errors={photoErrors}
         />

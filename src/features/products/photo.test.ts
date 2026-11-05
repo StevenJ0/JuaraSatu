@@ -65,7 +65,7 @@ describe("readPhotoUpload", () => {
 
   it("menolak file melebihi batas ukuran", async () => {
     const file = new File([new Uint8Array(MAX_PHOTO_BYTES + 1)], "besar.jpg", { type: "image/jpeg" });
-    await expect(readPhotoUpload(file)).resolves.toEqual({ kind: "invalid", message: "Ukuran foto maksimal 5MB" });
+    await expect(readPhotoUpload(file)).resolves.toEqual({ kind: "invalid", message: "Ukuran foto maksimal 10MB" });
   });
 
   it("memakai tipe dari isi file, bukan dari kiriman browser", async () => {

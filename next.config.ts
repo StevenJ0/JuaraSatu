@@ -4,8 +4,8 @@ const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
   experimental: {
-    // Foto produk maksimal 5MB (MAX_PHOTO_BYTES) ditambah field form lainnya.
-    serverActions: { bodySizeLimit: "6mb" },
+    // Foto produk maksimal 10MB (MAX_PHOTO_BYTES) ditambah field form lainnya.
+    serverActions: { bodySizeLimit: "11mb" },
   },
 };
 

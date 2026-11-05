@@ -10,10 +10,17 @@ import { formatIdr } from "@/lib/format-idr";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDateOnly, formatWibDateTime } from "@/lib/wib-time";
 import { requireBusinessOwner } from "@/features/business/guard";
-import { AcceptLatePaymentForm, AdvanceOrderButton, CancelOrderForm, DeclineLatePaymentForm, ExpireOrderButton } from "@/features/orders/components/order-actions";
+import {
+  AcceptLatePaymentForm,
+  AdvanceOrderButton,
+  CancelOrderForm,
+  DeclineLatePaymentForm,
+  ExpireOrderButton,
+  ResolveProductionCostForm,
+} from "@/features/orders/components/order-actions";
 import { OrderBadges } from "@/features/orders/components/order-badges";
 import { findOrder, findOrderProductionCost, listOrderEvents } from "@/features/orders/repository";
-import { cancelWillReleaseSlot, canCancelOrder, isPaymentOverdue, nextOrderStep } from "@/features/orders/status";
+import { cancelWillReleaseSlot, canCancelOrder, isPaidOrder, isPaymentOverdue, nextOrderStep } from "@/features/orders/status";
 import { listOrderPayments } from "@/features/payments/repository";
 
 export const metadata: Metadata = { title: `Detail Pesanan | ${site.name}` };
@@ -29,6 +36,7 @@ const SAVED_NOTICES = new Map<unknown, string>([
   ["expired", "Slot dilepas."],
   ["late_accepted", "Pembayaran diterima, pesanan kembali aktif."],
   ["late_declined", "Pembayaran tidak diterima, catatan tersimpan."],
+  ["cost_resolved", "Biaya produksi tersimpan."],
 ]);
 
 const REVIEW_REASONS = new Map<string, string>([
@@ -51,6 +59,7 @@ const EVENT_LABELS = new Map<string, string>([
   ["late_payment_accepted", "Pembayaran terlambat diterima"],
   ["late_payment_declined", "Pembayaran terlambat tidak diterima"],
   ["duplicate_settlement_recorded", "Pembayaran ganda tercatat"],
+  ["production_cost_resolved", "Biaya produksi dilengkapi"],
 ]);
 
 export default async function OrderDetailPage({ params, searchParams }: PageProps<"/dashboard/orders/[id]">) {
@@ -76,6 +85,7 @@ export default async function OrderDetailPage({ params, searchParams }: PageProp
   const step = nextOrderStep(order);
   const isOverdue = isPaymentOverdue(order, now);
   const canCancel = canCancelOrder(order);
+  const isPaid = isPaidOrder(order);
   const savedMessage = SAVED_NOTICES.get(saved);
   const cancelWarning = cancelWillReleaseSlot(order)
     ? "Pesanan dibatalkan dan slotnya kembali tersedia. Bila sudah dibayar, urus pengembaliannya di luar aplikasi."
@@ -85,7 +95,7 @@ export default async function OrderDetailPage({ params, searchParams }: PageProp
     <div className="flex max-w-2xl flex-col gap-6">
       {savedMessage && <SavedToast key={String(saved)} message={savedMessage} />}
       <div className="flex flex-col gap-2">
-        {order.preorderId && <BackLink href={`/dashboard/preorders/${order.preorderId}/orders`} label="Pesanan" />}
+        <BackLink href={order.preorderId ? `/dashboard/preorders/${order.preorderId}/orders` : "/dashboard/orders"} label="Pesanan" />
         <h1 className="font-mono text-2xl font-medium text-ink">{order.publicOrderNumber}</h1>
         <OrderBadges order={order} now={now} />
       </div>
@@ -113,7 +123,7 @@ export default async function OrderDetailPage({ params, searchParams }: PageProp
           </div>
           <div>
             <dt className="text-sm text-muted">Sumber</dt>
-            <dd className="text-ink">{order.source === "manual" ? "Pesanan manual" : "Checkout pembeli"}</dd>
+            <dd className="text-ink">{order.source === "public" ? "Checkout pembeli" : order.preorderId ? "Pesanan manual" : "Pesanan manual di luar preorder"}</dd>
           </div>
           {order.paymentDueAt && order.orderStatus === "pending_payment" && (
             <div>
@@ -171,6 +181,14 @@ export default async function OrderDetailPage({ params, searchParams }: PageProp
         </Card>
       )}
 
+      {order.orderStatus === "cancelled" && isPaid && (
+        <Card>
+          <h2 className="text-lg font-semibold text-ink">Perlu pengembalian</h2>
+          <p className="mt-1 max-w-[65ch] text-base text-muted">Pesanan ini dibatalkan setelah lunas. Pengembalian dilakukan di luar aplikasi.</p>
+          {order.reviewReason && <p className="mt-2 text-base break-words text-ink">Catatan: {order.reviewReason}</p>}
+        </Card>
+      )}
+
       {!isInReview && order.paymentState === "unapplied" && (
         <Card>
           <h2 className="text-lg font-semibold text-ink">Pembayaran tidak diterapkan</h2>
@@ -200,7 +218,7 @@ export default async function OrderDetailPage({ params, searchParams }: PageProp
           <div className="mt-4 flex flex-col gap-3">
             {step && <AdvanceOrderButton orderId={order.id} version={order.version} step={step} />}
             {isOverdue && <ExpireOrderButton orderId={order.id} version={order.version} />}
-            {canCancel && !isOverdue && <CancelOrderForm orderId={order.id} version={order.version} warning={cancelWarning} />}
+            {canCancel && !isOverdue && <CancelOrderForm orderId={order.id} version={order.version} warning={cancelWarning} requiresRefundNote={isPaid} />}
           </div>
         </Card>
       )}
@@ -209,14 +227,23 @@ export default async function OrderDetailPage({ params, searchParams }: PageProp
         <Card>
           <h2 className="text-lg font-semibold text-ink">Biaya produksi tercatat</h2>
           {productionCost.amountIdr === null ? (
-            <div className="mt-2">
-              <Badge tone="warning">Biaya belum diketahui</Badge>
-            </div>
+            <>
+              <div className="mt-2">
+                <Badge tone="warning">Biaya belum diketahui</Badge>
+              </div>
+              <p className="mt-2 max-w-[65ch] text-base text-muted">
+                Biaya produk ini belum diisi saat produksi dimulai. Lengkapi untuk {productionCost.quantity} unit agar laporan tidak menganggapnya nol. Data pesanan yang lama tidak berubah.
+              </p>
+              <ResolveProductionCostForm orderId={order.id} version={order.version} />
+            </>
           ) : (
-            <p className="mt-2 flex flex-wrap items-center gap-2 text-base text-ink">
-              {formatIdr(productionCost.amountIdr)}
-              {productionCost.quality === "estimated" && <Badge tone="warning">Biaya estimasi</Badge>}
-            </p>
+            <>
+              <p className="mt-2 flex flex-wrap items-center gap-2 text-base text-ink">
+                {formatIdr(productionCost.amountIdr)}
+                {productionCost.quality === "estimated" && <Badge tone="warning">Biaya estimasi</Badge>}
+              </p>
+              {productionCost.resolutionNote && <p className="mt-2 text-base break-words text-muted">Catatan: {productionCost.resolutionNote}</p>}
+            </>
           )}
         </Card>
       )}

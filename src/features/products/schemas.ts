@@ -15,7 +15,7 @@ const DESCRIPTION_MAX = 1000;
 // Menerima 25000, 25.000, atau Rp25.000. Bentuk seperti 25.5 ditolak agar tidak terbaca sebagai 255.
 const IDR_PATTERN = /^(?:Rp\s?)?(\d+|\d{1,3}(?:\.\d{3})+)$/i;
 
-function parseIdr(value: string): number | null {
+export function parseIdr(value: string): number | null {
   const digits = IDR_PATTERN.exec(value)?.[1];
   if (digits === undefined) return null;
   const amount = Number(digits.replaceAll(".", ""));

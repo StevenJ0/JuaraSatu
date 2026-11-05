@@ -15,7 +15,14 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDateOnly, formatWibDateTime } from "@/lib/wib-time";
 import { getCurrentBusinessProfile } from "@/features/business/guard";
 import { CapacityUsage } from "@/features/capacity/components/capacity-usage";
-import { cancelPreorderDraftAction, closePreorderAction, completePreorderAction, publishPreorderAction } from "@/features/preorders/actions";
+import { listPreorderOrders } from "@/features/orders/repository";
+import {
+  cancelPreorderDraftAction,
+  cancelPublishedPreorderAction,
+  closePreorderAction,
+  completePreorderAction,
+  publishPreorderAction,
+} from "@/features/preorders/actions";
 import { PreorderStatusBadge } from "@/features/preorders/components/preorder-status-badge";
 import { PreorderTransition } from "@/features/preorders/components/preorder-transition";
 import { findPreorder, type Preorder } from "@/features/preorders/repository";
@@ -30,9 +37,10 @@ const SAVED_NOTICES = new Map<unknown, string>([
   ["closed", "Preorder ditutup."],
   ["completed", "Preorder selesai."],
   ["cancelled", "Draf preorder dibatalkan."],
+  ["cancelled_published", "Preorder dibatalkan."],
 ]);
 
-function PreorderActions({ preorder }: { preorder: Preorder }) {
+function PreorderActions({ preorder, hasOrders }: { preorder: Preorder; hasOrders: boolean }) {
   const shared = { preorderId: preorder.id, version: preorder.version };
 
   if (preorder.status === "draft") {
@@ -64,8 +72,12 @@ function PreorderActions({ preorder }: { preorder: Preorder }) {
   if (preorder.status === "cancelled") {
     return (
       <Card>
-        <h2 className="text-lg font-semibold text-ink">Draf dibatalkan</h2>
-        <p className="mt-1 max-w-[65ch] text-base text-muted">Pembeli tidak pernah melihat preorder ini, dan kapasitas produksi tidak terpakai.</p>
+        <h2 className="text-lg font-semibold text-ink">{preorder.frozenTerms ? "Preorder dibatalkan" : "Draf dibatalkan"}</h2>
+        <p className="mt-1 max-w-[65ch] text-base text-muted">
+          {preorder.frozenTerms
+            ? "Dibatalkan sebelum ada pesanan. Tautan pembeli tidak lagi bisa dibuka, dan kapasitas produksi tidak terpakai."
+            : "Pembeli tidak pernah melihat preorder ini, dan kapasitas produksi tidak terpakai."}
+        </p>
         <Link href="/dashboard/preorders/new" className={`mt-4 w-full sm:w-fit ${SECONDARY_BUTTON_CLASS}`}>
           Buat preorder baru
         </Link>
@@ -79,13 +91,22 @@ function PreorderActions({ preorder }: { preorder: Preorder }) {
         <p className="mt-1 max-w-[65ch] text-base text-muted">
           Tutup bila ingin berhenti menerima pesanan baru. Pesanan yang sudah masuk tetap berjalan.
         </p>
-        <div className="mt-4">
+        <div className="mt-4 flex flex-col gap-3">
           <PreorderTransition
             {...shared}
             action={closePreorderAction}
             label="Tutup preorder"
             warning="Preorder yang ditutup tidak bisa dibuka lagi. Bila perlu, buat preorder baru."
           />
+          {!hasOrders && (
+            <PreorderTransition
+              {...shared}
+              action={cancelPublishedPreorderAction}
+              label="Batalkan preorder"
+              warning="Belum ada pesanan, jadi preorder bisa dibatalkan. Tautan pembeli tidak lagi bisa dibuka, dan tidak bisa diterbitkan ulang."
+              isDanger
+            />
+          )}
         </div>
       </Card>
     );
@@ -187,7 +208,7 @@ export default async function PreorderDetailPage({ params, searchParams }: PageP
   const supabase = await createSupabaseServerClient();
   const preorder = await findPreorder(supabase, business.id, preorderId.data);
   if (!preorder) notFound();
-  const product = await findProduct(supabase, business.id, preorder.productId);
+  const [product, orders] = await Promise.all([findProduct(supabase, business.id, preorder.productId), listPreorderOrders(supabase, business.id, preorder.id)]);
 
   const savedMessage = SAVED_NOTICES.get(saved);
   const { paidUnits, awaitingPaymentUnits, paidTargetGap, orderableUnits, quotaUsage } = preorder.metrics;
@@ -230,7 +251,7 @@ export default async function PreorderDetailPage({ params, searchParams }: PageP
         </>
       )}
 
-      <PreorderActions preorder={preorder} />
+      <PreorderActions preorder={preorder} hasOrders={orders.length > 0} />
 
       {!isCancelled && (
         <BuyerPreview

@@ -3,7 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PrivateOrderStatus } from "@/features/orders/private-status";
-import { privateOrderTokenSchema, type ManualOrderInput, type OrderAction, type PublicOrderInput } from "@/features/orders/schemas";
+import { privateOrderTokenSchema, type ManualOrderInput, type OrderAction, type PublicOrderInput, type StandaloneManualOrderInput } from "@/features/orders/schemas";
 import {
   OrderRepositoryError,
   acceptLatePaymentRecord,
@@ -11,9 +11,12 @@ import {
   closeOrder,
   createManualOrderRecord,
   createPublicOrderRecord,
+  createStandaloneManualOrderRecord,
   declineLatePaymentRecord,
   findOrderByTokenHash,
+  resolveProductionCostRecord,
   type OrderResult,
+  type ProductionCostResolution,
   type OrderViolation,
 } from "@/features/orders/repository";
 
@@ -73,6 +76,18 @@ export function createManualOrder(client: SupabaseClient, input: ManualOrderInpu
   return toOutcome(() => createManualOrderRecord(client, input, requestHash));
 }
 
+export function createStandaloneManualOrder(client: SupabaseClient, input: StandaloneManualOrderInput): Promise<OrderOutcome<OrderResult>> {
+  const requestHash = hashOrderRequest({
+    capacityId: input.capacityId,
+    quantity: input.quantity,
+    customerName: input.customerName,
+    customerEmail: input.customerEmail,
+    customerContact: input.customerContact,
+    paymentStatus: input.paymentStatus,
+  });
+  return toOutcome(() => createStandaloneManualOrderRecord(client, input, requestHash));
+}
+
 /**
  * Kontrak C4 untuk checkout pembeli. `client` wajib service role karena pembeli tidak punya akun.
  * Kirim ulang dengan kunci dan token yang sama mengembalikan pesanan yang sama, sehingga respons yang hilang aman diulang.
@@ -89,9 +104,11 @@ export function placePublicOrder(
     customerEmail: input.customerEmail,
     customerContact: input.customerContact,
     expectedUnitPriceIdr: input.expectedUnitPriceIdr,
+    attributionRef: input.attributionRef,
   });
   return toOutcome(() =>
     createPublicOrderRecord(client, {
+      attributionRef: input.attributionRef,
       slug: input.slug,
       quantity: input.quantity,
       customerName: input.customerName,
@@ -119,8 +136,12 @@ export function runOrderAction(client: SupabaseClient, orderId: string, version:
   return toOutcome(() => advanceOrder(client, orderId, version, action));
 }
 
-export function cancelOrder(client: SupabaseClient, orderId: string, version: number, reason: string): Promise<OrderOutcome<void>> {
-  return toOutcome(() => closeOrder(client, orderId, version, "cancel", reason));
+export function cancelOrder(client: SupabaseClient, orderId: string, version: number, reason: string, refundNote: string | null = null): Promise<OrderOutcome<void>> {
+  return toOutcome(() => closeOrder(client, orderId, version, "cancel", reason, refundNote));
+}
+
+export function resolveProductionCost(client: SupabaseClient, orderId: string, version: number, resolution: ProductionCostResolution): Promise<OrderOutcome<void>> {
+  return toOutcome(() => resolveProductionCostRecord(client, orderId, version, resolution));
 }
 
 /** Kapasitas dan kuota dicek ulang di database, jadi penolakan `CAPACITY_UNAVAILABLE` berarti slotnya sudah terpakai pesanan lain. */

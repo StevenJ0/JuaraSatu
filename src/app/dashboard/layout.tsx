@@ -19,7 +19,8 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
           <Brand href="/dashboard" />
           <OwnerNav className="order-last w-full lg:order-none lg:w-auto" />
           <div className="ml-auto flex min-w-0 items-center gap-2">
-            <p className="hidden max-w-48 truncate text-sm font-medium text-ink sm:block lg:max-w-24">{business.name}</p>
+            {/* Di layar lebar menu satu baris dengan logo, jadi nama usaha disembunyikan agar tetap muat. Nama tetap ada di Ringkasan. */}
+            <p className="hidden max-w-48 truncate text-sm font-medium text-ink sm:block lg:hidden">{business.name}</p>
             <SignOutButton />
           </div>
         </div>

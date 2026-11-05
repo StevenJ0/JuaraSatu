@@ -77,6 +77,11 @@ export function canCancelOrder(order: OrderStatusFacts): boolean {
   );
 }
 
+/** Pesanan lunas yang dibatalkan perlu catatan pengembalian. Pengembaliannya sendiri di luar aplikasi (PRD §8). */
+export function isPaidOrder(order: OrderStatusFacts): boolean {
+  return order.paymentState === "applied" || order.externalPaymentStatus === "confirmed";
+}
+
 /** Setelah produksi mulai, slot dan biaya tetap ada walau dibatalkan (PRD §Cancel after production). */
 export function cancelWillReleaseSlot(order: OrderStatusFacts): boolean {
   return order.fulfillmentStatus === "pending_confirmation" || order.fulfillmentStatus === "confirmed";

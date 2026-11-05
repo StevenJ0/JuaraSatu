@@ -47,6 +47,7 @@ const buyer = {
   customerContact: null,
   quantity: 2,
   expectedUnitPriceIdr: 120000,
+  attributionRef: null,
 };
 const manual = {
   preorderId: ORDER_ID,
@@ -171,7 +172,17 @@ describe("aksi pemilik", () => {
 
   it("membatalkan dengan alasan", async () => {
     await expect(cancelOrder(client, ORDER_ID, 2, "Pembeli batal")).resolves.toMatchObject({ kind: "ok" });
-    expect(close).toHaveBeenCalledWith(client, ORDER_ID, 2, "cancel", "Pembeli batal");
+    expect(close).toHaveBeenCalledWith(client, ORDER_ID, 2, "cancel", "Pembeli batal", null);
+  });
+
+  it("meneruskan catatan pengembalian untuk pesanan lunas", async () => {
+    await cancelOrder(client, ORDER_ID, 2, "Pembeli batal", "Sudah dikembalikan tunai");
+    expect(close).toHaveBeenCalledWith(client, ORDER_ID, 2, "cancel", "Pembeli batal", "Sudah dikembalikan tunai");
+  });
+
+  it("melaporkan catatan pengembalian yang kosong", async () => {
+    close.mockRejectedValue(new OrderRepositoryError("op", "P0001", "REFUND_NOTE_REQUIRED"));
+    await expect(cancelOrder(client, ORDER_ID, 2, "Pembeli batal")).resolves.toEqual({ kind: "rejected", violation: "REFUND_NOTE_REQUIRED" });
   });
 
   it("melepas slot kedaluwarsa tanpa alasan", async () => {

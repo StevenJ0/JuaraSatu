@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   cancelWillReleaseSlot,
   canCancelOrder,
+  isPaidOrder,
   matchesOrderFilter,
   nextOrderStep,
   orderBadge,
@@ -96,6 +97,15 @@ describe("pembatalan", () => {
 
   it("pesanan dalam tinjauan diselesaikan lewat tinjauan, bukan dibatalkan", () => {
     expect(canCancelOrder({ ...base, orderStatus: "requires_review", fulfillmentStatus: "cancelled" })).toBe(false);
+  });
+
+  it("catatan pengembalian hanya untuk pesanan yang benar-benar lunas", () => {
+    expect(isPaidOrder(base)).toBe(true);
+    expect(isPaidOrder({ ...publicPending, paymentState: "applied" })).toBe(true);
+    expect(isPaidOrder(publicPending)).toBe(false);
+    expect(isPaidOrder({ ...publicPending, paymentState: "unapplied" })).toBe(false);
+    expect(isPaidOrder({ ...base, externalPaymentStatus: "unpaid" })).toBe(false);
+    expect(isPaidOrder({ ...base, externalPaymentStatus: "voided" })).toBe(false);
   });
 
   it("slot hanya kembali bila produksi belum mulai", () => {

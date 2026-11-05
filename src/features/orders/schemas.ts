@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { positiveUnits } from "@/features/preorders/schemas";
+import { parseIdr } from "@/features/products/schemas";
 
 const CUSTOMER_NAME_MAX = 160;
 const CUSTOMER_EMAIL_MAX = 254;
@@ -43,6 +44,21 @@ export const MANUAL_ORDER_FIELDS = [
   "paymentStatus",
 ] as const;
 
+/** PRD §9.2: pesanan manual boleh di luar preorder, langsung memakai kapasitas jadwal yang dipilih. */
+export const standaloneManualOrderSchema = manualOrderSchema.omit({ preorderId: true }).extend({
+  capacityId: z.uuid({ error: "Pilih jadwal produksi" }),
+});
+export type StandaloneManualOrderInput = z.output<typeof standaloneManualOrderSchema>;
+export const STANDALONE_MANUAL_ORDER_FIELDS = [
+  "capacityId",
+  "idempotencyKey",
+  "customerName",
+  "customerEmail",
+  "customerContact",
+  "quantity",
+  "paymentStatus",
+] as const;
+
 export const privateOrderTokenSchema = z.string().min(32).max(256);
 
 /** Kontrak C4 untuk checkout pembeli. Browser tidak menentukan harga, total, business, atau status. */
@@ -55,6 +71,8 @@ export const publicOrderSchema = z.object({
   customerContact,
   quantity: z.number().int().min(1).max(10_000),
   expectedUnitPriceIdr: z.number().int().positive(),
+  /** Referensi tautan kampanye. Hanya mencatat asal pesanan, tidak mengubah harga. */
+  attributionRef: z.string().trim().min(1).max(200).nullable().default(null),
 });
 export type PublicOrderInput = z.output<typeof publicOrderSchema>;
 
@@ -70,7 +88,31 @@ export const orderActionSchema = orderRefSchema.extend({ action: z.enum(ORDER_AC
 
 export const cancelOrderSchema = orderRefSchema.extend({
   reason: z.string().trim().min(1, "Tulis alasan pembatalan").max(CANCEL_REASON_MAX, `Maksimal ${CANCEL_REASON_MAX} karakter`),
+  /** Wajib bila pesanan sudah lunas. Aturannya di database, karena hanya database yang tahu status bayar terbaru. */
+  refundNote: z
+    .string()
+    .trim()
+    .max(CANCEL_REASON_MAX, `Maksimal ${CANCEL_REASON_MAX} karakter`)
+    .transform((value) => (value === "" ? null : value)),
 });
+
+export const RESOLVABLE_COST_QUALITIES = ["estimated", "verified"] as const;
+
+export const resolveProductionCostSchema = orderRefSchema
+  .extend({
+    // Kosong dicek di sini, bukan di transform, agar pesannya muncul bersama galat kolom lain.
+    costPerUnit: z.string().trim().min(1, "Isi biaya per unit dalam rupiah, boleh Rp0"),
+    quality: z.enum(RESOLVABLE_COST_QUALITIES, { error: "Pilih status biaya" }),
+    note: z.string().trim().min(1, "Tulis catatan asal biaya").max(CANCEL_REASON_MAX, `Maksimal ${CANCEL_REASON_MAX} karakter`),
+  })
+  .transform(({ costPerUnit, ...fields }, context) => {
+    const costPerUnitIdr = parseIdr(costPerUnit);
+    if (costPerUnitIdr === null) {
+      context.addIssue({ code: "custom", path: ["costPerUnit"], message: "Isi biaya per unit dalam rupiah, boleh Rp0" });
+      return z.NEVER;
+    }
+    return { ...fields, costPerUnitIdr };
+  });
 
 export const acceptLatePaymentSchema = orderRefSchema.extend({ paymentId: z.uuid() });
 

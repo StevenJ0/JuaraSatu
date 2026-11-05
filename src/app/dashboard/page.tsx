@@ -10,6 +10,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentBusinessProfile } from "@/features/business/guard";
 import { summarizeOpenCapacities } from "@/features/capacity/availability";
 import { listCapacities } from "@/features/capacity/repository";
+import { summarizeOrders } from "@/features/orders/recap";
+import { listBusinessOrders } from "@/features/orders/repository";
 import { countActiveProducts } from "@/features/products/repository";
 
 export const metadata: Metadata = { title: `Ringkasan | ${site.name}` };
@@ -19,11 +21,14 @@ type SetupStep = { label: string; done: boolean; href: string; nextAction?: stri
 export default async function DashboardOverviewPage() {
   const business = await getCurrentBusinessProfile();
   const supabase = await createSupabaseServerClient();
-  const [activeProductCount, capacities] = await Promise.all([
+  const [activeProductCount, capacities, orders] = await Promise.all([
     countActiveProducts(supabase, business.id),
     listCapacities(supabase, business.id),
+    listBusinessOrders(supabase, business.id),
   ]);
-  const openCapacity = summarizeOpenCapacities(capacities, new Date());
+  const now = new Date();
+  const openCapacity = summarizeOpenCapacities(capacities, now);
+  const orderRecap = summarizeOrders(orders, now);
 
   const setupSteps: SetupStep[] = [
     { label: "Profil usaha", done: true, href: "/dashboard/business" },
@@ -61,6 +66,28 @@ export default async function DashboardOverviewPage() {
           className="col-span-2 sm:col-span-1"
         />
       </section>
+
+      {(orderRecap.ordersNeedingAction > 0 || orderRecap.unitsReady > 0) && (
+        <Card>
+          <h2 className="text-lg font-semibold text-ink">Perlu ditangani</h2>
+          <ul className="mt-3 flex flex-col gap-2 text-base text-ink">
+            {orderRecap.ordersNeedingAction > 0 && (
+              <li>
+                <Link href="/dashboard/orders?filter=attention" className="font-medium hover:underline">
+                  {orderRecap.ordersNeedingAction} pesanan perlu tindakan
+                </Link>
+              </li>
+            )}
+            {orderRecap.unitsReady > 0 && (
+              <li>
+                <Link href="/dashboard/orders" className="font-medium hover:underline">
+                  {orderRecap.unitsReady} unit siap diambil pembeli
+                </Link>
+              </li>
+            )}
+          </ul>
+        </Card>
+      )}
 
       <Card>
         <h2 className="text-lg font-semibold text-ink">Persiapan usaha</h2>

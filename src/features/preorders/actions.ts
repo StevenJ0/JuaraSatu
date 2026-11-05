@@ -29,6 +29,7 @@ const VIOLATION_STATES: Record<PreorderViolation, Pick<FormState, "message" | "f
   QUOTA_OVER_CAPACITY: { message: "Kuota melebihi sisa kapasitas. Turunkan kuota atau tambah kapasitas produksi." },
   DATE_TAKEN: { message: "Sudah ada preorder yang dibuka untuk tanggal pengambilan ini. Tutup preorder itu dulu atau pilih tanggal lain." },
   ORDERS_UNRESOLVED: { message: "Masih ada pesanan yang belum selesai. Selesaikan pesanan itu dulu." },
+  HAS_ORDERS: { message: "Preorder ini sudah punya pesanan, jadi tidak bisa dibatalkan. Tutup preorder bila ingin berhenti menerima pesanan." },
 };
 
 function logRepositoryFailure(context: string, error: unknown): void {
@@ -116,4 +117,8 @@ export async function completePreorderAction(_previous: FormState, formData: For
 
 export async function cancelPreorderDraftAction(_previous: FormState, formData: FormData): Promise<FormState> {
   return runTransition("cancel_preorder_draft", "cancelled", formData);
+}
+
+export async function cancelPublishedPreorderAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  return runTransition("cancel_published_preorder", "cancelled_published", formData);
 }

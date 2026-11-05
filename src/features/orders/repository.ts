@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { toPrivateOrderStatus, type PrivateOrderStatus } from "@/features/orders/private-status";
-import type { ManualOrderInput, OrderAction } from "@/features/orders/schemas";
+import type { ManualOrderInput, OrderAction, StandaloneManualOrderInput } from "@/features/orders/schemas";
 import type { ExternalPaymentStatus, FulfillmentStatus, OrderStatus, PaymentState } from "@/features/orders/status";
 
 export const ORDER_VIOLATIONS = [
@@ -14,6 +14,9 @@ export const ORDER_VIOLATIONS = [
   "CAPACITY_UNAVAILABLE",
   "OFFER_CHANGED",
   "IDEMPOTENCY_CONFLICT",
+  "SCHEDULE_CLOSED",
+  "PRODUCT_INACTIVE",
+  "REFUND_NOTE_REQUIRED",
 ] as const;
 export type OrderViolation = (typeof ORDER_VIOLATIONS)[number];
 
@@ -169,6 +172,20 @@ export async function listPreorderOrders(client: SupabaseClient, businessId: str
   return z.array(orderRowSchema).parse(data).map(toOrder);
 }
 
+// Cukup untuk dasbor satu usaha di MVP. Halaman menyebutkan bila daftarnya terpotong, jadi tidak diam-diam menyembunyikan pesanan.
+export const BUSINESS_ORDERS_LIMIT = 200;
+
+export async function listBusinessOrders(client: SupabaseClient, businessId: string): Promise<Order[]> {
+  const { data, error } = await client
+    .from("orders")
+    .select(ORDER_COLUMNS)
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: false })
+    .limit(BUSINESS_ORDERS_LIMIT);
+  if (error) fail("listBusinessOrders", error);
+  return z.array(orderRowSchema).parse(data).map(toOrder);
+}
+
 export async function findOrder(client: SupabaseClient, businessId: string, orderId: string): Promise<Order | null> {
   const { data, error } = await client.from("orders").select(ORDER_COLUMNS).eq("business_id", businessId).eq("id", orderId).maybeSingle();
   if (error) fail("findOrder", error);
@@ -268,20 +285,46 @@ export async function listOrderEvents(client: SupabaseClient, businessId: string
 const productionCostRowSchema = z.object({
   amount_idr: z.number().nullable(),
   quality: z.enum(["unknown", "estimated", "verified"]),
+  quantity: z.number(),
+  resolution_note: z.string().nullable(),
 });
-export type OrderProductionCost = { amountIdr: number | null; quality: "unknown" | "estimated" | "verified" };
+export type OrderProductionCost = {
+  amountIdr: number | null;
+  quality: "unknown" | "estimated" | "verified";
+  quantity: number;
+  /** Terisi bila biaya dilengkapi pemilik setelah produksi. */
+  resolutionNote: string | null;
+};
 
 export async function findOrderProductionCost(client: SupabaseClient, businessId: string, orderId: string): Promise<OrderProductionCost | null> {
   const { data, error } = await client
     .from("order_production_costs")
-    .select("amount_idr, quality, order_items!inner(order_id)")
+    .select("amount_idr, quality, quantity, resolution_note, order_items!inner(order_id)")
     .eq("business_id", businessId)
     .eq("order_items.order_id", orderId)
     .maybeSingle();
   if (error) fail("findOrderProductionCost", error);
   if (data === null) return null;
   const row = productionCostRowSchema.parse(data);
-  return { amountIdr: row.amount_idr, quality: row.quality };
+  return { amountIdr: row.amount_idr, quality: row.quality, quantity: row.quantity, resolutionNote: row.resolution_note };
+}
+
+export type ProductionCostResolution = { costPerUnitIdr: number; quality: "estimated" | "verified"; note: string };
+
+export async function resolveProductionCostRecord(
+  client: SupabaseClient,
+  orderId: string,
+  expectedVersion: number,
+  resolution: ProductionCostResolution,
+): Promise<void> {
+  const { error } = await client.rpc("resolve_production_cost", {
+    p_order_id: orderId,
+    p_expected_version: expectedVersion,
+    p_cost_per_unit_idr: resolution.costPerUnitIdr,
+    p_quality: resolution.quality,
+    p_note: resolution.note,
+  });
+  if (error) fail("resolveProductionCost", error);
 }
 
 export async function createManualOrderRecord(client: SupabaseClient, input: ManualOrderInput, requestHash: string): Promise<OrderResult> {
@@ -299,6 +342,21 @@ export async function createManualOrderRecord(client: SupabaseClient, input: Man
   return toOrderResult(data);
 }
 
+export async function createStandaloneManualOrderRecord(client: SupabaseClient, input: StandaloneManualOrderInput, requestHash: string): Promise<OrderResult> {
+  const { data, error } = await client.rpc("create_standalone_manual_order", {
+    p_capacity_id: input.capacityId,
+    p_quantity: input.quantity,
+    p_customer_name: input.customerName,
+    p_customer_email: input.customerEmail,
+    p_customer_contact: input.customerContact,
+    p_is_paid: input.paymentStatus === "paid",
+    p_idempotency_key: input.idempotencyKey,
+    p_request_hash: requestHash,
+  });
+  if (error) fail("createStandaloneManualOrder", error);
+  return toOrderResult(data);
+}
+
 export type PublicOrderRecord = {
   slug: string;
   quantity: number;
@@ -310,6 +368,7 @@ export type PublicOrderRecord = {
   requestHash: string;
   expectedUnitPriceIdr: number;
   holdTtlSeconds: number;
+  attributionRef: string | null;
 };
 
 export async function createPublicOrderRecord(client: SupabaseClient, record: PublicOrderRecord): Promise<OrderResult> {
@@ -324,6 +383,7 @@ export async function createPublicOrderRecord(client: SupabaseClient, record: Pu
     p_request_hash: record.requestHash,
     p_expected_unit_price_idr: record.expectedUnitPriceIdr,
     p_hold_ttl_seconds: record.holdTtlSeconds,
+    p_attribution_ref: record.attributionRef,
   });
   if (error) fail("createPublicOrder", error);
   return toOrderResult(data);
@@ -350,12 +410,14 @@ export async function closeOrder(
   expectedVersion: number | null,
   action: "cancel" | "expire",
   reason: string | null,
+  refundNote: string | null = null,
 ): Promise<void> {
   const { error } = await client.rpc("expire_or_cancel_order", {
     p_order_id: orderId,
     p_expected_version: expectedVersion,
     p_action: action,
     p_reason: reason,
+    p_refund_note: refundNote,
   });
   if (error) fail("expireOrCancelOrder", error);
 }

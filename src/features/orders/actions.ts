@@ -9,14 +9,27 @@ import { requireBusinessOwner } from "@/features/business/guard";
 import { OrderRepositoryError, type OrderViolation } from "@/features/orders/repository";
 import {
   MANUAL_ORDER_FIELDS,
+  STANDALONE_MANUAL_ORDER_FIELDS,
   acceptLatePaymentSchema,
   cancelOrderSchema,
   declineLatePaymentSchema,
   manualOrderSchema,
   orderActionSchema,
   orderRefSchema,
+  resolveProductionCostSchema,
+  standaloneManualOrderSchema,
 } from "@/features/orders/schemas";
-import { acceptLatePayment, cancelOrder, createManualOrder, declineLatePayment, expireOrder, runOrderAction, type OrderOutcome } from "@/features/orders/service";
+import {
+  acceptLatePayment,
+  cancelOrder,
+  createManualOrder,
+  createStandaloneManualOrder,
+  declineLatePayment,
+  expireOrder,
+  resolveProductionCost,
+  runOrderAction,
+  type OrderOutcome,
+} from "@/features/orders/service";
 
 const ORDERS_PATH = "/dashboard/orders";
 const FAILED_MESSAGE = "Pesanan gagal diproses. Coba lagi beberapa saat lagi.";
@@ -32,6 +45,9 @@ const VIOLATION_MESSAGES: Record<OrderViolation, string> = {
   CAPACITY_UNAVAILABLE: "Jumlah melebihi sisa kuota atau kapasitas. Kurangi jumlahnya.",
   OFFER_CHANGED: "Harga sudah berubah. Muat ulang halaman untuk melihat harga terbaru.",
   IDEMPOTENCY_CONFLICT: "Form ini sudah dipakai untuk pesanan lain. Muat ulang halaman, lalu isi kembali.",
+  SCHEDULE_CLOSED: "Jadwal pengambilan ini sudah lewat. Pilih jadwal lain.",
+  PRODUCT_INACTIVE: "Produk pada jadwal ini nonaktif. Aktifkan produknya atau pilih jadwal lain.",
+  REFUND_NOTE_REQUIRED: "Pesanan ini sudah lunas. Tulis catatan pengembalian sebelum membatalkan.",
 };
 
 function logFailure(context: string, error: unknown): void {
@@ -68,6 +84,29 @@ export async function createManualOrderAction(_previous: FormState, formData: Fo
   redirect(`${ORDERS_PATH}/${orderId}?saved=created`);
 }
 
+export async function createStandaloneManualOrderAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  await requireBusinessOwner();
+  const fields = readTextFields(formData, STANDALONE_MANUAL_ORDER_FIELDS);
+  const parsed = standaloneManualOrderSchema.safeParse(fields);
+  if (!parsed.success) {
+    return { status: "error", fieldErrors: z.flattenError(parsed.error).fieldErrors, values: fields };
+  }
+
+  let orderId: string;
+  try {
+    const supabase = await createSupabaseServerClient();
+    const outcome = await createStandaloneManualOrder(supabase, parsed.data);
+    if (outcome.kind === "rejected") return { status: "error", message: VIOLATION_MESSAGES[outcome.violation], values: fields };
+    orderId = outcome.value.orderId;
+  } catch (error) {
+    logFailure("createStandaloneManualOrder", error);
+    return { status: "error", message: FAILED_MESSAGE, values: fields };
+  }
+
+  refreshOrderPages();
+  redirect(`${ORDERS_PATH}/${orderId}?saved=created`);
+}
+
 async function finishOrderChange(orderId: string, saved: string, run: () => Promise<OrderOutcome<void>>, context: string): Promise<FormState> {
   try {
     const outcome = await run();
@@ -93,15 +132,32 @@ export async function advanceOrderAction(_previous: FormState, formData: FormDat
 
 export async function cancelOrderAction(_previous: FormState, formData: FormData): Promise<FormState> {
   await requireBusinessOwner();
-  const fields = readTextFields(formData, ["orderId", "version", "reason"]);
+  const fields = readTextFields(formData, ["orderId", "version", "reason", "refundNote"]);
+  const values = { reason: fields.reason, refundNote: fields.refundNote };
   const parsed = cancelOrderSchema.safeParse(fields);
   if (!parsed.success) {
-    return { status: "error", fieldErrors: z.flattenError(parsed.error).fieldErrors, values: { reason: fields.reason } };
+    return { status: "error", fieldErrors: z.flattenError(parsed.error).fieldErrors, values };
   }
 
-  const { orderId, version, reason } = parsed.data;
+  const { orderId, version, reason, refundNote } = parsed.data;
   const supabase = await createSupabaseServerClient();
-  return finishOrderChange(orderId, "cancelled", () => cancelOrder(supabase, orderId, version, reason), "cancelOrder");
+  const state = await finishOrderChange(orderId, "cancelled", () => cancelOrder(supabase, orderId, version, reason, refundNote), "cancelOrder");
+  return { ...state, values };
+}
+
+export async function resolveProductionCostAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  await requireBusinessOwner();
+  const fields = readTextFields(formData, ["orderId", "version", "costPerUnit", "quality", "note"]);
+  const values = { costPerUnit: fields.costPerUnit, quality: fields.quality, note: fields.note };
+  const parsed = resolveProductionCostSchema.safeParse(fields);
+  if (!parsed.success) {
+    return { status: "error", fieldErrors: z.flattenError(parsed.error).fieldErrors, values };
+  }
+
+  const { orderId, version, costPerUnitIdr, quality, note } = parsed.data;
+  const supabase = await createSupabaseServerClient();
+  const state = await finishOrderChange(orderId, "cost_resolved", () => resolveProductionCost(supabase, orderId, version, { costPerUnitIdr, quality, note }), "resolveProductionCost");
+  return { ...state, values };
 }
 
 export async function acceptLatePaymentAction(_previous: FormState, formData: FormData): Promise<FormState> {

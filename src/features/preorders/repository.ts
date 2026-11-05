@@ -24,6 +24,7 @@ export const PREORDER_VIOLATIONS = [
   "QUOTA_OVER_CAPACITY",
   "DATE_TAKEN",
   "ORDERS_UNRESOLVED",
+  "HAS_ORDERS",
 ] as const;
 export type PreorderViolation = (typeof PREORDER_VIOLATIONS)[number];
 
@@ -351,7 +352,7 @@ export async function savePreorderDraft(
   return z.uuid().parse(data);
 }
 
-export type PreorderTransition = "publish_preorder" | "close_preorder" | "complete_preorder" | "cancel_preorder_draft";
+export type PreorderTransition = "publish_preorder" | "close_preorder" | "complete_preorder" | "cancel_preorder_draft" | "cancel_published_preorder";
 
 export async function transitionPreorder(
   client: SupabaseClient,

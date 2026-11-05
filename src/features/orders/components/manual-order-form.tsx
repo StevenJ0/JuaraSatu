@@ -5,23 +5,37 @@ import { SelectField, TextField, UnitsField } from "@/components/form-field";
 import { FormMessage, PRIMARY_BUTTON_CLASS } from "@/components/form-message";
 import { initialFormState } from "@/lib/form-state";
 import { submitWithoutReset } from "@/lib/submit-without-reset";
-import { createManualOrderAction } from "@/features/orders/actions";
+import { createManualOrderAction, createStandaloneManualOrderAction } from "@/features/orders/actions";
+
+export type ManualOrderCapacityOption = { id: string; label: string };
 
 type ManualOrderFormProps = {
-  preorderId: string;
+  /** Dari dalam preorder memakai kuotanya, sedangkan di luar preorder pemilik memilih jadwal produksi. */
+  target: { kind: "preorder"; preorderId: string } | { kind: "capacity"; options: ManualOrderCapacityOption[] };
   /** Dibuat sekali per halaman: klik ganda atau kirim ulang tidak membuat pesanan kedua. */
   idempotencyKey: string;
   quantityHint: string;
 };
 
-export function ManualOrderForm({ preorderId, idempotencyKey, quantityHint }: ManualOrderFormProps) {
-  const [state, formAction, isPending] = useActionState(createManualOrderAction, initialFormState);
+export function ManualOrderForm({ target, idempotencyKey, quantityHint }: ManualOrderFormProps) {
+  const action = target.kind === "preorder" ? createManualOrderAction : createStandaloneManualOrderAction;
+  const [state, formAction, isPending] = useActionState(action, initialFormState);
 
   return (
     <form action={formAction} onSubmit={submitWithoutReset(formAction)} className="flex flex-col gap-4" noValidate>
       <FormMessage state={state} />
-      <input type="hidden" name="preorderId" value={preorderId} />
+      {target.kind === "preorder" && <input type="hidden" name="preorderId" value={target.preorderId} />}
       <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
+      {target.kind === "capacity" && (
+        <SelectField name="capacityId" label="Jadwal produksi" required defaultValue={state.values?.capacityId ?? ""} errors={state.fieldErrors?.capacityId}>
+          <option value="">Pilih jadwal produksi</option>
+          {target.options.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </SelectField>
+      )}
       <TextField
         name="customerName"
         label="Nama pemesan"

@@ -37,7 +37,7 @@ export default async function NewManualOrderPage({ params }: PageProps<"/dashboa
       </div>
       <Card>
         <ManualOrderForm
-          preorderId={preorder.id}
+          target={{ kind: "preorder", preorderId: preorder.id }}
           idempotencyKey={randomUUID()}
           quantityHint={`Bisa dipesan ${preorder.metrics.orderableUnits} unit lagi. Memakai kuota dan kapasitas yang sama dengan pesanan pembeli.`}
         />

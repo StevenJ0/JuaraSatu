@@ -15,8 +15,11 @@ export type PublicPreorder = {
   availability: PublicPreorderAvailability;
   /** Jumlah yang bisa dipesan saat ini. Selalu 0 bila `availability` bukan `open`. */
   orderableUnits: number;
-  /** Harga dasar sampai penawaran C8 tersedia. Kirim sebagai `expectedUnitPriceIdr` ke `placePublicOrder`. */
+  /** Harga setelah diskon penawaran aktif. Kirim sebagai `expectedUnitPriceIdr` ke `placePublicOrder`. */
   unitPriceIdr: number;
+  /** Harga sebelum diskon. Sama dengan `unitPriceIdr` bila tidak ada penawaran aktif. */
+  basePriceIdr: number;
+  discountBps: number;
   fulfillmentDate: string;
   startsAt: string;
   endsAt: string;
@@ -58,6 +61,8 @@ export function toPublicPreorder(
     availability,
     orderableUnits: availability === "open" ? facts.orderableUnits : 0,
     unitPriceIdr: facts.unitPriceIdr,
+    basePriceIdr: facts.basePriceIdr,
+    discountBps: facts.discountBps,
     fulfillmentDate: facts.fulfillmentDate,
     startsAt: facts.startsAt,
     endsAt: facts.endsAt,

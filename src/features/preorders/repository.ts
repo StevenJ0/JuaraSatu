@@ -200,7 +200,10 @@ export async function findPreorder(client: SupabaseClient, businessId: string, p
 // Pembeli hanya melihat preorder yang pernah terbit. Draf dan yang dibatalkan sama dengan tidak ditemukan, agar keberadaannya tidak bocor.
 const PUBLIC_STATUSES = ["published", "closed", "completed"] as const;
 
+const preorderOfferSchema = z.object({ discount_bps: z.number(), final_unit_price_idr: z.number() });
+
 const publicPreorderRowSchema = z.object({
+  id: z.uuid(),
   slug: z.string(),
   name: z.string(),
   status: z.enum(PUBLIC_STATUSES),
@@ -226,7 +229,7 @@ const publicPreorderRowSchema = z.object({
 });
 
 // Tanpa kolom biaya dan tanpa tabel pesanan, jadi data privat tidak pernah keluar dari database untuk permintaan ini.
-const PUBLIC_PREORDER_COLUMNS = `slug, name, status, fulfillment_date, starts_at, ends_at, version, pickup_terms_snapshot,
+const PUBLIC_PREORDER_COLUMNS = `id, slug, name, status, fulfillment_date, starts_at, ends_at, version, pickup_terms_snapshot,
   businesses(name),
   preorder_items(id, quota_units, base_price_snapshot_idr, product_name_snapshot,
     products(description, photo_path),
@@ -247,6 +250,10 @@ export async function findPublicPreorder(client: SupabaseClient, slug: string, n
   const [item] = row.preorder_items;
   const capacity = item.production_capacity;
   const terms = row.pickup_terms_snapshot;
+  // Query terpisah dari baris preorder. Harga tetap dicek ulang saat memesan, dan selisihnya ditolak dengan OFFER_CHANGED.
+  const { data: offerData, error: offerError } = await client.rpc("read_preorder_offer", { p_preorder_id: row.id });
+  if (offerError) fail("findPublicPreorder", offerError);
+  const offer = preorderOfferSchema.parse(offerData);
   return toPublicPreorder(
     {
       slug: row.slug,
@@ -263,7 +270,9 @@ export async function findPublicPreorder(client: SupabaseClient, slug: string, n
         },
         now,
       ),
-      unitPriceIdr: item.base_price_snapshot_idr,
+      unitPriceIdr: offer.final_unit_price_idr,
+      basePriceIdr: item.base_price_snapshot_idr,
+      discountBps: offer.discount_bps,
       fulfillmentDate: row.fulfillment_date,
       startsAt: row.starts_at,
       endsAt: row.ends_at,

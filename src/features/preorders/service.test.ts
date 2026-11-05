@@ -94,6 +94,16 @@ describe("runPreorderTransition", () => {
     expect(transition).toHaveBeenCalledWith(client, "publish_preorder", PREORDER_ID, 1);
   });
 
+  it("membatalkan draf lewat fungsi yang sama", async () => {
+    await expect(runPreorderTransition(client, "cancel_preorder_draft", PREORDER_ID, 2)).resolves.toEqual({ kind: "done" });
+    expect(transition).toHaveBeenCalledWith(client, "cancel_preorder_draft", PREORDER_ID, 2);
+  });
+
+  it("menolak membatalkan yang sudah bukan draf", async () => {
+    transition.mockRejectedValue(new PreorderRepositoryError("cancel_preorder_draft", "P0001", "NOT_DRAFT"));
+    await expect(runPreorderTransition(client, "cancel_preorder_draft", PREORDER_ID, 2)).resolves.toEqual({ kind: "rejected", violation: "NOT_DRAFT" });
+  });
+
   it("melaporkan pelanggaran aturan", async () => {
     transition.mockRejectedValue(new PreorderRepositoryError("publish_preorder", "P0001", "DATE_TAKEN"));
     await expect(runPreorderTransition(client, "publish_preorder", PREORDER_ID, 1)).resolves.toEqual({ kind: "rejected", violation: "DATE_TAKEN" });

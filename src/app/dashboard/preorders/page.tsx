@@ -34,7 +34,9 @@ function PreorderRow({ preorder }: { preorder: Preorder }) {
           Lihat
         </Link>
       </div>
-      {preorder.status !== "draft" && <CapacityUsage totalUnits={preorder.quotaUnits} availability={preorder.metrics.quotaUsage} />}
+      {preorder.status !== "draft" && preorder.status !== "cancelled" && (
+        <CapacityUsage totalUnits={preorder.quotaUnits} availability={preorder.metrics.quotaUsage} />
+      )}
     </li>
   );
 }

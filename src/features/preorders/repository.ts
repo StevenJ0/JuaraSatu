@@ -342,7 +342,7 @@ export async function savePreorderDraft(
   return z.uuid().parse(data);
 }
 
-export type PreorderTransition = "publish_preorder" | "close_preorder" | "complete_preorder";
+export type PreorderTransition = "publish_preorder" | "close_preorder" | "complete_preorder" | "cancel_preorder_draft";
 
 export async function transitionPreorder(
   client: SupabaseClient,

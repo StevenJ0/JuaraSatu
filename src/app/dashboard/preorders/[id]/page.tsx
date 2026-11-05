@@ -15,7 +15,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDateOnly, formatWibDateTime } from "@/lib/wib-time";
 import { getCurrentBusinessProfile } from "@/features/business/guard";
 import { CapacityUsage } from "@/features/capacity/components/capacity-usage";
-import { closePreorderAction, completePreorderAction, publishPreorderAction } from "@/features/preorders/actions";
+import { cancelPreorderDraftAction, closePreorderAction, completePreorderAction, publishPreorderAction } from "@/features/preorders/actions";
 import { PreorderStatusBadge } from "@/features/preorders/components/preorder-status-badge";
 import { PreorderTransition } from "@/features/preorders/components/preorder-transition";
 import { findPreorder, type Preorder } from "@/features/preorders/repository";
@@ -29,6 +29,7 @@ const SAVED_NOTICES = new Map<unknown, string>([
   ["published", "Preorder diterbitkan."],
   ["closed", "Preorder ditutup."],
   ["completed", "Preorder selesai."],
+  ["cancelled", "Draf preorder dibatalkan."],
 ]);
 
 function PreorderActions({ preorder }: { preorder: Preorder }) {
@@ -49,7 +50,25 @@ function PreorderActions({ preorder }: { preorder: Preorder }) {
           <Link href={`/dashboard/preorders/${preorder.id}/edit`} className={`w-full sm:w-fit ${SECONDARY_BUTTON_CLASS}`}>
             Ubah draf
           </Link>
+          <PreorderTransition
+            {...shared}
+            action={cancelPreorderDraftAction}
+            label="Batalkan draf"
+            warning="Draf yang dibatalkan tidak bisa dipakai lagi, tapi tetap tercatat di daftar preorder. Bila perlu, buat preorder baru."
+            isDanger
+          />
         </div>
+      </Card>
+    );
+  }
+  if (preorder.status === "cancelled") {
+    return (
+      <Card>
+        <h2 className="text-lg font-semibold text-ink">Draf dibatalkan</h2>
+        <p className="mt-1 max-w-[65ch] text-base text-muted">Pembeli tidak pernah melihat preorder ini, dan kapasitas produksi tidak terpakai.</p>
+        <Link href="/dashboard/preorders/new" className={`mt-4 w-full sm:w-fit ${SECONDARY_BUTTON_CLASS}`}>
+          Buat preorder baru
+        </Link>
       </Card>
     );
   }
@@ -93,11 +112,13 @@ function PreorderActions({ preorder }: { preorder: Preorder }) {
 function BuyerPreview({
   preorder,
   product,
+  businessName,
   pickupInstructions,
   publicContact,
 }: {
   preorder: Preorder;
   product: Product | null;
+  businessName: string;
   pickupInstructions: string;
   publicContact: string | null;
 }) {
@@ -119,8 +140,10 @@ function BuyerPreview({
           </div>
         )}
         <div className="min-w-0">
-          <p className="text-base font-semibold break-words text-ink">{preorder.productName}</p>
+          <p className="text-sm break-words text-muted">{businessName}</p>
+          <p className="text-base font-semibold break-words text-ink">{isDraft && product ? product.name : preorder.productName}</p>
           <p className="text-lg font-semibold text-ink">{formatIdr(isDraft && product ? product.basePriceIdr : preorder.basePriceIdr)}</p>
+          {product?.description && <p className="mt-1 text-base break-words whitespace-pre-line text-muted">{product.description}</p>}
         </div>
       </div>
       <dl className="mt-4 grid gap-3 text-base sm:grid-cols-2">
@@ -169,6 +192,9 @@ export default async function PreorderDetailPage({ params, searchParams }: PageP
   const savedMessage = SAVED_NOTICES.get(saved);
   const { paidUnits, awaitingPaymentUnits, paidTargetGap, orderableUnits, quotaUsage } = preorder.metrics;
 
+  // Draf yang dibatalkan tidak pernah dijual, jadi angka dan tampilan pembeli hanya akan menyesatkan.
+  const isCancelled = preorder.status === "cancelled";
+
   return (
     <div className="flex flex-col gap-6">
       {savedMessage && <SavedToast key={String(saved)} message={savedMessage} />}
@@ -179,35 +205,42 @@ export default async function PreorderDetailPage({ params, searchParams }: PageP
           <PreorderStatusBadge status={preorder.status} />
         </h1>
         <p className="text-base text-muted">
-          {preorder.productName} · pengambilan {formatDateOnly(preorder.fulfillmentDate)}
+          {preorder.status === "draft" && product ? product.name : preorder.productName} · pengambilan {formatDateOnly(preorder.fulfillmentDate)}
         </p>
       </div>
 
-      <section aria-label="Angka preorder" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard label="Sudah dibayar" value={`${paidUnits} unit`} note={`Target ${preorder.targetUnits} unit`} />
-        <KpiCard label="Kurang dari target" value={`${paidTargetGap} unit`} note="Bukan jumlah yang bisa dijual" />
-        <KpiCard label="Menunggu bayar" value={`${awaitingPaymentUnits} unit`} note="Slot terpakai, belum lunas" />
-        <KpiCard label="Bisa dipesan" value={`${orderableUnits} unit`} note={`Dari kuota ${preorder.quotaUnits} unit`} />
-      </section>
+      {!isCancelled && (
+        <>
+          <section aria-label="Angka preorder" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <KpiCard label="Sudah dibayar" value={`${paidUnits} unit`} note={`Target ${preorder.targetUnits} unit`} />
+            <KpiCard label="Kurang dari target" value={`${paidTargetGap} unit`} note="Bukan jumlah yang bisa dijual" />
+            <KpiCard label="Menunggu bayar" value={`${awaitingPaymentUnits} unit`} note="Slot terpakai, belum lunas" />
+            <KpiCard label="Bisa dipesan" value={`${orderableUnits} unit`} note={`Dari kuota ${preorder.quotaUnits} unit`} />
+          </section>
 
-      <Card>
-        <h2 className="mb-3 text-lg font-semibold text-ink">Pemakaian kuota</h2>
-        <CapacityUsage totalUnits={preorder.quotaUnits} availability={quotaUsage} />
-        {preorder.status !== "draft" && (
-          <Link href={`/dashboard/preorders/${preorder.id}/orders`} className={`mt-4 w-full sm:w-fit ${SECONDARY_BUTTON_CLASS}`}>
-            Lihat pesanan
-          </Link>
-        )}
-      </Card>
+          <Card>
+            <h2 className="mb-3 text-lg font-semibold text-ink">Pemakaian kuota</h2>
+            <CapacityUsage totalUnits={preorder.quotaUnits} availability={quotaUsage} />
+            {preorder.status !== "draft" && (
+              <Link href={`/dashboard/preorders/${preorder.id}/orders`} className={`mt-4 w-full sm:w-fit ${SECONDARY_BUTTON_CLASS}`}>
+                Lihat pesanan
+              </Link>
+            )}
+          </Card>
+        </>
+      )}
 
       <PreorderActions preorder={preorder} />
 
-      <BuyerPreview
-        preorder={preorder}
-        product={product}
-        pickupInstructions={preorder.frozenTerms?.pickupInstructions ?? business.pickupInstructions}
-        publicContact={preorder.frozenTerms ? preorder.frozenTerms.publicContact : business.publicContact}
-      />
+      {!isCancelled && (
+        <BuyerPreview
+          preorder={preorder}
+          product={product}
+          businessName={business.name}
+          pickupInstructions={preorder.frozenTerms?.pickupInstructions ?? business.pickupInstructions}
+          publicContact={preorder.frozenTerms ? preorder.frozenTerms.publicContact : business.publicContact}
+        />
+      )}
     </div>
   );
 }

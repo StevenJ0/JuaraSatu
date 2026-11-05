@@ -16,7 +16,7 @@ const SAVE_FAILED_MESSAGE = "Preorder gagal disimpan. Coba lagi beberapa saat la
 const VIOLATION_STATES: Record<PreorderViolation, Pick<FormState, "message" | "fieldErrors">> = {
   NOT_FOUND: { message: "Preorder tidak ditemukan." },
   VERSION_CONFLICT: { message: "Preorder baru saja berubah di tempat lain. Muat ulang halaman, lalu ulangi." },
-  NOT_DRAFT: { message: "Preorder sudah terbit, jadi tidak bisa diubah lagi." },
+  NOT_DRAFT: { message: "Preorder ini bukan draf lagi, jadi tidak bisa diubah." },
   NOT_PUBLISHED: { message: "Hanya preorder yang sedang dibuka yang bisa ditutup." },
   NOT_CLOSED: { message: "Tutup preorder dulu sebelum menyelesaikannya." },
   INPUT_INVALID: { message: "Isian preorder tidak valid. Periksa nama, target, dan kuota." },
@@ -112,4 +112,8 @@ export async function closePreorderAction(_previous: FormState, formData: FormDa
 
 export async function completePreorderAction(_previous: FormState, formData: FormData): Promise<FormState> {
   return runTransition("complete_preorder", "completed", formData);
+}
+
+export async function cancelPreorderDraftAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  return runTransition("cancel_preorder_draft", "cancelled", formData);
 }

@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+import { toPrivateOrderStatus, type PrivateOrderStatus } from "@/features/orders/private-status";
 import type { ManualOrderInput, OrderAction } from "@/features/orders/schemas";
 import type { ExternalPaymentStatus, FulfillmentStatus, OrderStatus } from "@/features/orders/status";
 
@@ -157,6 +158,73 @@ export async function findOrder(client: SupabaseClient, businessId: string, orde
   const { data, error } = await client.from("orders").select(ORDER_COLUMNS).eq("business_id", businessId).eq("id", orderId).maybeSingle();
   if (error) fail("findOrder", error);
   return data === null ? null : toOrder(orderRowSchema.parse(data));
+}
+
+const privateOrderRowSchema = z.object({
+  public_order_number: z.string(),
+  order_status: orderRowSchema.shape.order_status,
+  fulfillment_status: orderRowSchema.shape.fulfillment_status,
+  payment_due_at: z.string().nullable(),
+  subtotal_idr: z.number(),
+  discount_total_idr: z.number(),
+  total_idr: z.number(),
+  fulfillment_date: z.string(),
+  businesses: z.object({ name: z.string() }),
+  preorders: z.object({
+    name: z.string(),
+    pickup_terms_snapshot: z.object({
+      pickup_instructions: z.string(),
+      public_contact: z.string().nullable(),
+      fulfillment_window_end_at: z.string(),
+    }),
+  }),
+  order_items: z.tuple([
+    z.object({
+      quantity: z.number(),
+      base_unit_price_idr: z.number(),
+      discount_per_unit_idr: z.number(),
+      final_unit_price_idr: z.number(),
+      product_name_snapshot: z.string(),
+    }),
+  ]),
+});
+
+// Kolom pelanggan, biaya, dan alasan batal sengaja tidak diambil, jadi tidak pernah keluar dari database untuk permintaan ini.
+const PRIVATE_ORDER_COLUMNS = `public_order_number, order_status, fulfillment_status, payment_due_at, subtotal_idr, discount_total_idr, total_idr, fulfillment_date,
+  businesses(name),
+  preorders(name, pickup_terms_snapshot),
+  order_items(quantity, base_unit_price_idr, discount_per_unit_idr, final_unit_price_idr, product_name_snapshot)`;
+
+export async function findOrderByTokenHash(client: SupabaseClient, tokenHash: string, now: Date): Promise<PrivateOrderStatus | null> {
+  const { data, error } = await client.from("orders").select(PRIVATE_ORDER_COLUMNS).eq("private_token_hash", tokenHash).maybeSingle();
+  if (error) fail("findOrderByTokenHash", error);
+  if (data === null) return null;
+
+  const row = privateOrderRowSchema.parse(data);
+  const [item] = row.order_items;
+  const terms = row.preorders.pickup_terms_snapshot;
+  return toPrivateOrderStatus(
+    {
+      publicOrderNumber: row.public_order_number,
+      orderStatus: row.order_status,
+      fulfillmentStatus: row.fulfillment_status,
+      paymentDueAt: row.payment_due_at,
+      businessName: row.businesses.name,
+      preorderName: row.preorders.name,
+      productName: item.product_name_snapshot,
+      quantity: item.quantity,
+      baseUnitPriceIdr: item.base_unit_price_idr,
+      discountPerUnitIdr: item.discount_per_unit_idr,
+      finalUnitPriceIdr: item.final_unit_price_idr,
+      subtotalIdr: row.subtotal_idr,
+      discountTotalIdr: row.discount_total_idr,
+      totalIdr: row.total_idr,
+      fulfillmentDate: row.fulfillment_date,
+      fulfillmentWindowEndAt: terms.fulfillment_window_end_at,
+      pickup: { instructions: terms.pickup_instructions, publicContact: terms.public_contact },
+    },
+    now,
+  );
 }
 
 const orderEventRowSchema = z.object({ event_type: z.string(), occurred_at: z.string() });

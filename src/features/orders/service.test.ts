@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { OrderRepositoryError, createManualOrderRecord, createPublicOrderRecord, advanceOrder, closeOrder } from "@/features/orders/repository";
+import { OrderRepositoryError, createManualOrderRecord, createPublicOrderRecord, advanceOrder, closeOrder, findOrderByTokenHash } from "@/features/orders/repository";
 import {
   cancelOrder,
   createManualOrder,
   createPrivateOrderToken,
   expireOrder,
+  findOrderByPrivateToken,
   hashOrderRequest,
   hashPrivateOrderToken,
   placePublicOrder,
@@ -15,13 +16,21 @@ import {
 
 vi.mock("@/features/orders/repository", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/features/orders/repository")>();
-  return { ...original, createManualOrderRecord: vi.fn(), createPublicOrderRecord: vi.fn(), advanceOrder: vi.fn(), closeOrder: vi.fn() };
+  return {
+    ...original,
+    createManualOrderRecord: vi.fn(),
+    createPublicOrderRecord: vi.fn(),
+    advanceOrder: vi.fn(),
+    closeOrder: vi.fn(),
+    findOrderByTokenHash: vi.fn(),
+  };
 });
 
 const createManual = vi.mocked(createManualOrderRecord);
 const createPublic = vi.mocked(createPublicOrderRecord);
 const advance = vi.mocked(advanceOrder);
 const close = vi.mocked(closeOrder);
+const findByHash = vi.mocked(findOrderByTokenHash);
 
 // Repository di-mock sehingga client tidak pernah dipakai.
 const client = {} as SupabaseClient;
@@ -65,6 +74,35 @@ describe("resolveHoldTtlSeconds", () => {
 
   it.each(["abc", "0", "-5", "1.5", "999999"])("mengabaikan nilai tidak sah %j", (raw) => {
     expect(resolveHoldTtlSeconds(raw)).toBe(900);
+  });
+});
+
+describe("findOrderByPrivateToken", () => {
+  const now = new Date("2026-11-10T05:00:00.000Z");
+
+  it("hanya mengirim hash ke database, bukan token mentah", async () => {
+    findByHash.mockResolvedValue(null);
+    const token = createPrivateOrderToken();
+
+    await findOrderByPrivateToken(client, token, now);
+
+    expect(findByHash).toHaveBeenCalledWith(client, hashPrivateOrderToken(token), now);
+    expect(findByHash.mock.calls[0]).not.toContain(token);
+  });
+
+  it.each(["", "pendek", "x".repeat(257)])("bentuk token tidak sah tidak menyentuh database: %j", async (token) => {
+    await expect(findOrderByPrivateToken(client, token, now)).resolves.toBeNull();
+    expect(findByHash).not.toHaveBeenCalled();
+  });
+
+  it("meneruskan error tak terduga tanpa memuat token", async () => {
+    findByHash.mockRejectedValue(new OrderRepositoryError("findOrderByTokenHash", "08006", null));
+    const token = createPrivateOrderToken();
+
+    const failure = await findOrderByPrivateToken(client, token, now).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(OrderRepositoryError);
+    expect(String(failure)).not.toContain(token);
   });
 });
 

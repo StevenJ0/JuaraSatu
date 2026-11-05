@@ -2,13 +2,15 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ManualOrderInput, OrderAction, PublicOrderInput } from "@/features/orders/schemas";
+import type { PrivateOrderStatus } from "@/features/orders/private-status";
+import { privateOrderTokenSchema, type ManualOrderInput, type OrderAction, type PublicOrderInput } from "@/features/orders/schemas";
 import {
   OrderRepositoryError,
   advanceOrder,
   closeOrder,
   createManualOrderRecord,
   createPublicOrderRecord,
+  findOrderByTokenHash,
   type OrderResult,
   type OrderViolation,
 } from "@/features/orders/repository";
@@ -100,6 +102,15 @@ export function placePublicOrder(
       holdTtlSeconds,
     }),
   );
+}
+
+/**
+ * Kontrak C4 untuk halaman lacak. `client` wajib service role. Token salah atau tidak berbentuk token sama-sama null,
+ * sehingga tidak ada beda antara pesanan yang tidak ada dan token yang salah. Hanya hash yang dikirim ke database.
+ */
+export async function findOrderByPrivateToken(client: SupabaseClient, token: string, now: Date = new Date()): Promise<PrivateOrderStatus | null> {
+  const parsed = privateOrderTokenSchema.safeParse(token);
+  return parsed.success ? findOrderByTokenHash(client, hashPrivateOrderToken(parsed.data), now) : null;
 }
 
 export function runOrderAction(client: SupabaseClient, orderId: string, version: number, action: OrderAction): Promise<OrderOutcome<void>> {

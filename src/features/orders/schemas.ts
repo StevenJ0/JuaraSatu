@@ -43,11 +43,13 @@ export const MANUAL_ORDER_FIELDS = [
   "paymentStatus",
 ] as const;
 
+export const privateOrderTokenSchema = z.string().min(32).max(256);
+
 /** Kontrak C4 untuk checkout pembeli. Browser tidak menentukan harga, total, business, atau status. */
 export const publicOrderSchema = z.object({
   slug: z.string().trim().min(1),
   idempotencyKey: z.string().trim().min(16).max(128),
-  privateToken: z.string().min(32).max(256),
+  privateToken: privateOrderTokenSchema,
   customerName,
   customerEmail: requiredEmail,
   customerContact,

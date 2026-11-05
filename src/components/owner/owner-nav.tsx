@@ -23,7 +23,8 @@ export function OwnerNav({ className = "" }: { className?: string }) {
 
   return (
     <nav aria-label="Menu utama" className={className}>
-      <ul className="grid grid-cols-6 lg:flex lg:gap-1">
+      {/* Enam menu di layar 320px: memakai sebagian jarak tepi agar label terpanjang tetap muat. */}
+      <ul className="grid grid-cols-6 max-[359px]:-mx-2 lg:flex lg:gap-1">
         {NAV_ITEMS.map(({ href, label, icon: NavIcon }) => {
           const active = isActive(pathname, href);
           return (
@@ -31,7 +32,7 @@ export function OwnerNav({ className = "" }: { className?: string }) {
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-[10px] py-1.5 text-[11px] transition-colors max-[359px]:text-[10px] sm:text-sm lg:flex-row lg:gap-1.5 lg:px-2.5 ${
+                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-[10px] py-1.5 text-[11px] transition-colors max-[359px]:text-[10px] max-[359px]:tracking-tight sm:text-sm lg:flex-row lg:gap-1.5 lg:px-2.5 ${
                   active
                     ? "bg-[var(--owner-highlight)] font-semibold text-brand"
                     : "font-medium text-muted hover:bg-subtle hover:text-ink"

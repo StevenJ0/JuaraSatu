@@ -3,7 +3,11 @@ import { describeCapacityUsage, type CapacityAvailability } from "@/features/cap
 
 export function CapacityUsage({ totalUnits, availability }: { totalUnits: number; availability: CapacityAvailability }) {
   if (totalUnits <= 0) {
-    return <Badge tone="neutral">Tidak berproduksi</Badge>;
+    return (
+      <div className="flex">
+        <Badge tone="neutral">Tidak berproduksi</Badge>
+      </div>
+    );
   }
 
   const { usedUnits, allocatedPercent, heldPercent, isNearlyFull } = describeCapacityUsage(totalUnits, availability);

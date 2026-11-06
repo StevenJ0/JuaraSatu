@@ -107,6 +107,7 @@ export function cleanupOwners(prefix: string, stamp: number): void {
   sql(`begin;
     create temp table doomed on commit drop as select id from public.businesses where slug like '${prefix}-%-${stamp}';
     set local session_replication_role = replica;
+    delete from public.domain_events where business_id in (select id from doomed);
     delete from public.job_runs where business_id in (select id from doomed);
     delete from public.payment_events where business_id in (select id from doomed);
     delete from public.payments where business_id in (select id from doomed);

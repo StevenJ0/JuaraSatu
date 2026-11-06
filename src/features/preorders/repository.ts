@@ -352,7 +352,33 @@ export async function savePreorderDraft(
   return z.uuid().parse(data);
 }
 
-export type PreorderTransition = "publish_preorder" | "close_preorder" | "complete_preorder" | "cancel_preorder_draft" | "cancel_published_preorder";
+export type PreorderTransition = "publish_preorder" | "complete_preorder" | "cancel_preorder_draft" | "cancel_published_preorder";
+
+export async function closePreorderRecord(client: SupabaseClient, preorderId: string, expectedVersion: number, reason: string): Promise<void> {
+  const { error } = await client.rpc("close_preorder", { p_preorder_id: preorderId, p_expected_version: expectedVersion, p_reason: reason });
+  if (error) fail("close_preorder", error);
+}
+
+const closeEventSchema = z.object({ occurred_at: z.string(), safe_details_json: z.object({ reason: z.string() }) });
+export type PreorderCloseNote = { reason: string; closedAt: string };
+
+/** Catatan penutupan terakhir dari `domain_events`. Null untuk preorder yang ditutup sebelum alasan dicatat. */
+export async function findPreorderCloseNote(client: SupabaseClient, businessId: string, preorderId: string): Promise<PreorderCloseNote | null> {
+  const { data, error } = await client
+    .from("domain_events")
+    .select("occurred_at, safe_details_json")
+    .eq("business_id", businessId)
+    .eq("entity_type", "preorder")
+    .eq("entity_id", preorderId)
+    .eq("event_type", "preorder_closed")
+    .order("occurred_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) fail("findPreorderCloseNote", error);
+  if (data === null) return null;
+  const row = closeEventSchema.parse(data);
+  return { reason: row.safe_details_json.reason, closedAt: row.occurred_at };
+}
 
 export async function transitionPreorder(
   client: SupabaseClient,

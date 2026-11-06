@@ -6,9 +6,9 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { readTextFields, type FormState } from "@/lib/form-state";
 import { requireBusinessOwner } from "@/features/business/guard";
-import { PREORDER_FIELDS, preorderRefSchema, preorderSchema } from "@/features/preorders/schemas";
+import { PREORDER_FIELDS, closePreorderSchema, preorderRefSchema, preorderSchema } from "@/features/preorders/schemas";
 import { PreorderRepositoryError, type PreorderTransition, type PreorderViolation } from "@/features/preorders/repository";
-import { createPreorderDraft, runPreorderTransition, updatePreorderDraft } from "@/features/preorders/service";
+import { closePreorder, createPreorderDraft, runPreorderTransition, updatePreorderDraft } from "@/features/preorders/service";
 
 const PREORDERS_PATH = "/dashboard/preorders";
 const SAVE_FAILED_MESSAGE = "Preorder gagal disimpan. Coba lagi beberapa saat lagi.";
@@ -108,7 +108,27 @@ export async function publishPreorderAction(_previous: FormState, formData: Form
 }
 
 export async function closePreorderAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  return runTransition("close_preorder", "closed", formData);
+  await requireBusinessOwner();
+  const fields = readTextFields(formData, ["preorderId", "version", "reason"]);
+  const values = { reason: fields.reason };
+  const parsed = closePreorderSchema.safeParse(fields);
+  if (!parsed.success) return { status: "error", fieldErrors: z.flattenError(parsed.error).fieldErrors, values };
+
+  try {
+    const supabase = await createSupabaseServerClient();
+    const result = await closePreorder(supabase, parsed.data.preorderId, parsed.data.version, parsed.data.reason);
+    if (result.kind === "rejected") {
+      // Satu-satunya isian pada form ini adalah alasan, jadi INPUT_INVALID pasti tentang alasan.
+      if (result.violation === "INPUT_INVALID") return { status: "error", fieldErrors: { reason: ["Tulis alasan menutup preorder"] }, values };
+      return { status: "error", message: VIOLATION_STATES[result.violation].message ?? SAVE_FAILED_MESSAGE, values };
+    }
+  } catch (error) {
+    logRepositoryFailure("close_preorder", error);
+    return { status: "error", message: SAVE_FAILED_MESSAGE, values };
+  }
+
+  revalidatePath("/dashboard", "layout");
+  redirect(`${PREORDERS_PATH}/${parsed.data.preorderId}?saved=closed`);
 }
 
 export async function completePreorderAction(_previous: FormState, formData: FormData): Promise<FormState> {

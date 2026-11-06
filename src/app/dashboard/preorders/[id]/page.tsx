@@ -16,16 +16,11 @@ import { formatDateOnly, formatWibDateTime } from "@/lib/wib-time";
 import { getCurrentBusinessProfile } from "@/features/business/guard";
 import { CapacityUsage } from "@/features/capacity/components/capacity-usage";
 import { listPreorderOrders } from "@/features/orders/repository";
-import {
-  cancelPreorderDraftAction,
-  cancelPublishedPreorderAction,
-  closePreorderAction,
-  completePreorderAction,
-  publishPreorderAction,
-} from "@/features/preorders/actions";
+import { cancelPreorderDraftAction, cancelPublishedPreorderAction, completePreorderAction, publishPreorderAction } from "@/features/preorders/actions";
+import { ClosePreorderForm } from "@/features/preorders/components/close-preorder-form";
 import { PreorderStatusBadge } from "@/features/preorders/components/preorder-status-badge";
 import { PreorderTransition } from "@/features/preorders/components/preorder-transition";
-import { findPreorder, type Preorder } from "@/features/preorders/repository";
+import { findPreorder, findPreorderCloseNote, type Preorder, type PreorderCloseNote } from "@/features/preorders/repository";
 import { findProduct, type Product } from "@/features/products/repository";
 
 export const metadata: Metadata = { title: `Detail Preorder | ${site.name}` };
@@ -40,7 +35,7 @@ const SAVED_NOTICES = new Map<unknown, string>([
   ["cancelled_published", "Preorder dibatalkan."],
 ]);
 
-function PreorderActions({ preorder, hasOrders }: { preorder: Preorder; hasOrders: boolean }) {
+function PreorderActions({ preorder, hasOrders, closeNote }: { preorder: Preorder; hasOrders: boolean; closeNote: PreorderCloseNote | null }) {
   const shared = { preorderId: preorder.id, version: preorder.version };
 
   if (preorder.status === "draft") {
@@ -92,12 +87,7 @@ function PreorderActions({ preorder, hasOrders }: { preorder: Preorder; hasOrder
           Tutup bila ingin berhenti menerima pesanan baru. Pesanan yang sudah masuk tetap berjalan.
         </p>
         <div className="mt-4 flex flex-col gap-3">
-          <PreorderTransition
-            {...shared}
-            action={closePreorderAction}
-            label="Tutup preorder"
-            warning="Preorder yang ditutup tidak bisa dibuka lagi. Bila perlu, buat preorder baru."
-          />
+          <ClosePreorderForm preorderId={preorder.id} version={preorder.version} />
           {!hasOrders && (
             <PreorderTransition
               {...shared}
@@ -111,11 +101,17 @@ function PreorderActions({ preorder, hasOrders }: { preorder: Preorder; hasOrder
       </Card>
     );
   }
+  const closeReason = closeNote && (
+    <p className="mt-2 max-w-[65ch] text-base break-words text-ink">
+      Alasan ditutup: {closeNote.reason} <span className="text-sm text-muted">({formatWibDateTime(closeNote.closedAt)})</span>
+    </p>
+  );
   if (preorder.status === "closed") {
     return (
       <Card>
         <h2 className="text-lg font-semibold text-ink">Preorder ditutup</h2>
         <p className="mt-1 max-w-[65ch] text-base text-muted">Selesaikan setelah semua pesanan diambil atau dibatalkan.</p>
+        {closeReason}
         <div className="mt-4">
           <PreorderTransition
             {...shared}
@@ -124,6 +120,14 @@ function PreorderActions({ preorder, hasOrders }: { preorder: Preorder; hasOrder
             warning="Preorder yang selesai masuk ke riwayat dan tidak bisa diubah lagi."
           />
         </div>
+      </Card>
+    );
+  }
+  if (preorder.status === "completed" && closeReason) {
+    return (
+      <Card>
+        <h2 className="text-lg font-semibold text-ink">Preorder selesai</h2>
+        {closeReason}
       </Card>
     );
   }
@@ -208,7 +212,11 @@ export default async function PreorderDetailPage({ params, searchParams }: PageP
   const supabase = await createSupabaseServerClient();
   const preorder = await findPreorder(supabase, business.id, preorderId.data);
   if (!preorder) notFound();
-  const [product, orders] = await Promise.all([findProduct(supabase, business.id, preorder.productId), listPreorderOrders(supabase, business.id, preorder.id)]);
+  const [product, orders, closeNote] = await Promise.all([
+    findProduct(supabase, business.id, preorder.productId),
+    listPreorderOrders(supabase, business.id, preorder.id),
+    preorder.status === "closed" || preorder.status === "completed" ? findPreorderCloseNote(supabase, business.id, preorder.id) : null,
+  ]);
 
   const savedMessage = SAVED_NOTICES.get(saved);
   const { paidUnits, awaitingPaymentUnits, paidTargetGap, orderableUnits, quotaUsage } = preorder.metrics;
@@ -251,7 +259,7 @@ export default async function PreorderDetailPage({ params, searchParams }: PageP
         </>
       )}
 
-      <PreorderActions preorder={preorder} hasOrders={orders.length > 0} />
+      <PreorderActions preorder={preorder} hasOrders={orders.length > 0} closeNote={closeNote} />
 
       {!isCancelled && (
         <BuyerPreview

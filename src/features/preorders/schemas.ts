@@ -35,7 +35,14 @@ export type PreorderInput = z.output<typeof preorderSchema>;
 
 export const PREORDER_FIELDS = ["name", "capacityId", "targetUnits", "quotaUnits", "startsAt", "endsAt"] as const;
 
+const CLOSE_REASON_MAX = 500;
+
 export const preorderRefSchema = z.object({
   preorderId: z.uuid(),
   version: z.coerce.number().int().min(1),
+});
+
+/** PRD §13: menutup preorder membutuhkan alasan. Disimpan sebagai catatan audit, jadi jangan berisi data pembeli. */
+export const closePreorderSchema = preorderRefSchema.extend({
+  reason: z.string().trim().min(1, "Tulis alasan menutup preorder").max(CLOSE_REASON_MAX, `Maksimal ${CLOSE_REASON_MAX} karakter`),
 });

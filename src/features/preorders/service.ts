@@ -5,6 +5,7 @@ import type { PreorderInput } from "@/features/preorders/schemas";
 import {
   PreorderRepositoryError,
   savePreorderDraft,
+  closePreorderRecord,
   transitionPreorder,
   type PreorderTransition,
   type PreorderViolation,
@@ -49,6 +50,17 @@ export async function updatePreorderDraft(
   try {
     const savedId = await savePreorderDraft(client, input, { kind: "existing", preorderId, expectedVersion });
     return { kind: "saved", preorderId: savedId };
+  } catch (error) {
+    const violation = violationOf(error);
+    if (violation) return { kind: "rejected", violation };
+    throw error;
+  }
+}
+
+export async function closePreorder(client: SupabaseClient, preorderId: string, expectedVersion: number, reason: string): Promise<PreorderTransitionResult> {
+  try {
+    await closePreorderRecord(client, preorderId, expectedVersion, reason);
+    return { kind: "done" };
   } catch (error) {
     const violation = violationOf(error);
     if (violation) return { kind: "rejected", violation };

@@ -1497,3 +1497,13 @@ alter table public.domain_events alter column occurred_at set default now();
 alter table public.capacity_reservations
   add constraint capacity_reservations_order_id_business_id_fkey
   foreign key (order_id, business_id) references public.orders (id, business_id) on delete restrict;
+
+-- Hak tulis pemilik per kolom, pasangan policy tulis di atas. Kolom lain (id, version, status) hanya lewat fungsi.
+grant update (name, categories, description, public_contact, pickup_instructions) on table public.businesses to authenticated;
+grant insert (business_id, name, sku, description, photo_path, base_price_idr, variable_cost_idr, cost_quality, is_active)
+  on table public.products to authenticated;
+grant update (name, sku, description, photo_path, base_price_idr, variable_cost_idr, cost_quality, is_active)
+  on table public.products to authenticated;
+grant insert (business_id, product_id, fulfillment_date, total_units, intake_cutoff_at, fulfillment_window_end_at)
+  on table public.production_capacity to authenticated;
+grant update (total_units, intake_cutoff_at, fulfillment_window_end_at) on table public.production_capacity to authenticated;

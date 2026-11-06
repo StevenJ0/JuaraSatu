@@ -22,6 +22,8 @@ export const PREORDER_VIOLATIONS = [
   "PRODUCT_INACTIVE",
   "SCHEDULE_INVALID",
   "QUOTA_OVER_CAPACITY",
+  // Dari trigger baseline v2.1: kuota draf melebihi total kapasitas jadwal.
+  "CAPACITY_MISMATCH",
   "DATE_TAKEN",
   "ORDERS_UNRESOLVED",
   "HAS_ORDERS",

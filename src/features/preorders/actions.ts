@@ -27,6 +27,7 @@ const VIOLATION_STATES: Record<PreorderViolation, Pick<FormState, "message" | "f
     fieldErrors: { endsAt: ["Waktu tutup harus belum lewat dan tidak melewati batas pesan kapasitas."] },
   },
   QUOTA_OVER_CAPACITY: { message: "Kuota melebihi sisa kapasitas. Turunkan kuota atau tambah kapasitas produksi." },
+  CAPACITY_MISMATCH: { fieldErrors: { quotaUnits: ["Kuota melebihi kapasitas jadwal ini. Turunkan kuota atau tambah kapasitas produksi."] } },
   DATE_TAKEN: { message: "Sudah ada preorder yang dibuka untuk tanggal pengambilan ini. Tutup preorder itu dulu atau pilih tanggal lain." },
   ORDERS_UNRESOLVED: { message: "Masih ada pesanan yang belum selesai. Selesaikan pesanan itu dulu." },
   HAS_ORDERS: { message: "Preorder ini sudah punya pesanan, jadi tidak bisa dibatalkan. Tutup preorder bila ingin berhenti menerima pesanan." },

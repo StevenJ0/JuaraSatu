@@ -1,0 +1,38 @@
+{
+  "capturedAt": "2026-11-05T05:36:59.496Z",
+  "node": "v24.11.0",
+  "undici": "7.16.0",
+  "requests": 1,
+  "realCredentialsUsed": false,
+  "generationCalls": 0,
+  "results": [
+    {
+      "mode": "sdk-delayed",
+      "error": [
+        {
+          "name": "APIConnectionError",
+          "code": null,
+          "status": null
+        },
+        {
+          "name": "ConnectionError",
+          "code": null,
+          "status": null
+        },
+        {
+          "name": "TypeError",
+          "code": null,
+          "status": null
+        },
+        {
+          "name": "ConnectTimeoutError",
+          "code": "UND_ERR_CONNECT_TIMEOUT",
+          "status": null
+        }
+      ],
+      "calls": 1,
+      "delayedLookups": 1,
+      "elapsedMs": 10833
+    }
+  ]
+}

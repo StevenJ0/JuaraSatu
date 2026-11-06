@@ -1,0 +1,41 @@
+meta {
+  name: [READ-ONLY] List-campaigns
+  type: http
+  seq: 1
+  tags: [
+    read-only
+  ]
+}
+
+get {
+  url: {{baseUrl}}/api/dev/campaigns
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+}
+
+script:pre-request {
+  
+}
+
+tests {
+  test('HTTP 200', function () {
+    if(res.getStatus()!==200) throw new Error('Unexpected HTTP status: '+res.getStatus());
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  READ-ONLY. Expected HTTP 200.
+  Previous request in workflow: 04-Blueprint/12-Read-approved-still-draft.bru.
+  Prerequisites: local development server; configuration per README.
+  Required opt-in flags: none; authenticated reads still need a valid cookie.
+  Run in folder sequence. Reload using the next GET to verify actual persisted state.
+}

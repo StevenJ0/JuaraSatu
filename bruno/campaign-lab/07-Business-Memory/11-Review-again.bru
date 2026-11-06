@@ -1,0 +1,57 @@
+meta {
+  name: [MUTATING] Review-again
+  type: http
+  seq: 11
+  tags: [
+    mutating
+  ]
+}
+
+post {
+  url: {{baseUrl}}/api/dev/memories
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "action": "review",
+    "memoryId": "{{memoryId}}",
+    "expectedContentHash": "{{memoryHash}}",
+    "requestId": "{{requestId}}",
+    "decision": "reviewed",
+    "confirm": true
+  }
+}
+
+script:pre-request {
+  if (bru.getVar('allowMutations') !== 'true') throw new Error('OPT_IN_REQUIRED: allowMutations=true');
+  if (!bru.getVar('memoryId')) throw new Error('PREREQUISITE_REQUIRED: memoryId; execute the preceding documented request');
+  if (!bru.getVar('memoryHash')) throw new Error('PREREQUISITE_REQUIRED: memoryHash; execute the preceding documented request');
+  bru.setVar('requestId',bru.interpolate('{{$randomUUID}}'));
+}
+
+tests {
+  test('HTTP 200', function () {
+    if(res.getStatus()!==200) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(res.getBody().row.review_status!=='draft'||res.getBody().row.lessons_json.ownerReview.decision!=='reviewed')throw new Error('Review audit/state mismatch');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  MUTATING. Expected HTTP 200.
+  Previous request in workflow: 07-Business-Memory/10-Reject-candidate.bru.
+  Prerequisites: memoryId, memoryHash.
+  Required opt-in flags: allowMutations.
+  Run in folder sequence. Reload using the next GET to verify actual persisted state.
+}

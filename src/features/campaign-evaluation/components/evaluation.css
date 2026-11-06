@@ -1,0 +1,10 @@
+.evaluation-detail { min-width: 0; }
+.evaluation-detail li { margin-block: 10px; overflow-wrap: anywhere; }
+.evaluation-detail ul { padding-left: 24px; }
+.evaluation-detail form { padding-block: 20px; border-block: 1px solid #dce2d9; margin-block: 24px; }
+.evaluation-detail input[type=checkbox] { flex-shrink: 0; }
+.evaluation-detail .evaluation-history { list-style: none; padding-left: 0; }
+.evaluation-history button { text-align: left; max-width: 100%; }
+.evaluation-report { margin-block: 28px; padding-top: 20px; border-top: 1px solid #dce2d9; }
+.evaluation-detail .evaluation-costs { list-style: none; padding-left: 0; }
+.evaluation-costs li { padding-block: 16px; border-bottom: 1px solid #dce2d9; }

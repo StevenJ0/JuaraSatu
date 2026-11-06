@@ -1,0 +1,42 @@
+meta {
+  name: [NEGATIVE] Invalid-UUID-campaigns
+  type: http
+  seq: 7
+  tags: [
+    negative
+  ]
+}
+
+get {
+  url: {{baseUrl}}/api/dev/campaigns?campaignId=invalid
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+}
+
+script:pre-request {
+  if (bru.getVar('allowNegative') !== 'true') throw new Error('OPT_IN_REQUIRED: allowNegative=true');
+}
+
+tests {
+  test('HTTP 400 / INVALID_INPUT', function () {
+    if(res.getStatus()!==400) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(res.getBody().code!=='INVALID_INPUT') throw new Error('Unexpected safe error code');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  NEGATIVE. Expected HTTP 400 code=INVALID_INPUT.
+  Previous request in workflow: 08-Negative-Security/06-Invalid-UUID-discussions.bru.
+  Prerequisites: local development server; configuration per README.
+  Required opt-in flags: allowNegative.
+  Run in folder sequence. Reload using the next GET to verify actual persisted state.
+}

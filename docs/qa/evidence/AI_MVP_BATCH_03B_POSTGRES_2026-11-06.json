@@ -1,0 +1,612 @@
+{
+  "date": "2026-11-06",
+  "target": {
+    "repository": "D:\\Project\\campaign-lab",
+    "project": "campaign-lab",
+    "container": "supabase_db_campaign-lab",
+    "database": "postgres",
+    "engine": "PostgreSQL 17.11",
+    "dockerEndpoint": "npipe:////./pipe/dockerDesktopLinuxEngine",
+    "api": "http://127.0.0.1:54321",
+    "databasePort": 54322
+  },
+  "migration": {
+    "file": "supabase/migrations/20261106090000_memory_generation_type.sql",
+    "command": "node node_modules/supabase/dist/supabase.js migration up --local",
+    "exitCode": 0,
+    "onlyPendingMigration": "20261106090000"
+  },
+  "before": [
+    {
+      "version": "17.11",
+      "database": "postgres",
+      "server_port": null
+    },
+    {
+      "name": "initial_v21",
+      "migration": "20261103000000"
+    },
+    {
+      "name": "atomic_campaign_blueprint_creation",
+      "migration": "20261103090000"
+    },
+    {
+      "name": "evaluation_cas_and_finalization",
+      "migration": "20261104090000"
+    },
+    {
+      "name": "seal_completed_campaign_updates",
+      "migration": "20261104091000"
+    },
+    {
+      "name": "reject_synthetic_finalization_memory_approval",
+      "migration": "20261104092000"
+    },
+    {
+      "name": "memory_approval_and_indexing_transactions",
+      "migration": "20261104093000"
+    },
+    {
+      "name": "memory_index_recovery",
+      "migration": "20261104094000"
+    },
+    {
+      "constraint": "ai_generations_business_id_fkey",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "constraint": "ai_generations_business_id_generation_type_request_key_key",
+      "definition": "UNIQUE (business_id, generation_type, request_key)"
+    },
+    {
+      "constraint": "ai_generations_campaign_id_business_id_preorder_id_fkey",
+      "definition": "FOREIGN KEY (campaign_id, business_id, preorder_id) REFERENCES campaigns(id, business_id, preorder_id) ON DELETE RESTRICT"
+    },
+    {
+      "constraint": "ai_generations_check",
+      "definition": "CHECK ((((campaign_id IS NULL) AND (session_id IS NULL)) OR (preorder_id IS NOT NULL)))"
+    },
+    {
+      "constraint": "ai_generations_check1",
+      "definition": "CHECK (((status <> 'success'::text) OR ((output_json IS NOT NULL) AND (finished_at IS NOT NULL))))"
+    },
+    {
+      "constraint": "ai_generations_check2",
+      "definition": "CHECK (((status <> 'running'::text) OR (started_at IS NOT NULL)))"
+    },
+    {
+      "constraint": "ai_generations_generation_type_check",
+      "definition": "CHECK ((generation_type = ANY (ARRAY['strategies'::text, 'discussion'::text, 'blueprint'::text, 'evaluation'::text])))"
+    },
+    {
+      "constraint": "ai_generations_id_business_id_key",
+      "definition": "UNIQUE (id, business_id)"
+    },
+    {
+      "constraint": "ai_generations_id_business_id_session_id_key",
+      "definition": "UNIQUE (id, business_id, session_id)"
+    },
+    {
+      "constraint": "ai_generations_input_hash_check",
+      "definition": "CHECK ((input_hash ~ '^[0-9a-f]{64}$'::text))"
+    },
+    {
+      "constraint": "ai_generations_output_json_check",
+      "definition": "CHECK ((jsonb_typeof(output_json) = 'object'::text))"
+    },
+    {
+      "constraint": "ai_generations_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "constraint": "ai_generations_preorder_id_business_id_fkey",
+      "definition": "FOREIGN KEY (preorder_id, business_id) REFERENCES preorders(id, business_id) ON DELETE RESTRICT"
+    },
+    {
+      "constraint": "ai_generations_request_key_check",
+      "definition": "CHECK (((length(request_key) >= 1) AND (length(request_key) <= 128)))"
+    },
+    {
+      "constraint": "ai_generations_session_id_business_id_preorder_id_fkey",
+      "definition": "FOREIGN KEY (session_id, business_id, preorder_id) REFERENCES campaign_ai_sessions(id, business_id, preorder_id) ON DELETE RESTRICT"
+    },
+    {
+      "constraint": "ai_generations_status_check",
+      "definition": "CHECK ((status = ANY (ARRAY['running'::text, 'success'::text, 'failed'::text, 'invalid_output'::text])))"
+    },
+    {
+      "type": "discussion",
+      "count": 7,
+      "status": "failed"
+    },
+    {
+      "type": "discussion",
+      "count": 3,
+      "status": "success"
+    },
+    {
+      "qual": "is_business_owner(business_id)",
+      "roles": [
+        "authenticated"
+      ],
+      "policy": "owner_read",
+      "command": "SELECT"
+    },
+    {
+      "role": "anon",
+      "insert": false,
+      "select": false,
+      "update": false
+    },
+    {
+      "role": "authenticated",
+      "insert": false,
+      "select": true,
+      "update": false
+    },
+    {
+      "role": "service_role",
+      "insert": true,
+      "select": true,
+      "update": true
+    },
+    {
+      "rows": "10",
+      "table": "ai_generations",
+      "digest": "0337fa2cdb2d62d32f0e27ca29b3a580"
+    },
+    {
+      "rows": "3",
+      "table": "campaigns",
+      "digest": "9f748a064cd7d5db3dd5d971f6de3f7e"
+    },
+    {
+      "rows": "6",
+      "table": "campaign_evaluations",
+      "digest": "196f27f36b413830938b6ae4be11bf02"
+    },
+    {
+      "rows": "1",
+      "table": "campaign_memories",
+      "digest": "52a5dfab22db1f1be936aa5568e6e145"
+    },
+    {
+      "rows": "0",
+      "table": "job_runs",
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "rows": "2",
+      "table": "businesses",
+      "digest": "023a9bf2e2fce9e026b1c5f372772d41"
+    },
+    {
+      "rows": "2",
+      "table": "business_members",
+      "digest": "70b3840e5224aad5732f99f89ff36af1"
+    },
+    {
+      "rows": "4",
+      "table": "preorders",
+      "digest": "bd418e1d299729f42e9de7ae17d5171c"
+    }
+  ],
+  "after": [
+    {
+      "constraint": "ai_generations_business_id_fkey",
+      "definition": "FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE RESTRICT"
+    },
+    {
+      "constraint": "ai_generations_business_id_generation_type_request_key_key",
+      "definition": "UNIQUE (business_id, generation_type, request_key)"
+    },
+    {
+      "constraint": "ai_generations_campaign_id_business_id_preorder_id_fkey",
+      "definition": "FOREIGN KEY (campaign_id, business_id, preorder_id) REFERENCES campaigns(id, business_id, preorder_id) ON DELETE RESTRICT"
+    },
+    {
+      "constraint": "ai_generations_check",
+      "definition": "CHECK ((((campaign_id IS NULL) AND (session_id IS NULL)) OR (preorder_id IS NOT NULL)))"
+    },
+    {
+      "constraint": "ai_generations_check1",
+      "definition": "CHECK (((status <> 'success'::text) OR ((output_json IS NOT NULL) AND (finished_at IS NOT NULL))))"
+    },
+    {
+      "constraint": "ai_generations_check2",
+      "definition": "CHECK (((status <> 'running'::text) OR (started_at IS NOT NULL)))"
+    },
+    {
+      "constraint": "ai_generations_generation_type_check",
+      "definition": "CHECK ((generation_type = ANY (ARRAY['strategies'::text, 'discussion'::text, 'blueprint'::text, 'evaluation'::text, 'memory'::text])))"
+    },
+    {
+      "constraint": "ai_generations_id_business_id_key",
+      "definition": "UNIQUE (id, business_id)"
+    },
+    {
+      "constraint": "ai_generations_id_business_id_session_id_key",
+      "definition": "UNIQUE (id, business_id, session_id)"
+    },
+    {
+      "constraint": "ai_generations_input_hash_check",
+      "definition": "CHECK ((input_hash ~ '^[0-9a-f]{64}$'::text))"
+    },
+    {
+      "constraint": "ai_generations_output_json_check",
+      "definition": "CHECK ((jsonb_typeof(output_json) = 'object'::text))"
+    },
+    {
+      "constraint": "ai_generations_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "constraint": "ai_generations_preorder_id_business_id_fkey",
+      "definition": "FOREIGN KEY (preorder_id, business_id) REFERENCES preorders(id, business_id) ON DELETE RESTRICT"
+    },
+    {
+      "constraint": "ai_generations_request_key_check",
+      "definition": "CHECK (((length(request_key) >= 1) AND (length(request_key) <= 128)))"
+    },
+    {
+      "constraint": "ai_generations_session_id_business_id_preorder_id_fkey",
+      "definition": "FOREIGN KEY (session_id, business_id, preorder_id) REFERENCES campaign_ai_sessions(id, business_id, preorder_id) ON DELETE RESTRICT"
+    },
+    {
+      "constraint": "ai_generations_status_check",
+      "definition": "CHECK ((status = ANY (ARRAY['running'::text, 'success'::text, 'failed'::text, 'invalid_output'::text])))"
+    },
+    {
+      "type": "discussion",
+      "count": 7,
+      "status": "failed"
+    },
+    {
+      "type": "discussion",
+      "count": 3,
+      "status": "success"
+    },
+    {
+      "qual": "is_business_owner(business_id)",
+      "roles": [
+        "authenticated"
+      ],
+      "policy": "owner_read",
+      "command": "SELECT"
+    },
+    {
+      "role": "anon",
+      "insert": false,
+      "select": false,
+      "update": false
+    },
+    {
+      "role": "authenticated",
+      "insert": false,
+      "select": true,
+      "update": false
+    },
+    {
+      "role": "service_role",
+      "insert": true,
+      "select": true,
+      "update": true
+    },
+    {
+      "rows": "10",
+      "table": "ai_generations",
+      "digest": "0337fa2cdb2d62d32f0e27ca29b3a580"
+    },
+    {
+      "rows": "3",
+      "table": "campaigns",
+      "digest": "9f748a064cd7d5db3dd5d971f6de3f7e"
+    },
+    {
+      "rows": "6",
+      "table": "campaign_evaluations",
+      "digest": "196f27f36b413830938b6ae4be11bf02"
+    },
+    {
+      "rows": "1",
+      "table": "campaign_memories",
+      "digest": "52a5dfab22db1f1be936aa5568e6e145"
+    },
+    {
+      "rows": "0",
+      "table": "job_runs",
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "rows": "2",
+      "table": "businesses",
+      "digest": "023a9bf2e2fce9e026b1c5f372772d41"
+    },
+    {
+      "rows": "2",
+      "table": "business_members",
+      "digest": "70b3840e5224aad5732f99f89ff36af1"
+    },
+    {
+      "rows": "4",
+      "table": "preorders",
+      "digest": "bd418e1d299729f42e9de7ae17d5171c"
+    }
+  ],
+  "finalVerification": [
+    {
+      "definition": "CHECK ((generation_type = ANY (ARRAY['strategies'::text, 'discussion'::text, 'blueprint'::text, 'evaluation'::text, 'memory'::text])))",
+      "checkValidated": true
+    },
+    {
+      "forceRls": false,
+      "rlsEnabled": true
+    },
+    {
+      "migrations": [
+        {
+          "name": "initial_v21",
+          "version": "20261103000000"
+        },
+        {
+          "name": "atomic_campaign_blueprint_creation",
+          "version": "20261103090000"
+        },
+        {
+          "name": "evaluation_cas_and_finalization",
+          "version": "20261104090000"
+        },
+        {
+          "name": "seal_completed_campaign_updates",
+          "version": "20261104091000"
+        },
+        {
+          "name": "reject_synthetic_finalization_memory_approval",
+          "version": "20261104092000"
+        },
+        {
+          "name": "memory_approval_and_indexing_transactions",
+          "version": "20261104093000"
+        },
+        {
+          "name": "memory_index_recovery",
+          "version": "20261104094000"
+        },
+        {
+          "name": "memory_generation_type",
+          "version": "20261106090000"
+        }
+      ]
+    },
+    {
+      "embeddingJobs": 0,
+      "historicalMemoryCount": 1,
+      "remainingTaskAuthUsers": 0,
+      "remainingTaskBusinesses": 0
+    }
+  ],
+  "fixtureRuns": [
+    {
+      "runId": "6ea3eccd-023c-40c9-9f58-b30fd2a125a2",
+      "marker": "batch03b-memory-6ea3eccd-023c-40c9-9f58-b30fd2a125a2",
+      "target": "supabase_db_campaign-lab",
+      "owners": [
+        {
+          "user": "88465876-ee42-4875-8671-5f0972c23208",
+          "business": "aed3c435-6856-47db-82f7-aaffc01f9ce7",
+          "preorder": "49283cf8-2bd5-477e-b5d0-37f8584d21f5",
+          "membership": "f3dbfa12-8b2e-4b6a-9f9e-32d293f98dfe",
+          "slug": "batch03b-memory-6ea3eccd-023c-40c9-9f58-b30fd2a125a2-0"
+        },
+        {
+          "user": "e26ee492-580d-4488-be74-7cd7ab16dff1",
+          "business": "42e73f81-7b41-4835-9101-f437fdb9f6df",
+          "preorder": "845c8c61-18cb-4a33-a3be-750992ac01cf",
+          "membership": "df162cc8-4b87-44a2-97bc-50d8047c4f67",
+          "slug": "batch03b-memory-6ea3eccd-023c-40c9-9f58-b30fd2a125a2-1"
+        }
+      ],
+      "before": {
+        "job_runs": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "campaigns": {
+          "count": 3,
+          "digest": "9f748a064cd7d5db3dd5d971f6de3f7e"
+        },
+        "preorders": {
+          "count": 4,
+          "digest": "bd418e1d299729f42e9de7ae17d5171c"
+        },
+        "auth_users": {
+          "count": 3,
+          "digest": "a8de79ee61a7215617538ce84ea94dd6"
+        },
+        "businesses": {
+          "count": 2,
+          "digest": "023a9bf2e2fce9e026b1c5f372772d41"
+        },
+        "ai_generations": {
+          "count": 10,
+          "digest": "0337fa2cdb2d62d32f0e27ca29b3a580"
+        },
+        "business_members": {
+          "count": 2,
+          "digest": "70b3840e5224aad5732f99f89ff36af1"
+        },
+        "campaign_memories": {
+          "count": 1,
+          "digest": "52a5dfab22db1f1be936aa5568e6e145"
+        },
+        "campaign_evaluations": {
+          "count": 6,
+          "digest": "196f27f36b413830938b6ae4be11bf02"
+        }
+      },
+      "phase": "cleaned",
+      "after": {
+        "job_runs": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "campaigns": {
+          "count": 3,
+          "digest": "9f748a064cd7d5db3dd5d971f6de3f7e"
+        },
+        "preorders": {
+          "count": 4,
+          "digest": "bd418e1d299729f42e9de7ae17d5171c"
+        },
+        "auth_users": {
+          "count": 3,
+          "digest": "a8de79ee61a7215617538ce84ea94dd6"
+        },
+        "businesses": {
+          "count": 2,
+          "digest": "023a9bf2e2fce9e026b1c5f372772d41"
+        },
+        "ai_generations": {
+          "count": 10,
+          "digest": "0337fa2cdb2d62d32f0e27ca29b3a580"
+        },
+        "business_members": {
+          "count": 2,
+          "digest": "70b3840e5224aad5732f99f89ff36af1"
+        },
+        "campaign_memories": {
+          "count": 1,
+          "digest": "52a5dfab22db1f1be936aa5568e6e145"
+        },
+        "campaign_evaluations": {
+          "count": 6,
+          "digest": "196f27f36b413830938b6ae4be11bf02"
+        }
+      },
+      "preserved": true
+    },
+    {
+      "runId": "d9bdddb0-c9ab-4a1d-b37d-07c907050cae",
+      "marker": "batch03b-memory-d9bdddb0-c9ab-4a1d-b37d-07c907050cae",
+      "target": "supabase_db_campaign-lab",
+      "owners": [
+        {
+          "user": "d817be1b-1d2f-42c2-abf2-302da315897f",
+          "business": "4bc7a7ec-2319-48e9-82c2-cd66a5621042",
+          "preorder": "c487bd5d-9b12-4f19-8226-b1daaeecf05e",
+          "membership": "18f703f1-c96a-4e86-8c34-7106a1653c09",
+          "slug": "batch03b-memory-d9bdddb0-c9ab-4a1d-b37d-07c907050cae-0"
+        },
+        {
+          "user": "2d748463-4d67-4d1b-b08d-522437ef0655",
+          "business": "4cef5809-b9e8-4fec-bcb3-7773ef0197f1",
+          "preorder": "3f4109dc-27e7-48e7-9e9f-f8a000eda632",
+          "membership": "44f4a26d-edda-49d8-9e8a-218607e01db8",
+          "slug": "batch03b-memory-d9bdddb0-c9ab-4a1d-b37d-07c907050cae-1"
+        }
+      ],
+      "before": {
+        "job_runs": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "campaigns": {
+          "count": 3,
+          "digest": "9f748a064cd7d5db3dd5d971f6de3f7e"
+        },
+        "preorders": {
+          "count": 4,
+          "digest": "bd418e1d299729f42e9de7ae17d5171c"
+        },
+        "auth_users": {
+          "count": 3,
+          "digest": "a8de79ee61a7215617538ce84ea94dd6"
+        },
+        "businesses": {
+          "count": 2,
+          "digest": "023a9bf2e2fce9e026b1c5f372772d41"
+        },
+        "ai_generations": {
+          "count": 10,
+          "digest": "0337fa2cdb2d62d32f0e27ca29b3a580"
+        },
+        "business_members": {
+          "count": 2,
+          "digest": "70b3840e5224aad5732f99f89ff36af1"
+        },
+        "campaign_memories": {
+          "count": 1,
+          "digest": "52a5dfab22db1f1be936aa5568e6e145"
+        },
+        "campaign_evaluations": {
+          "count": 6,
+          "digest": "196f27f36b413830938b6ae4be11bf02"
+        }
+      },
+      "phase": "cleaned",
+      "after": {
+        "job_runs": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "campaigns": {
+          "count": 3,
+          "digest": "9f748a064cd7d5db3dd5d971f6de3f7e"
+        },
+        "preorders": {
+          "count": 4,
+          "digest": "bd418e1d299729f42e9de7ae17d5171c"
+        },
+        "auth_users": {
+          "count": 3,
+          "digest": "a8de79ee61a7215617538ce84ea94dd6"
+        },
+        "businesses": {
+          "count": 2,
+          "digest": "023a9bf2e2fce9e026b1c5f372772d41"
+        },
+        "ai_generations": {
+          "count": 10,
+          "digest": "0337fa2cdb2d62d32f0e27ca29b3a580"
+        },
+        "business_members": {
+          "count": 2,
+          "digest": "70b3840e5224aad5732f99f89ff36af1"
+        },
+        "campaign_memories": {
+          "count": 1,
+          "digest": "52a5dfab22db1f1be936aa5568e6e145"
+        },
+        "campaign_evaluations": {
+          "count": 6,
+          "digest": "196f27f36b413830938b6ae4be11bf02"
+        }
+      },
+      "preserved": true
+    }
+  ],
+  "tests": {
+    "safeRegression": {
+      "passed": 750,
+      "skipped": 1,
+      "files": 37,
+      "seconds": 44.77
+    },
+    "actualPostgres": {
+      "passed": 10,
+      "failed": 0,
+      "files": 1,
+      "seconds": 11.34
+    },
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "build": "PASS",
+    "bruno": {
+      "result": "PASS",
+      "definitions": 141,
+      "parser": "0.40.0"
+    },
+    "realGeminiCalls": 0,
+    "realEmbeddingCalls": 0
+  }
+}

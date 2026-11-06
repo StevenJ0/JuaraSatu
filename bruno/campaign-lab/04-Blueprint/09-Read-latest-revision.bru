@@ -1,0 +1,42 @@
+meta {
+  name: [READ-ONLY] Read-latest-revision
+  type: http
+  seq: 9
+  tags: [
+    read-only
+  ]
+}
+
+get {
+  url: {{baseUrl}}/api/dev/blueprints?campaignId={{campaignId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+}
+
+script:pre-request {
+  if (!bru.getVar('campaignId')) throw new Error('PREREQUISITE_REQUIRED: campaignId; execute the preceding documented request');
+}
+
+tests {
+  test('HTTP 200', function () {
+    if(res.getStatus()!==200) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(!res.getBody().active)throw new Error('Active blueprint missing');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  READ-ONLY. Expected HTTP 200.
+  Previous request in workflow: 04-Blueprint/08-Revise-caption-using-stored-plan.bru.
+  Prerequisites: campaignId.
+  Required opt-in flags: none; authenticated reads still need a valid cookie.
+  Run in folder sequence. Reload using the next GET to verify actual persisted state.
+}

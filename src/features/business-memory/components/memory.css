@@ -1,0 +1,8 @@
+[data-memory-report] {
+  max-inline-size: 75ch;
+}
+
+[data-memory-report] h4 {
+  margin-block: 1.25rem 0.5rem;
+  font-weight: 600;
+}

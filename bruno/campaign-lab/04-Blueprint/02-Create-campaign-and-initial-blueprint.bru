@@ -1,0 +1,65 @@
+meta {
+  name: [MUTATING] Create-campaign-and-initial-blueprint
+  type: http
+  seq: 2
+  tags: [
+    mutating
+  ]
+}
+
+post {
+  url: {{baseUrl}}/api/dev/blueprints
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "action": "create",
+    "selection": {
+      "sessionId": "{{sessionId}}",
+      "generationId": "{{generationId}}",
+      "proposalVersion": {{proposalVersion}},
+      "proposalKey": "{{proposalKey}}"
+    },
+    "campaignId": "{{campaignId}}",
+    "requestId": "{{requestId}}",
+    "scenario": "valid"
+  }
+}
+
+script:pre-request {
+  if (bru.getVar('allowMutations') !== 'true') throw new Error('OPT_IN_REQUIRED: allowMutations=true');
+  if (!bru.getVar('sessionId')) throw new Error('PREREQUISITE_REQUIRED: sessionId; execute the preceding documented request');
+  if (!bru.getVar('generationId')) throw new Error('PREREQUISITE_REQUIRED: generationId; execute the preceding documented request');
+  if (!bru.getVar('proposalVersion')) throw new Error('PREREQUISITE_REQUIRED: proposalVersion; execute the preceding documented request');
+  if (!bru.getVar('proposalKey')) throw new Error('PREREQUISITE_REQUIRED: proposalKey; execute the preceding documented request');
+  bru.setVar('campaignId',bru.interpolate('{{$randomUUID}}'));
+  bru.setVar('requestId',bru.interpolate('{{$randomUUID}}'));
+  const raw=req.getBody();const payload=JSON.parse(bru.interpolate(typeof raw==='string'?raw:JSON.stringify(raw)));req.setBody(payload);bru.setVar('createBlueprintBody',JSON.stringify(payload));
+}
+
+tests {
+  test('HTTP 200', function () {
+    if(res.getStatus()!==200) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(res.getBody().campaign.status!=='draft'||res.getBody().active.approval_status!=='proposed')throw new Error('Creation must remain proposed/draft');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  MUTATING. Expected HTTP 200.
+  Previous request in workflow: 04-Blueprint/01-List-and-select-persisted-proposal.bru.
+  Prerequisites: sessionId, generationId, proposalVersion, proposalKey.
+  Required opt-in flags: allowMutations.
+  Run in folder sequence. Reload using the next GET to verify actual persisted state.
+}

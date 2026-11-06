@@ -1,0 +1,71 @@
+meta {
+  name: [MUTATING] Save-blueprint-revision
+  type: http
+  seq: 7
+  tags: [
+    mutating
+  ]
+}
+
+post {
+  url: {{baseUrl}}/api/dev/blueprints
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "action": "revise",
+    "campaignId": "{{campaignId}}",
+    "requestId": "{{requestId}}",
+    "expectedCampaignVersion": {{campaignVersion}},
+    "expectedBlueprintId": "{{blueprintId}}",
+    "expectedBlueprintVersion": {{blueprintVersion}},
+    "edits": {
+      "title": "{{blueprintTitle}}",
+      "marketingApproach": "{{marketingApproach}}",
+      "discountBps": {{discountBps}},
+      "budgetCapIdr": {{budgetCapIdr}},
+      "targetAdditionalUnits": {{targetAdditionalUnits}},
+      "startsAt": "{{startsAt}}",
+      "endsAt": "{{endsAt}}",
+      "channels": [
+        "whatsapp"
+      ],
+      "notes": "Bruno synthetic revision; financial facts remain server validated"
+    },
+    "scenario": "valid"
+  }
+}
+
+script:pre-request {
+  if (bru.getVar('allowMutations') !== 'true') throw new Error('OPT_IN_REQUIRED: allowMutations=true');
+  if (!bru.getVar('blueprintId')) throw new Error('PREREQUISITE_REQUIRED: blueprintId; execute the preceding documented request');
+  if (!bru.getVar('campaignVersion')) throw new Error('PREREQUISITE_REQUIRED: campaignVersion; execute the preceding documented request');
+  bru.setVar('requestId',bru.interpolate('{{$randomUUID}}'));
+}
+
+tests {
+  test('HTTP 200', function () {
+    if(res.getStatus()!==200) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(res.getBody().active.approval_status!=='proposed')throw new Error('Revision should need new approval');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  MUTATING. Expected HTTP 200.
+  Previous request in workflow: 04-Blueprint/06-invalid-blueprint-provider.bru.
+  Prerequisites: blueprintId, campaignVersion.
+  Required opt-in flags: allowMutations.
+  Allowed edits: dates/window, discount, target additional units, budget, channels and notes. Title must equal persisted campaign title. Full plan is optional; no arbitrary campaign PATCH route.
+}

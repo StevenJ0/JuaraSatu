@@ -1,0 +1,476 @@
+{
+  "campaign": {
+    "id": "c62fb068-e8d8-4223-87dd-188e9d2bebea",
+    "businessId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+    "preorderId": "1e3bbc34-e0ee-47f5-89ac-5ad2ac8713af",
+    "status": "completed",
+    "version": 11,
+    "completedAt": "2026-11-03T18:50:36.731701+00:00"
+  },
+  "evaluation": {
+    "id": "f33eba47-ae85-4a10-8582-04ac810c2a8c",
+    "business_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+    "campaign_id": "c62fb068-e8d8-4223-87dd-188e9d2bebea",
+    "blueprint_id": "e4bf884f-6fda-49b1-af60-8c25a0192afa",
+    "metrics_schema_version": 1,
+    "metrics_json": {
+      "schemaVersion": 1,
+      "context": {
+        "schemaVersion": 1,
+        "snapshot": {
+          "campaign": {
+            "id": "c62fb068-e8d8-4223-87dd-188e9d2bebea",
+            "business_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+            "preorder_id": "1e3bbc34-e0ee-47f5-89ac-5ad2ac8713af",
+            "name": "Penawaran diskon sintetis",
+            "status": "closed",
+            "version": 10,
+            "active_blueprint_id": "e4bf884f-6fda-49b1-af60-8c25a0192afa",
+            "published_at": "2026-11-03T18:50:30.561986+00:00",
+            "offer_type": "percent_discount",
+            "discount_bps": 1000,
+            "budget_cap_idr": 25000,
+            "target_additional_units": 6,
+            "starts_at": "2026-11-03T16:52:19.004376+00:00",
+            "ends_at": "2026-11-09T17:52:19.004411+00:00",
+            "marketing_approach": "limited_discount",
+            "primary_kpi": "paid_units_in_window",
+            "published_blueprint_id": "e4bf884f-6fda-49b1-af60-8c25a0192afa",
+            "closed_at": "2026-11-03T18:50:30.75166+00:00",
+            "completed_at": null,
+            "baseline_json": {
+              "baseline_preorder_paid_units": 0,
+              "sourceVersions": {
+                "preorderVersion": 2,
+                "preorderItemVersion": 2,
+                "productVersion": 1,
+                "capacityVersion": 1,
+                "campaignVersion": 3,
+                "businessId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+                "preorderId": "1e3bbc34-e0ee-47f5-89ac-5ad2ac8713af",
+                "itemId": "e6e56c86-c387-488a-8e76-4ddec1c0dd8e",
+                "basePriceIdr": 120000
+              }
+            },
+            "baseline_calculated_at": "2026-11-03T18:50:30.561993+00:00",
+            "metrics_schema_version": 1
+          },
+          "blueprint": {
+            "id": "e4bf884f-6fda-49b1-af60-8c25a0192afa",
+            "business_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+            "campaign_id": "c62fb068-e8d8-4223-87dd-188e9d2bebea",
+            "version": 1,
+            "approval_status": "approved",
+            "blueprint_json": {
+              "goal": "Mendukung tambahan paid units sebelum preorder berakhir; hasil belum diketahui.",
+              "hypothesis": "Pengingat atau penawaran mungkin membantu calon pembeli meninjau preorder.",
+              "audienceHypothesis": "Calon pembeli yang telah menunjukkan minat; belum tervalidasi.",
+              "rationale": "Diskon diuji sebagai alternatif hipotetis dengan kontribusi per unit yang tetap dijaga.",
+              "tasks": [
+                {
+                  "key": "whatsapp-announce",
+                  "title": "Tinjau dan bagikan pengumuman whatsapp",
+                  "description": "Periksa penawaran dan batas waktu, lalu bagikan tautan preorder secara manual.",
+                  "channel": "whatsapp",
+                  "dueAt": "2026-11-04T09:08:41.223Z"
+                },
+                {
+                  "key": "whatsapp-remind",
+                  "title": "Bagikan pengingat whatsapp",
+                  "description": "Tinjau ketersediaan terkini sebelum membagikan ulang tautan; tidak ada auto-posting.",
+                  "channel": "whatsapp",
+                  "dueAt": "2026-11-07T22:57:46.410Z"
+                }
+              ],
+              "contents": [
+                {
+                  "key": "whatsapp-caption",
+                  "channel": "whatsapp",
+                  "type": "caption",
+                  "body": "Penawaran diskon preorder tersedia. Lihat rincian harga, ketersediaan, dan batas waktu pada tautan preorder. Tinjau sebelum memesan."
+                }
+              ],
+              "risks": [
+                "Respons calon pembeli belum diketahui.",
+                "Kontribusi per unit turun dibanding harga normal."
+              ],
+              "dependencies": [
+                "Auth dan persistence nyata; konteks bisnis dan Fake Blueprint tetap sintetis.",
+                "Producer produksi dan publikasi belum terhubung."
+              ],
+              "ownerChecklist": [
+                "Periksa penawaran, angka hipotetis dan ketersediaan.",
+                "Tinjau semua tugas dan caption sebelum approval.",
+                "Approval tidak mempublikasikan campaign."
+              ],
+              "schemaVersion": 1,
+              "businessId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+              "campaignId": "c62fb068-e8d8-4223-87dd-188e9d2bebea",
+              "preorderId": "1e3bbc34-e0ee-47f5-89ac-5ad2ac8713af",
+              "blueprintVersion": 1,
+              "proposalVersion": 2,
+              "source": {
+                "sessionId": "95415eef-ab7f-464a-877f-0d36c5576d33",
+                "generationId": "b61b1cb6-cc98-4fbb-ab29-3d631dbd1990",
+                "proposalVersion": 2,
+                "proposalKey": "synthetic-discount",
+                "messageId": "3cba50a0-0abb-4058-8e29-635f6ff3ec4e",
+                "proposalHash": "352080cc0ba0b75fb421026d996b88fb39cac22c280df9a54b9b25521834caea"
+              },
+              "contextHash": "345d06c056a79ccae8928e4c2b39e6f3d19c4110a7e9259f4904f76ced143fd0",
+              "sourceVersions": {
+                "preorderVersion": 2,
+                "preorderItemVersion": 2,
+                "productVersion": 1,
+                "capacityVersion": 1
+              },
+              "campaignTitle": "Penawaran diskon sintetis",
+              "marketingApproach": "limited_discount",
+              "offer": {
+                "type": "percent_discount",
+                "discountBps": 1000
+              },
+              "executionWindow": {
+                "startsAt": "2026-11-03T16:52:19.004376Z",
+                "endsAt": "2026-11-09T17:52:19.004411Z"
+              },
+              "budgetCapIdr": 25000,
+              "targetAdditionalUnits": 6,
+              "channels": [
+                "whatsapp"
+              ],
+              "primaryKpi": "paid_units_in_window",
+              "financial": {
+                "frozenBasePriceIdr": 120000,
+                "variableCostIdr": 75000,
+                "costQuality": "verified",
+                "calculation": {
+                  "schemaVersion": 1,
+                  "businessId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+                  "preorderId": "1e3bbc34-e0ee-47f5-89ac-5ad2ac8713af",
+                  "preorderItemId": "e6e56c86-c387-488a-8e76-4ddec1c0dd8e",
+                  "frozenBaseUnitPriceIdr": 120000,
+                  "currentOffer": {
+                    "preorderId": "1e3bbc34-e0ee-47f5-89ac-5ad2ac8713af",
+                    "preorderItemId": "e6e56c86-c387-488a-8e76-4ddec1c0dd8e",
+                    "preorderItemVersion": 2,
+                    "offer": {
+                      "offerType": "normal_price",
+                      "discountBps": 0
+                    },
+                    "unitPriceIdr": 120000,
+                    "offerVersion": "seed-no-offer-2",
+                    "calculatedAt": "2026-11-03T18:50:30.369Z"
+                  },
+                  "hypotheticalOffer": {
+                    "offerType": "percent_discount",
+                    "discountBps": 1000
+                  },
+                  "hypotheticalFinalUnitPriceIdr": 108000,
+                  "discountPerUnitIdr": 12000,
+                  "contributionPerUnitIdr": 33000,
+                  "assumedAdditionalUnits": 6,
+                  "assumedPromotionCostIdr": 25000,
+                  "scenarioRevenueIdr": 648000,
+                  "scenarioVariableCostIdr": 450000,
+                  "scenarioContributionIdr": 173000,
+                  "feasible": true,
+                  "warnings": [],
+                  "blockers": [],
+                  "assumptions": [
+                    "Tambahan unit adalah asumsi pemilik, bukan prediksi atau jaminan penjualan.",
+                    "Biaya promosi adalah asumsi skenario, bukan biaya aktual yang tercatat.",
+                    "Slot tersedia adalah snapshot; simulasi tidak mereservasi kapasitas."
+                  ],
+                  "snapshot": {
+                    "provenance": "development_fixture",
+                    "calculatedAt": "2026-11-03T18:50:30.369Z",
+                    "preorderVersion": 2,
+                    "preorderItemVersion": 2,
+                    "capacityVersion": 1,
+                    "productVersion": 1
+                  }
+                }
+              },
+              "kpiPlan": {
+                "target": 6,
+                "definition": "Paid units pada actual activation window setelah campaign dipublikasikan; bukan uplift kausal.",
+                "baselineNote": "Baseline aktual baru dihitung saat publikasi; KPI produksi belum tersedia.",
+                "actualMetrics": null
+              },
+              "evaluationPlan": "Bandingkan window paid units, attributed units, biaya tercatat dan keterbatasannya; tidak mengklaim sebab-akibat.",
+              "assumptions": [
+                "Unit tambahan dan budget promosi adalah asumsi pemilik, bukan prediksi atau penjualan aktual.",
+                "Capacity adalah snapshot, bukan reservasi."
+              ],
+              "revision": {
+                "requestId": "e4bf884f-6fda-49b1-af60-8c25a0192afa",
+                "requestHash": "a2a058ac3254a029496eb3ea435f29f4a3300e462cc14aa42484180414f81bc9",
+                "expectedCampaignVersion": 1,
+                "parentBlueprintId": null,
+                "parentVersion": null,
+                "notes": ""
+              },
+              "provider": "development-fake-blueprint",
+              "synthetic": true
+            },
+            "source_ai_generation_id": "b61b1cb6-cc98-4fbb-ab29-3d631dbd1990",
+            "context_hash": "345d06c056a79ccae8928e4c2b39e6f3d19c4110a7e9259f4904f76ced143fd0",
+            "approved_by_user_id": "11111111-1111-4111-8111-111111111111",
+            "approved_at": "2026-11-03T18:50:30.474647+00:00"
+          },
+          "preorder": {
+            "id": "1e3bbc34-e0ee-47f5-89ac-5ad2ac8713af",
+            "business_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+            "status": "published",
+            "starts_at": "2026-11-03T16:52:19.004376+00:00",
+            "ends_at": "2026-11-09T17:52:19.004411+00:00",
+            "fulfillment_date": "2026-11-13",
+            "version": 2
+          },
+          "item": {
+            "id": "e6e56c86-c387-488a-8e76-4ddec1c0dd8e",
+            "business_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+            "preorder_id": "1e3bbc34-e0ee-47f5-89ac-5ad2ac8713af",
+            "base_price_snapshot_idr": 120000,
+            "version": 2
+          },
+          "tasks": [
+            {
+              "id": "113cc441-e43d-4222-b331-5b992c084b4f",
+              "business_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+              "campaign_id": "c62fb068-e8d8-4223-87dd-188e9d2bebea",
+              "blueprint_id": "e4bf884f-6fda-49b1-af60-8c25a0192afa",
+              "task_key": "whatsapp-announce",
+              "title": "Tinjau dan bagikan pengumuman whatsapp",
+              "description": "Periksa penawaran dan batas waktu, lalu bagikan tautan preorder secara manual.",
+              "channel": "whatsapp",
+              "due_at": "2026-11-04T09:08:41.223+00:00",
+              "completed_at": "2026-11-03T18:50:30.646+00:00",
+              "version": 2
+            },
+            {
+              "id": "724204ab-8ce0-4e70-b904-cb08ed3a51fd",
+              "business_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+              "campaign_id": "c62fb068-e8d8-4223-87dd-188e9d2bebea",
+              "blueprint_id": "e4bf884f-6fda-49b1-af60-8c25a0192afa",
+              "task_key": "whatsapp-remind",
+              "title": "Bagikan pengingat whatsapp",
+              "description": "Tinjau ketersediaan terkini sebelum membagikan ulang tautan; tidak ada auto-posting.",
+              "channel": "whatsapp",
+              "due_at": "2026-11-07T22:57:46.41+00:00",
+              "completed_at": "2026-11-03T18:50:35.882+00:00",
+              "version": 2
+            }
+          ],
+          "contents": [
+            {
+              "id": "cec0cb27-17d3-43c3-bac5-05a50b46d20d",
+              "business_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+              "campaign_id": "c62fb068-e8d8-4223-87dd-188e9d2bebea",
+              "blueprint_id": "e4bf884f-6fda-49b1-af60-8c25a0192afa",
+              "content_key": "whatsapp-caption",
+              "channel": "whatsapp",
+              "content_type": "caption",
+              "body": "Penawaran diskon preorder tersedia. Lihat rincian harga, ketersediaan, dan batas waktu pada tautan preorder. Tinjau sebelum memesan.",
+              "version": 1
+            }
+          ]
+        },
+        "costs": [
+          {
+            "id": "16126219-aa59-4b96-99f6-9e0f424a3ec1",
+            "business_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+            "campaign_id": "c62fb068-e8d8-4223-87dd-188e9d2bebea",
+            "category": "advertising",
+            "description": "Replacement expense sintetis browser",
+            "amount_idr": 50000,
+            "incurred_at": "2026-11-03T18:50:34.654+00:00",
+            "voided_at": null,
+            "void_reason": null,
+            "version": 1
+          },
+          {
+            "id": "32f5e0d4-5773-48b3-b639-5f608a72d41f",
+            "business_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+            "campaign_id": "c62fb068-e8d8-4223-87dd-188e9d2bebea",
+            "category": "advertising",
+            "description": "Pengeluaran sintetis browser Slice 7",
+            "amount_idr": 50000,
+            "incurred_at": "2026-11-03T18:50:32.069+00:00",
+            "voided_at": "2026-11-03T18:50:34.362+00:00",
+            "void_reason": "Koreksi expense sintetis browser",
+            "version": 2
+          }
+        ],
+        "costsCompleteness": "confirmed_complete",
+        "analytics": {
+          "status": "available",
+          "data": {
+            "schemaVersion": 1,
+            "businessId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+            "preorderId": "1e3bbc34-e0ee-47f5-89ac-5ad2ac8713af",
+            "campaignId": "c62fb068-e8d8-4223-87dd-188e9d2bebea",
+            "sourceId": "development-exceeds_target",
+            "sourceVersion": 1,
+            "campaignVersion": 10,
+            "calculatedAt": "2026-11-03T18:50:36.283Z",
+            "provenance": "development_fixture",
+            "isProvisional": true,
+            "costsComplete": true,
+            "operationallyResolved": true,
+            "window": {
+              "startsAt": "2026-11-03T18:50:30.561986Z",
+              "endsAt": "2026-11-03T18:50:30.75166Z"
+            },
+            "financialScope": "distinct_union_attribution_or_pricing",
+            "financialScopeOrderIds": null,
+            "metrics": {
+              "currentPreorderPaidUnits": 8,
+              "paidUnitsInWindow": 8,
+              "attributedPaidUnits": 5,
+              "attributedPaidUnitsLifetime": 5,
+              "discountedPaidUnits": 8,
+              "scopedFulfilledSalesValueIdr": 864000,
+              "scopedProductionCostIncurredIdr": 600000,
+              "discountValueAppliedIdr": 96000
+            }
+          }
+        },
+        "calculatedAt": "2026-11-03T18:50:36.283Z",
+        "contextHash": "952742c9a6c0b9a8cebc0649d985f0aa4dc8c521ebd5d90e4222da65d9325aaa",
+        "analyticsScenario": "exceeds_target",
+        "references": [
+          "campaign",
+          "blueprint",
+          "baseline",
+          "execution",
+          "costs",
+          "c6"
+        ],
+        "limitations": [
+          "Checklist adalah konfirmasi manual, bukan bukti posting atau penjualan.",
+          "Hasil pengamatan tidak membuktikan dampak sebab-akibat campaign.",
+          "Evaluasi sintetis tetap tidak eligible sebagai pengalaman bisnis terverifikasi, termasuk setelah penyelesaian simulasi.",
+          "Semua KPI C6 ini simulasi development; tidak ada order atau pembayaran terverifikasi yang dibuat.",
+          "Snapshot KPI masih provisional."
+        ]
+      },
+      "summary": {
+        "baselinePaidUnits": 0,
+        "plannedAdditionalUnits": 6,
+        "hypotheticalRevenueIdr": 648000,
+        "hypotheticalContributionIdr": 173000,
+        "observed": {
+          "currentPreorderPaidUnits": 8,
+          "paidUnitsInWindow": 8,
+          "attributedPaidUnits": 5,
+          "attributedPaidUnitsLifetime": 5,
+          "discountedPaidUnits": 8,
+          "scopedFulfilledSalesValueIdr": 864000,
+          "scopedProductionCostIncurredIdr": 600000,
+          "discountValueAppliedIdr": 96000
+        },
+        "recordedSpendSubtotalIdr": 50000,
+        "actualPromotionSpendIdr": 50000,
+        "budgetCapIdr": 25000,
+        "budgetVarianceIdr": 25000,
+        "contributionIdr": 214000,
+        "achievementBps": 13333,
+        "observedMinusTargetUnits": 2,
+        "completedTasks": 2,
+        "totalTasks": 2,
+        "executionBps": 10000,
+        "synthetic": true,
+        "provisional": true,
+        "costsComplete": true,
+        "finalizationEligible": false,
+        "finalizationBlockers": [
+          "VERIFIED_C6_UNAVAILABLE",
+          "AUTHORITATIVE_C6_REQUIRED",
+          "OPERATIONAL_COMPLETENESS_REQUIRED"
+        ]
+      },
+      "commandHash": "8185ab785bc3f657c52f7fe0fd372f47e4ff857fa44621aa7527ad927f2874e3",
+      "parentEvaluationId": "87b1d39c-7be1-4004-b5b7-795134680985",
+      "sourceFactsAt": "2026-11-03T18:50:36.283Z",
+      "cas": {
+        "expectedEvaluationId": "87b1d39c-7be1-4004-b5b7-795134680985"
+      },
+      "finalization": {
+        "mode": "development_synthetic",
+        "requestId": "f33eba47-ae85-4a10-8582-04ac810c2a8c",
+        "reviewedEvaluationId": "87b1d39c-7be1-4004-b5b7-795134680985",
+        "expectedCampaignVersion": 10,
+        "completedCampaignVersion": 11,
+        "completedAt": "2026-11-03T18:50:36.731701+00:00",
+        "actorUserId": "11111111-1111-4111-8111-111111111111",
+        "sourceContextHash": "952742c9a6c0b9a8cebc0649d985f0aa4dc8c521ebd5d90e4222da65d9325aaa"
+      }
+    },
+    "analysis_json": {
+      "schemaVersion": 1,
+      "provider": "development-fake-evaluation",
+      "synthetic": true,
+      "status": "available",
+      "narrative": {
+        "outcome": "above_target",
+        "financialState": "positive",
+        "executionState": "complete",
+        "summary": "Pengamatan simulasi berada pada atau di atas target rencana.",
+        "kpiAnalysis": "Unit dalam measurement window berbeda dari unit atribusi tautan maupun unit penerima harga campaign.",
+        "financialAnalysis": "Pengeluaran promosi tercatat melampaui budget dan mengurangi kontribusi skenario.",
+        "executionAnalysis": "Seluruh checklist dicentang pemilik; posting eksternal belum diverifikasi.",
+        "successes": [
+          "Target rencana tercakup dalam pengamatan simulasi."
+        ],
+        "shortfalls": [
+          "Bukti dampak kausal dan hasil produksi belum tersedia."
+        ],
+        "risks": [
+          "Simulasi KPI bukan transaksi atau penerimaan uang yang terverifikasi."
+        ],
+        "recommendations": [
+          "Tinjau biaya dan checklist sebelum merencanakan campaign berikutnya.",
+          "Gunakan producer KPI terotorisasi untuk evaluasi operasional."
+        ],
+        "evidenceReferences": [
+          "campaign",
+          "blueprint",
+          "baseline",
+          "execution",
+          "costs",
+          "c6"
+        ],
+        "warnings": [
+          "Fake Evaluation dan KPI development harus tetap diberi label sintetis.",
+          "Tidak ada bukti sebab-akibat dari snapshot ini."
+        ]
+      },
+      "review": {
+        "status": "reviewed",
+        "reviewedByUserId": "11111111-1111-4111-8111-111111111111",
+        "reviewedAt": "2026-11-03T18:50:36.460Z"
+      }
+    },
+    "limitations_json": [
+      "Checklist adalah konfirmasi manual, bukan bukti posting atau penjualan.",
+      "Hasil pengamatan tidak membuktikan dampak sebab-akibat campaign.",
+      "Evaluasi sintetis tetap tidak eligible sebagai pengalaman bisnis terverifikasi, termasuk setelah penyelesaian simulasi.",
+      "Semua KPI C6 ini simulasi development; tidak ada order atau pembayaran terverifikasi yang dibuat.",
+      "Snapshot KPI masih provisional."
+    ],
+    "evaluation_kind": "final",
+    "calculated_at": "2026-11-03T18:50:36.283+00:00",
+    "evaluated_at": "2026-11-03T18:50:36.732595+00:00",
+    "source_ai_generation_id": null
+  },
+  "stale": false,
+  "memory": {
+    "productionEligible": false,
+    "developmentEligible": true,
+    "exclusions": [
+      "SYNTHETIC_EVALUATION"
+    ]
+  }
+}

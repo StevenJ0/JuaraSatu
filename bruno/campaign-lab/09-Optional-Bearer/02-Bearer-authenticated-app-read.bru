@@ -1,0 +1,43 @@
+meta {
+  name: [READ-ONLY] Bearer-authenticated-app-read
+  type: http
+  seq: 2
+  tags: [
+    read-only
+  ]
+}
+
+get {
+  url: {{baseUrl}}/api/dev/discussions
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+}
+
+script:pre-request {
+  if (bru.getVar('allowDirectAuth') !== 'true') throw new Error('OPT_IN_REQUIRED: allowDirectAuth=true');
+  if (!bru.getVar('accessToken')) throw new Error('PREREQUISITE_REQUIRED: accessToken; execute the preceding documented request');
+  req.setHeader('Authorization','Bearer '+bru.getVar('accessToken'));
+}
+
+tests {
+  test('HTTP 200', function () {
+    if(res.getStatus()!==200) throw new Error('Unexpected HTTP status: '+res.getStatus());
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  READ-ONLY. Expected HTTP 200.
+  Previous request in workflow: 09-Optional-Bearer/01-Supabase-password-login.bru.
+  Prerequisites: accessToken.
+  Required opt-in flags: allowDirectAuth.
+  Uses the same app boundary as cookies; an invalid bearer does not fall back to cookies.
+}

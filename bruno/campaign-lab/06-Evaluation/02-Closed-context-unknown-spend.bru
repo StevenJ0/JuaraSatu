@@ -1,0 +1,43 @@
+meta {
+  name: [READ-ONLY] Closed-context-unknown-spend
+  type: http
+  seq: 2
+  tags: [
+    read-only
+  ]
+}
+
+get {
+  url: {{baseUrl}}/api/dev/evaluations?campaignId={{campaignId}}&scenario=exceeds_target
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+}
+
+script:pre-request {
+  if (!bru.getVar('campaignId')) throw new Error('PREREQUISITE_REQUIRED: campaignId; execute the preceding documented request');
+}
+
+tests {
+  test('HTTP 200', function () {
+    if(res.getStatus()!==200) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(res.getBody().synthetic!==true)throw new Error('Expected explicitly synthetic KPI');
+    if(res.getBody().summary.actualPromotionSpendIdr!==null)throw new Error('Unreviewed costs must be unknown');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  READ-ONLY. Expected HTTP 200.
+  Previous request in workflow: 06-Evaluation/01-List-evaluation-campaigns.bru.
+  Prerequisites: campaignId.
+  Required opt-in flags: none; authenticated reads still need a valid cookie.
+  Run in folder sequence. Reload using the next GET to verify actual persisted state.
+}

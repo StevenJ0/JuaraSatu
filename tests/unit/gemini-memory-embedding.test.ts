@@ -1,0 +1,11 @@
+import { it,expect,vi,afterEach } from "vitest";
+import { z } from "zod";
+vi.mock("server-only",()=>({}));
+const mock=vi.hoisted(()=>({embed:vi.fn(async(input:unknown):Promise<unknown>=>{void input;return null;})}));
+vi.mock("@google/genai",()=>({GoogleGenAI:class{models={embedContent:mock.embed};}}));
+import { geminiEmbeddingProvider } from "../../src/features/business-memory/gemini-embedding.server";
+afterEach(()=>mock.embed.mockReset());
+it.each(["gemini-embedding-001","gemini-embedding-2"])("requests 768 dimensions with model-specific task configuration for %s",async(model)=>{mock.embed.mockResolvedValue({embeddings:[{values:Array.from({length:768},()=>1)}]});const p=geminiEmbeddingProvider({apiKey:"synthetic-unit-credential",model});await p.embed("synthetic campaign learning","query");const call=z.object({contents:z.string(),config:z.object({outputDimensionality:z.number(),taskType:z.string().optional()})}).parse(mock.embed.mock.calls[0][0]);expect(call.config.outputDimensionality).toBe(768);if(model==="gemini-embedding-2"){expect(call.config.taskType).toBeUndefined();expect(call.contents).toContain("task: search result");}else expect(call.config.taskType).toBe("RETRIEVAL_QUERY");});
+it("rejects missing model instead of guessing or silently falling back",()=>{expect(()=>geminiEmbeddingProvider({apiKey:"synthetic-unit-credential"})).toThrow("EMBEDDING_CONFIGURATION_REQUIRED");});
+it("rejects malformed provider output",async()=>{mock.embed.mockResolvedValue({embeddings:[{values:[1,2]}]});await expect(geminiEmbeddingProvider({apiKey:"synthetic-unit-credential",model:"gemini-embedding-001"}).embed("synthetic text","document")).rejects.toMatchObject({code:"INVALID_EMBEDDING"});});
+it("bounds an unresponsive provider by the configured timeout",async()=>{mock.embed.mockImplementation(()=>new Promise(()=>{}));await expect(geminiEmbeddingProvider({apiKey:"synthetic-unit-credential",model:"gemini-embedding-001",timeoutMs:100}).embed("synthetic text","document")).rejects.toMatchObject({code:"EMBEDDING_TIMEOUT"});});

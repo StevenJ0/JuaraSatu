@@ -1,0 +1,60 @@
+meta {
+  name: [NEGATIVE] Reject-stale-source-review
+  type: http
+  seq: 31
+  tags: [
+    negative
+  ]
+}
+
+post {
+  url: {{baseUrl}}/api/dev/evaluations
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "action": "review",
+    "campaignId": "{{campaignId}}",
+    "requestId": "{{requestId}}",
+    "evaluationId": "{{evaluationId}}",
+    "expectedCampaignVersion": {{campaignVersion}},
+    "expectedContextHash": "{{evaluationHash}}",
+    "confirm": true
+  }
+}
+
+script:pre-request {
+  if (bru.getVar('allowNegative') !== 'true') throw new Error('OPT_IN_REQUIRED: allowNegative=true');
+  if (bru.getVar('allowMutations') !== 'true') throw new Error('OPT_IN_REQUIRED: allowMutations=true');
+  if (!bru.getVar('evaluationId')) throw new Error('PREREQUISITE_REQUIRED: evaluationId; execute the preceding documented request');
+  if (!bru.getVar('evaluationHash')) throw new Error('PREREQUISITE_REQUIRED: evaluationHash; execute the preceding documented request');
+  if (!bru.getVar('campaignVersion')) throw new Error('PREREQUISITE_REQUIRED: campaignVersion; execute the preceding documented request');
+  bru.setVar('requestId',bru.interpolate('{{$randomUUID}}'));
+}
+
+tests {
+  test('HTTP 409 / STALE_CONTEXT', function () {
+    if(res.getStatus()!==409) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(res.getBody().code!=='STALE_CONTEXT') throw new Error('Unexpected safe error code');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  NEGATIVE. Expected HTTP 409 code=STALE_CONTEXT.
+  Previous request in workflow: 06-Evaluation/30-Change-closed-checklist-source.bru.
+  Prerequisites: evaluationId, evaluationHash, campaignVersion.
+  Required opt-in flags: allowNegative, allowMutations.
+  Uses the prior context token after the preceding own checklist change. No stale review may be persisted.
+}

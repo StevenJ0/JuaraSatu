@@ -1,0 +1,42 @@
+meta {
+  name: [NEGATIVE] Missing-authentication
+  type: http
+  seq: 2
+  tags: [
+    negative
+  ]
+}
+
+get {
+  url: {{baseUrl}}/api/dev/discussions
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+}
+
+script:pre-request {
+  if (bru.getVar('allowNegative') !== 'true') throw new Error('OPT_IN_REQUIRED: allowNegative=true');
+}
+
+tests {
+  test('HTTP 401 / UNAUTHENTICATED', function () {
+    if(res.getStatus()!==401) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(res.getBody().code!=='UNAUTHENTICATED') throw new Error('Unexpected safe error code');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  NEGATIVE. Expected HTTP 401 code=UNAUTHENTICATED.
+  Previous request in workflow: 08-Negative-Security/01-Logout-before-missing-auth.bru.
+  Prerequisites: local development server; configuration per README.
+  Required opt-in flags: allowNegative.
+  Run immediately after logout with collection auth none and no Authorization header. Do not reuse a separate bearer auth configuration.
+}

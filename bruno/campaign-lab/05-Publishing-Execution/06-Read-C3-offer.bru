@@ -1,0 +1,42 @@
+meta {
+  name: [READ-ONLY] Read-C3-offer
+  type: http
+  seq: 6
+  tags: [
+    read-only
+  ]
+}
+
+get {
+  url: {{baseUrl}}/api/dev/campaigns?preorderId={{preorderId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+}
+
+script:pre-request {
+  if (!bru.getVar('preorderId')) throw new Error('PREREQUISITE_REQUIRED: preorderId; execute the preceding documented request');
+}
+
+tests {
+  test('HTTP 200', function () {
+    if(res.getStatus()!==200) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(!res.getBody().configuration)throw new Error('Published configuration missing');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  READ-ONLY. Expected HTTP 200.
+  Previous request in workflow: 05-Publishing-Execution/05-Read-published-tasks-contents-progress.bru.
+  Prerequisites: preorderId.
+  Required opt-in flags: none; authenticated reads still need a valid cookie.
+  C3 state may be active or scheduled depending on the source window. This does not prove checkout integration or real sales.
+}

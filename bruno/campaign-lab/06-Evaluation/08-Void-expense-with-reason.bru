@@ -1,0 +1,54 @@
+meta {
+  name: [MUTATING] Void-expense-with-reason
+  type: http
+  seq: 8
+  tags: [
+    mutating
+  ]
+}
+
+post {
+  url: {{baseUrl}}/api/dev/evaluations
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "action": "void_cost",
+    "campaignId": "{{campaignId}}",
+    "costId": "{{costId}}",
+    "expectedCostVersion": {{costVersion}},
+    "reason": "Bruno synthetic correction; history retained"
+  }
+}
+
+script:pre-request {
+  if (bru.getVar('allowMutations') !== 'true') throw new Error('OPT_IN_REQUIRED: allowMutations=true');
+  if (!bru.getVar('costId')) throw new Error('PREREQUISITE_REQUIRED: costId; execute the preceding documented request');
+  if (!bru.getVar('costVersion')) throw new Error('PREREQUISITE_REQUIRED: costVersion; execute the preceding documented request');
+}
+
+tests {
+  test('HTTP 200', function () {
+    if(res.getStatus()!==200) throw new Error('Unexpected HTTP status: '+res.getStatus());
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  MUTATING. Expected HTTP 200.
+  Previous request in workflow: 06-Evaluation/07-Read-expense-and-CAS-version.bru.
+  Prerequisites: costId, costVersion.
+  Required opt-in flags: allowMutations.
+  Run in folder sequence. Reload using the next GET to verify actual persisted state.
+}

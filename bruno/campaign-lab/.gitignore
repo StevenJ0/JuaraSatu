@@ -1,0 +1,5 @@
+.env
+environments/*.local.bru
+.results/
+*.report.json
+cookie*.json

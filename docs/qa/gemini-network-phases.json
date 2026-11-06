@@ -1,0 +1,37 @@
+{
+  "recordedAt": "2026-11-05T05:36:47.958Z",
+  "source": "Actual unauthenticated HEAD phase measurements; no forced DNS delay in these rows",
+  "generationCalls": 0,
+  "results": [
+    {
+      "family": 0,
+      "status": 404,
+      "remoteFamily": "IPv6",
+      "dnsMs": 11103,
+      "tcpMs": 11167,
+      "tlsMs": 11220,
+      "totalMs": 11290,
+      "tlsAuthorized": true
+    },
+    {
+      "family": 4,
+      "status": 404,
+      "remoteFamily": "IPv4",
+      "dnsMs": 2,
+      "tcpMs": 81,
+      "tlsMs": 125,
+      "totalMs": 154,
+      "tlsAuthorized": true
+    },
+    {
+      "family": 6,
+      "status": 404,
+      "remoteFamily": "IPv6",
+      "dnsMs": 1,
+      "tcpMs": 35,
+      "tlsMs": 132,
+      "totalMs": 197,
+      "tlsAuthorized": true
+    }
+  ]
+}

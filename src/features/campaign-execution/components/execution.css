@@ -1,0 +1,20 @@
+.execution-detail { min-width: 0; }
+.execution-detail h3 { margin-top: 32px; margin-bottom: 10px; font-size: 1.125rem; }
+.execution-detail h4 { font-weight: 650; }
+.execution-detail p { max-width: 72ch; margin-block: 10px; overflow-wrap: anywhere; }
+.execution-state { padding: 12px 16px; border-radius: 8px; background: #e9eee6; font-weight: 650; }
+.execution-action { padding-block: 12px 24px; border-bottom: 1px solid #dce2d9; }
+.execution-detail input[type=checkbox] { width: 20px; height: 20px; vertical-align: middle; margin-right: 8px; }
+.execution-detail progress { width: 100%; max-width: 480px; height: 10px; appearance: none; border: 0; border-radius: 5px; background: #e9eee6; }
+.execution-detail progress::-webkit-progress-bar { background: #e9eee6; border-radius: 5px; }
+.execution-detail progress::-webkit-progress-value { background: #285b43; border-radius: 5px; }
+.execution-detail progress::-moz-progress-bar { background: #285b43; border-radius: 5px; }
+.execution-detail label { min-height: 44px; }
+.execution-days { padding: 0; list-style: none; }
+.execution-days > li { margin-block: 24px; }
+.execution-days ul { padding: 0; list-style: none; }
+.execution-task { padding-block: 12px; border-bottom: 1px solid #dce2d9; }
+.execution-task label { margin-block: 10px; display: flex; align-items: center; gap: 10px; }
+.execution-task input[type=checkbox] { flex-shrink: 0; }
+.execution-content { padding-block: 20px; border-bottom: 1px solid #dce2d9; }
+.execution-content p { white-space: pre-wrap; }

@@ -1,0 +1,42 @@
+meta {
+  name: [READ-ONLY] Read-closed-history
+  type: http
+  seq: 12
+  tags: [
+    read-only
+  ]
+}
+
+get {
+  url: {{baseUrl}}/api/dev/campaigns?campaignId={{campaignId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+}
+
+script:pre-request {
+  if (!bru.getVar('campaignId')) throw new Error('PREREQUISITE_REQUIRED: campaignId; execute the preceding documented request');
+}
+
+tests {
+  test('HTTP 200', function () {
+    if(res.getStatus()!==200) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(!res.getBody().calendar||!res.getBody().contents)throw new Error('Calendar/content projection missing');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  READ-ONLY. Expected HTTP 200.
+  Previous request in workflow: 05-Publishing-Execution/11-Replay-close-before-finalization.bru.
+  Prerequisites: campaignId.
+  Required opt-in flags: none; authenticated reads still need a valid cookie.
+  Run in folder sequence. Reload using the next GET to verify actual persisted state.
+}

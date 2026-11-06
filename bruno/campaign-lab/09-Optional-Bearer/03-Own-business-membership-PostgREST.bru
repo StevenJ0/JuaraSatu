@@ -1,0 +1,49 @@
+meta {
+  name: [READ-ONLY] Own-business-membership-PostgREST
+  type: http
+  seq: 3
+  tags: [
+    read-only
+  ]
+}
+
+get {
+  url: {{supabaseUrl}}/rest/v1/business_members?select=business_id,user_id,role&limit=1
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+}
+
+script:pre-request {
+  if (bru.getVar('allowDirectAuth') !== 'true') throw new Error('OPT_IN_REQUIRED: allowDirectAuth=true');
+  if (!bru.getVar('accessToken')) throw new Error('PREREQUISITE_REQUIRED: accessToken; execute the preceding documented request');
+  if (!bru.getVar('supabaseAnonKey')) throw new Error('PREREQUISITE_REQUIRED: supabaseAnonKey; execute the preceding documented request');
+  req.setHeader('Authorization','Bearer '+bru.getVar('accessToken'));req.setHeader('apikey',bru.getVar('supabaseAnonKey'));
+}
+
+script:post-response {
+  if(res.getStatus()===200&&res.getBody()[0])bru.setVar('businessId',res.getBody()[0].business_id);
+}
+
+tests {
+  test('HTTP 200', function () {
+    if(res.getStatus()!==200) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(!Array.isArray(res.getBody())||res.getBody().length!==1||res.getBody()[0].role!=='owner')throw new Error('Owned membership missing');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  READ-ONLY. Expected HTTP 200.
+  Previous request in workflow: 09-Optional-Bearer/02-Bearer-authenticated-app-read.bru.
+  Prerequisites: accessToken, supabaseAnonKey.
+  Required opt-in flags: allowDirectAuth.
+  Direct owner-scoped read under RLS; never service-role. Not an application REST route.
+}

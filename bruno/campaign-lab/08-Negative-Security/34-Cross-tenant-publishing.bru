@@ -1,0 +1,60 @@
+meta {
+  name: [NEGATIVE] Cross-tenant-publishing
+  type: http
+  seq: 34
+  tags: [
+    negative
+  ]
+}
+
+post {
+  url: {{baseUrl}}/api/dev/campaigns
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "action": "publish",
+    "campaignId": "{{campaignId}}",
+    "blueprintId": "{{blueprintId}}",
+    "expectedBlueprintVersion": {{blueprintVersion}},
+    "expectedCampaignVersion": {{campaignVersion}},
+    "expectedContextHash": "{{blueprintHash}}",
+    "confirm": true
+  }
+}
+
+script:pre-request {
+  if (bru.getVar('allowNegative') !== 'true') throw new Error('OPT_IN_REQUIRED: allowNegative=true');
+  if (bru.getVar('allowMutations') !== 'true') throw new Error('OPT_IN_REQUIRED: allowMutations=true');
+  if (bru.getVar('allowLifecycle') !== 'true') throw new Error('OPT_IN_REQUIRED: allowLifecycle=true');
+  if (!bru.getVar('campaignId')) throw new Error('PREREQUISITE_REQUIRED: campaignId; execute the preceding documented request');
+  if (!bru.getVar('blueprintId')) throw new Error('PREREQUISITE_REQUIRED: blueprintId; execute the preceding documented request');
+  if (!bru.getVar('campaignVersion')) throw new Error('PREREQUISITE_REQUIRED: campaignVersion; execute the preceding documented request');
+}
+
+tests {
+  test('HTTP 404 / NOT_FOUND', function () {
+    if(res.getStatus()!==404) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(res.getBody().code!=='NOT_FOUND') throw new Error('Unexpected safe error code');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  NEGATIVE. Expected HTTP 404 code=NOT_FOUND.
+  Previous request in workflow: 08-Negative-Security/33-Cross-preorder-session-create.bru.
+  Prerequisites: campaignId, blueprintId, campaignVersion.
+  Required opt-in flags: allowNegative, allowMutations, allowLifecycle.
+  Run in folder sequence. Reload using the next GET to verify actual persisted state.
+}

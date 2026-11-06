@@ -1,0 +1,59 @@
+meta {
+  name: [NEGATIVE] Invalid-monetary-type
+  type: http
+  seq: 22
+  tags: [
+    negative
+  ]
+}
+
+post {
+  url: {{baseUrl}}/api/dev/evaluations
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "action": "create_cost",
+    "campaignId": "{{campaignId}}",
+    "requestId": "{{requestId}}",
+    "category": "advertising",
+    "description": "Bruno isolated synthetic expense",
+    "amountIdr": "50000",
+    "incurredAt": "{{incurredAt}}"
+  }
+}
+
+script:pre-request {
+  if (bru.getVar('allowNegative') !== 'true') throw new Error('OPT_IN_REQUIRED: allowNegative=true');
+  if (bru.getVar('allowMutations') !== 'true') throw new Error('OPT_IN_REQUIRED: allowMutations=true');
+  if (!bru.getVar('campaignId')) throw new Error('PREREQUISITE_REQUIRED: campaignId; execute the preceding documented request');
+  bru.setVar('requestId',bru.interpolate('{{$randomUUID}}'));
+  bru.setVar('incurredAt',new Date(Date.now()-1000).toISOString());
+}
+
+tests {
+  test('HTTP 400 / INVALID_INPUT', function () {
+    if(res.getStatus()!==400) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(res.getBody().code!=='INVALID_INPUT') throw new Error('Unexpected safe error code');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  NEGATIVE. Expected HTTP 400 code=INVALID_INPUT.
+  Previous request in workflow: 08-Negative-Security/21-Invalid-discount-bps.bru.
+  Prerequisites: campaignId.
+  Required opt-in flags: allowNegative, allowMutations.
+  Run in folder sequence. Reload using the next GET to verify actual persisted state.
+}

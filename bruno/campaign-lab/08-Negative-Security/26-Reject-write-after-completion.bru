@@ -1,0 +1,59 @@
+meta {
+  name: [NEGATIVE] Reject-write-after-completion
+  type: http
+  seq: 26
+  tags: [
+    negative
+  ]
+}
+
+post {
+  url: {{baseUrl}}/api/dev/evaluations
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "action": "create_cost",
+    "campaignId": "{{campaignId}}",
+    "requestId": "{{requestId}}",
+    "category": "advertising",
+    "description": "Completed source cannot accept expense",
+    "amountIdr": 50000,
+    "incurredAt": "{{incurredAt}}"
+  }
+}
+
+script:pre-request {
+  if (bru.getVar('allowNegative') !== 'true') throw new Error('OPT_IN_REQUIRED: allowNegative=true');
+  if (bru.getVar('allowMutations') !== 'true') throw new Error('OPT_IN_REQUIRED: allowMutations=true');
+  if (!bru.getVar('campaignId')) throw new Error('PREREQUISITE_REQUIRED: campaignId; execute the preceding documented request');
+  bru.setVar('requestId',bru.interpolate('{{$randomUUID}}'));
+  bru.setVar('incurredAt',new Date(Date.now()-1000).toISOString());
+}
+
+tests {
+  test('HTTP 409 / CLOSED_CAMPAIGN_REQUIRED', function () {
+    if(res.getStatus()!==409) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(res.getBody().code!=='CLOSED_CAMPAIGN_REQUIRED') throw new Error('Unexpected safe error code');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  NEGATIVE. Expected HTTP 409 code=CLOSED_CAMPAIGN_REQUIRED.
+  Previous request in workflow: 08-Negative-Security/25-Stale-memory-hash.bru.
+  Prerequisites: campaignId.
+  Required opt-in flags: allowNegative, allowMutations.
+  Run in folder sequence. Reload using the next GET to verify actual persisted state.
+}

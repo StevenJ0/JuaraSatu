@@ -1,0 +1,43 @@
+meta {
+  name: [NEGATIVE] Cross-tenant-campaigns
+  type: http
+  seq: 30
+  tags: [
+    negative
+  ]
+}
+
+get {
+  url: {{baseUrl}}/api/dev/campaigns?campaignId={{campaignId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+}
+
+script:pre-request {
+  if (bru.getVar('allowNegative') !== 'true') throw new Error('OPT_IN_REQUIRED: allowNegative=true');
+  if (!bru.getVar('campaignId')) throw new Error('PREREQUISITE_REQUIRED: campaignId; execute the preceding documented request');
+}
+
+tests {
+  test('HTTP 404 / NOT_FOUND', function () {
+    if(res.getStatus()!==404) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(res.getBody().code!=='NOT_FOUND') throw new Error('Unexpected safe error code');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  NEGATIVE. Expected HTTP 404 code=NOT_FOUND.
+  Previous request in workflow: 08-Negative-Security/29-Cross-tenant-blueprints.bru.
+  Prerequisites: campaignId.
+  Required opt-in flags: allowNegative.
+  Run in folder sequence. Reload using the next GET to verify actual persisted state.
+}

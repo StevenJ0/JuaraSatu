@@ -1,0 +1,41 @@
+.discussion-workspace { min-height: 100dvh; padding: 24px; background: #f8f9f5; color: #24392f; color-scheme: light; font-size: 16px; line-height: 1.55; accent-color: #285b43; }
+.discussion-container { max-width: 1224px; margin-inline: auto; }
+.discussion-workspace ::selection { background: #285b43; color: white; }
+.discussion-workspace :focus-visible { outline: 3px solid #285b43; outline-offset: 3px; }
+.discussion-workspace header { padding-block: 12px 28px; }
+.discussion-workspace a { color: #285b43; text-decoration: underline; text-underline-offset: 4px; }
+.discussion-workspace h1 { font-size: 2rem; line-height: 1.2; font-weight: 650; margin-block: 18px 14px; text-wrap: balance; }
+.discussion-workspace h2 { font-size: 1.25rem; font-weight: 650; margin-bottom: 12px; }
+.discussion-workspace h3 { font-weight: 650; }
+.discussion-mode { padding: 14px 16px; background: #fcf1e3; color: #654526; border-radius: 8px; max-width: 80ch; }
+.discussion-layout { display: grid; grid-template-columns: minmax(240px, 0.7fr) minmax(0, 2fr); gap: 36px; align-items: start; }
+.discussion-layout aside { min-width: 0; }
+.discussion-workspace label { display: block; font-weight: 600; margin-block: 16px; }
+.discussion-workspace input:not([type=checkbox]), .discussion-workspace textarea, .discussion-workspace select { display: block; width: 100%; min-height: 48px; padding: 10px 12px; margin-top: 6px; border: 1px solid #59665d; border-radius: 8px; background: #fff; color: #24392f; font: inherit; caret-color: #285b43; }
+.discussion-workspace textarea { resize: vertical; }
+.discussion-workspace button { min-height: 48px; padding: 10px 16px; border: 1px solid #285b43; border-radius: 8px; background: #285b43; color: #fff; cursor: pointer; font: inherit; font-weight: 600; }
+.discussion-workspace button:hover { background: #1c4632; }
+.discussion-workspace button:disabled { opacity: 0.55; cursor: not-allowed; }
+.discussion-workspace .discussion-secondary { color: #24392f; background: #fff; border-color: #59665d; }
+.discussion-workspace .discussion-secondary:hover { background: #f0f3ed; }
+.discussion-login { max-width: 480px; }
+.discussion-sessions { list-style: none; padding: 0; margin-block: 16px 24px; max-height: 18rem; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #59665d #f0f3ed; }
+.discussion-sessions button { width: 100%; margin-bottom: 8px; text-align: left; background: #fff; color: #24392f; border-color: #dce2d9; font-weight: 400; }
+.discussion-sessions button:hover, .discussion-sessions button[aria-current=true] { background: #e9eee6; }
+.discussion-sessions + h2, .discussion-layout aside > h2:not(:first-child) { margin-top: 28px; }
+.discussion-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.discussion-conversation { min-width: 0; }
+.discussion-meta { overflow-wrap: anywhere; font-size: 0.875rem; color: #59665d; }
+.discussion-messages { list-style: none; margin-block: 24px; padding: 0; }
+.discussion-messages > li { padding-block: 20px; border-bottom: 1px solid #dce2d9; }
+.discussion-messages p { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 72ch; margin-block: 8px; }
+.discussion-proposal { margin-top: 18px; padding: 20px; border: 1px solid #dce2d9; border-radius: 12px; background: white; }
+.discussion-proposal article { padding-block: 16px; }
+.discussion-numbers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; margin-block: 16px; font-variant-numeric: tabular-nums; }
+.discussion-numbers dt { color: #59665d; font-size: 0.875rem; }
+.discussion-numbers dd { font-weight: 600; }
+.discussion-error { color: #9b2424; padding-block: 10px; }
+.discussion-compose { margin-block: 28px; padding-top: 20px; border-top: 1px solid #dce2d9; }
+.discussion-workspace .discussion-check { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.discussion-check input { width: 20px; height: 20px; }
+@media (max-width: 720px) { .discussion-workspace { padding: 16px; } .discussion-layout { grid-template-columns: minmax(0, 1fr); gap: 28px; } .discussion-numbers { grid-template-columns: minmax(0, 1fr); } }

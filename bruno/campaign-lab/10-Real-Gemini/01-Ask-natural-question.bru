@@ -1,0 +1,68 @@
+meta {
+  name: [PAID-OPT-IN] Ask-natural-question
+  type: http
+  seq: 1
+  tags: [
+    real-gemini
+    mutating
+  ]
+}
+
+post {
+  url: {{baseUrl}}/api/dev/discussions
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "action": "send",
+    "sessionId": "{{sessionId}}",
+    "requestKey": "{{requestId}}",
+    "expectedVersion": {{expectedVersion}},
+    "expectedContextHash": "{{discussionHash}}",
+    "message": "Saya ingin mengingatkan calon pembeli melalui WhatsApp tanpa menurunkan harga. Strategi apa yang realistis untuk preorder ini? Jelaskan asumsi dan risikonya.",
+    "preferences": {
+      "budgetCapIdr": 50000,
+      "allowDiscount": false,
+      "channels": ["whatsapp"]
+    }
+  }
+}
+
+script:pre-request {
+  if(bru.getVar('allowMutations')!=='true')throw new Error('OPT_IN_REQUIRED: allowMutations=true');
+  if(bru.getVar('confirmRealGemini')!=='true'||bru.getVar('allowPaidRequests')!=='true')throw new Error('OPT_IN_REQUIRED: confirmRealGemini=true and allowPaidRequests=true');
+  for(const k of ['sessionId','expectedVersion','discussionHash'])if(!bru.getVar(k))throw new Error('PREREQUISITE_REQUIRED: '+k);
+  bru.setVar('requestId',bru.interpolate('{{$randomUUID}}'));
+  const raw=req.getBody();req.setBody(JSON.parse(bru.interpolate(typeof raw==='string'?raw:JSON.stringify(raw))));
+}
+
+tests {
+  test('Persisted Gemini response, without Fake fallback',function(){
+    if(res.getStatus()!==200)throw new Error('Gemini request failed: HTTP '+res.getStatus()+' '+res.getBody().code);
+    const b=res.getBody();
+    if(!b.success||!b.persisted||b.replayed||!b.proposal.model.startsWith('gemini-'))throw new Error('Expected fresh persisted Gemini provenance');
+    const id=b.proposal.providerRequestId;
+    if(id!==null&&(typeof id!=='string'||id.length<1||id.length>256))throw new Error('Expected provider ID or explicit null for an unstored interaction');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 90000
+}
+
+docs {
+  Sending this request may incur Gemini charges. Never include it in the automated Fake workflow.
+  Before Send: login with the actual owner, create a session with 03-AI-Strategist/01, then GET 03-AI-Strategist/02 for the current version/hash.
+  Edit message freely in Indonesian and keep preferences explicit. No scenario is needed; the server routes by environment only.
+  After success reload the session with GET, then use 04-Blueprint/01 to select a current persisted alternative before the next paid request.
+  Every Send creates a fresh request key. To replay without regeneration, resend the exact original payload/key rather than pressing Send with this pre-script.
+  Real AI does not make the seeded business context or synthetic evaluation authoritative.
+}

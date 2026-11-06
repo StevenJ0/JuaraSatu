@@ -1,0 +1,160 @@
+{
+  "goal": "Meninjau tambahan paid units secara hipotetis tanpa janji hasil.",
+  "hypothesis": "Pengingat atau penawaran mungkin membantu calon pembeli meninjau preorder.",
+  "audienceHypothesis": "Calon pembeli yang telah menunjukkan minat; belum tervalidasi.",
+  "rationale": "Diskon diuji sebagai alternatif hipotetis dengan kontribusi per unit yang tetap dijaga.",
+  "tasks": [
+    {
+      "key": "whatsapp-announce",
+      "title": "Tinjau dan bagikan pengumuman whatsapp",
+      "description": "Periksa penawaran dan batas waktu, lalu bagikan tautan preorder secara manual.",
+      "channel": "whatsapp",
+      "dueAt": "2026-11-03T16:19:57.956Z"
+    },
+    {
+      "key": "whatsapp-remind",
+      "title": "Bagikan pengingat whatsapp",
+      "description": "Tinjau ketersediaan terkini sebelum membagikan ulang tautan; tidak ada auto-posting.",
+      "channel": "whatsapp",
+      "dueAt": "2026-11-03T22:21:14.131Z"
+    },
+    {
+      "key": "whatsapp-followup",
+      "title": "Tindak lanjut whatsapp",
+      "description": "Pengingat tambahan sesuai revisi pemilik; tinjau kondisi preorder dahulu.",
+      "channel": "whatsapp",
+      "dueAt": "2026-11-03T23:51:33.175Z"
+    }
+  ],
+  "contents": [
+    {
+      "key": "whatsapp-caption",
+      "channel": "whatsapp",
+      "type": "caption",
+      "body": "Penawaran diskon preorder tersedia. Lihat rincian harga, ketersediaan, dan batas waktu pada tautan preorder. Tinjau sebelum memesan."
+    }
+  ],
+  "risks": [
+    "Respons calon pembeli belum diketahui.",
+    "Kontribusi per unit turun dibanding harga normal."
+  ],
+  "dependencies": [
+    "Auth dan persistence nyata; konteks bisnis dan Fake Blueprint tetap sintetis.",
+    "Producer produksi dan publikasi belum terhubung."
+  ],
+  "ownerChecklist": [
+    "Periksa penawaran, angka hipotetis dan ketersediaan.",
+    "Tinjau semua tugas dan caption sebelum approval.",
+    "Approval tidak mempublikasikan campaign."
+  ],
+  "schemaVersion": 1,
+  "businessId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+  "campaignId": "3a4f152a-b35b-477d-b250-302d988f60dd",
+  "preorderId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4",
+  "blueprintVersion": 3,
+  "proposalVersion": 2,
+  "source": {
+    "sessionId": "0381bcef-13df-47ca-9276-faed3f874ad5",
+    "generationId": "2384aaed-40fe-4b5c-8442-40104b376cbc",
+    "proposalVersion": 2,
+    "proposalKey": "synthetic-reminder",
+    "messageId": "4b3c203b-bd00-4aa9-98bf-8fedaabe7458",
+    "proposalHash": "efea45289d6dbddc3ce628b3a44aaec33ef072db2d308f8ffed79d981a8ae7f4"
+  },
+  "contextHash": "e1f8b7f8e9b833d2977aff13c63821330bedcd1f4251d56bd6d23e4c180126ee",
+  "sourceVersions": {
+    "preorderVersion": 2,
+    "preorderItemVersion": 2,
+    "productVersion": 9,
+    "capacityVersion": 1
+  },
+  "campaignTitle": "Pengingat preorder sintetis",
+  "marketingApproach": "limited_discount",
+  "offer": {
+    "type": "percent_discount",
+    "discountBps": 500
+  },
+  "executionWindow": {
+    "startsAt": "2026-11-03T00:21:52.219373Z",
+    "endsAt": "2026-11-04T01:21:52.219373Z"
+  },
+  "budgetCapIdr": 20000,
+  "targetAdditionalUnits": 6,
+  "channels": [
+    "whatsapp"
+  ],
+  "primaryKpi": "paid_units_in_window",
+  "financial": {
+    "frozenBasePriceIdr": 120000,
+    "variableCostIdr": 75000,
+    "costQuality": "verified",
+    "calculation": {
+      "schemaVersion": 1,
+      "businessId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+      "preorderId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4",
+      "preorderItemId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5",
+      "frozenBaseUnitPriceIdr": 120000,
+      "currentOffer": {
+        "preorderId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4",
+        "preorderItemId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5",
+        "preorderItemVersion": 2,
+        "offer": {
+          "offerType": "normal_price",
+          "discountBps": 0
+        },
+        "unitPriceIdr": 120000,
+        "offerVersion": "seed-no-offer-2",
+        "calculatedAt": "2026-11-03T15:19:46.725Z"
+      },
+      "hypotheticalOffer": {
+        "offerType": "percent_discount",
+        "discountBps": 500
+      },
+      "hypotheticalFinalUnitPriceIdr": 114000,
+      "discountPerUnitIdr": 6000,
+      "contributionPerUnitIdr": 39000,
+      "assumedAdditionalUnits": 6,
+      "assumedPromotionCostIdr": 20000,
+      "scenarioRevenueIdr": 684000,
+      "scenarioVariableCostIdr": 450000,
+      "scenarioContributionIdr": 214000,
+      "feasible": true,
+      "warnings": [],
+      "blockers": [],
+      "assumptions": [
+        "Tambahan unit adalah asumsi pemilik, bukan prediksi atau jaminan penjualan.",
+        "Biaya promosi adalah asumsi skenario, bukan biaya aktual yang tercatat.",
+        "Slot tersedia adalah snapshot; simulasi tidak mereservasi kapasitas."
+      ],
+      "snapshot": {
+        "provenance": "development_fixture",
+        "calculatedAt": "2026-11-03T15:19:46.725Z",
+        "preorderVersion": 2,
+        "preorderItemVersion": 2,
+        "capacityVersion": 1,
+        "productVersion": 9
+      }
+    }
+  },
+  "kpiPlan": {
+    "target": 6,
+    "definition": "Paid units pada actual activation window setelah campaign dipublikasikan; bukan uplift kausal.",
+    "baselineNote": "Baseline aktual baru dihitung saat publikasi; KPI produksi belum tersedia.",
+    "actualMetrics": null
+  },
+  "evaluationPlan": "Bandingkan window paid units, attributed units, biaya tercatat dan keterbatasannya; tidak mengklaim sebab-akibat.",
+  "assumptions": [
+    "Unit tambahan dan budget promosi adalah asumsi pemilik, bukan prediksi atau penjualan aktual.",
+    "Capacity adalah snapshot, bukan reservasi."
+  ],
+  "revision": {
+    "requestId": "f6fbca76-712f-473c-b57c-d3b64728db19",
+    "requestHash": "3fdfcbf9d79c1d11b1e2482e52bda16516d31c55d80f2c77f7f29b9dc4bf0d36",
+    "expectedCampaignVersion": 4,
+    "parentBlueprintId": "4ecbd1a8-7205-4c54-bdf9-400ceea14c40",
+    "parentVersion": 2,
+    "notes": ""
+  },
+  "provider": "development-fake-blueprint",
+  "synthetic": true
+}

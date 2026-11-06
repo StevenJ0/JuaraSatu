@@ -11,6 +11,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts"],
+    // Uji yang butuh Supabase lokal ada di tests/supabase dan dijalankan lewat `npm run test:integration`.
+    include: ["src/**/*.test.ts", "tests/unit/**/*.test.{ts,tsx}", "tests/integration/**/*.test.ts"],
   },
 });

@@ -1,0 +1,42 @@
+meta {
+  name: [READ-ONLY] List-preorders-and-discussions
+  type: http
+  seq: 3
+  tags: [
+    read-only
+  ]
+}
+
+get {
+  url: {{baseUrl}}/api/dev/discussions
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+}
+
+script:pre-request {
+  
+}
+
+tests {
+  test('HTTP 200', function () {
+    if(res.getStatus()!==200) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(!Array.isArray(res.getBody().preorders)||res.getBody().syntheticContext!==true)throw new Error('Expected seeded development context');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  READ-ONLY. Expected HTTP 200.
+  Previous request in workflow: 00-Setup-Auth/02-Check-cookie-session.bru.
+  Prerequisites: local development server; configuration per README.
+  Required opt-in flags: none; authenticated reads still need a valid cookie.
+  Select a future-valid isolated fixture preorder. This response omits dates; do not assume every published row is unexpired. See fixture setup in guide.
+}

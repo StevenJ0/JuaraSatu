@@ -1,0 +1,72 @@
+meta {
+  name: [NEGATIVE] Stale-blueprint-version
+  type: http
+  seq: 20
+  tags: [
+    negative
+  ]
+}
+
+post {
+  url: {{baseUrl}}/api/dev/blueprints
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "action": "revise",
+    "campaignId": "{{campaignId}}",
+    "requestId": "{{requestId}}",
+    "expectedCampaignVersion": 1,
+    "expectedBlueprintId": "{{blueprintId}}",
+    "expectedBlueprintVersion": 1,
+    "edits": {
+      "title": "{{blueprintTitle}}",
+      "marketingApproach": "{{marketingApproach}}",
+      "discountBps": {{discountBps}},
+      "budgetCapIdr": {{budgetCapIdr}},
+      "targetAdditionalUnits": {{targetAdditionalUnits}},
+      "startsAt": "{{startsAt}}",
+      "endsAt": "{{endsAt}}",
+      "channels": [
+        "whatsapp"
+      ],
+      "notes": "Bruno synthetic revision; financial facts remain server validated"
+    },
+    "scenario": "valid"
+  }
+}
+
+script:pre-request {
+  if (bru.getVar('allowNegative') !== 'true') throw new Error('OPT_IN_REQUIRED: allowNegative=true');
+  if (bru.getVar('allowMutations') !== 'true') throw new Error('OPT_IN_REQUIRED: allowMutations=true');
+  if (!bru.getVar('blueprintId')) throw new Error('PREREQUISITE_REQUIRED: blueprintId; execute the preceding documented request');
+  if (!bru.getVar('campaignId')) throw new Error('PREREQUISITE_REQUIRED: campaignId; execute the preceding documented request');
+  bru.setVar('requestId',bru.interpolate('{{$randomUUID}}'));
+}
+
+tests {
+  test('HTTP 409 / VERSION_CONFLICT', function () {
+    if(res.getStatus()!==409) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(res.getBody().code!=='VERSION_CONFLICT') throw new Error('Unexpected safe error code');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  NEGATIVE. Expected HTTP 409 code=VERSION_CONFLICT.
+  Previous request in workflow: 08-Negative-Security/19-Invalid-campaign-state-publication.bru.
+  Prerequisites: blueprintId, campaignId.
+  Required opt-in flags: allowNegative, allowMutations.
+  Run in folder sequence. Reload using the next GET to verify actual persisted state.
+}

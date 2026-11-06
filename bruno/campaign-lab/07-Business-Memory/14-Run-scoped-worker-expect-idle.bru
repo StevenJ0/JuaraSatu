@@ -1,0 +1,51 @@
+meta {
+  name: [MUTATING] Run-scoped-worker-expect-idle
+  type: http
+  seq: 14
+  tags: [
+    mutating
+  ]
+}
+
+post {
+  url: {{baseUrl}}/api/dev/memories
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "action": "run_worker"
+  }
+}
+
+script:pre-request {
+  if (bru.getVar('allowMutations') !== 'true') throw new Error('OPT_IN_REQUIRED: allowMutations=true');
+}
+
+tests {
+  test('HTTP 200', function () {
+    if(res.getStatus()!==200) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(res.getBody().status!=='idle'||res.getBody().claimed!==0)throw new Error('Expected idle: no eligible approved source/job');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  MUTATING. Expected HTTP 200.
+  Previous request in workflow: 07-Business-Memory/13-Reject-synthetic-memory-approval.bru.
+  Prerequisites: local development server; configuration per README.
+  Required opt-in flags: allowMutations.
+  Run only in the isolated local business scope. Existing approved jobs could be processed; this request is MUTATING even when idle.
+  In Gemini mode, execute without embedding authorization only after proving the owned scope has no memory rows/jobs. Otherwise BLOCKED: worker may invoke embedding.
+  scripts/test-business-memory-e2e.mjs enforces the zero-inference preflight; collection opt-in alone does not prove no billing exposure.
+}

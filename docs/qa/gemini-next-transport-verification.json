@@ -1,0 +1,32 @@
+{
+  "capturedAt": "2026-11-05T06:20:21.601Z",
+  "node": "v24.11.0",
+  "generationCalls": 0,
+  "measurements": [
+    {
+      "case": "slow-tls",
+      "elapsedMs": 11251,
+      "agentDispatches": 1,
+      "connections": 1,
+      "tlsVerified": true,
+      "success": true
+    },
+    {
+      "case": "connect-timeout",
+      "elapsedMs": 30507,
+      "agentDispatches": 1,
+      "connections": 1,
+      "causeCode": "UND_ERR_CONNECT_TIMEOUT",
+      "httpStatus": null
+    },
+    {
+      "case": "real-metadata",
+      "method": "GET",
+      "httpStatus": 200,
+      "elapsedMs": 11286,
+      "requests": 1,
+      "agentDispatches": 1,
+      "dispatcherCallback": 1
+    }
+  ]
+}

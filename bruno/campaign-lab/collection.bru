@@ -1,0 +1,58 @@
+meta {
+  type: collection
+}
+
+auth {
+  mode: none
+}
+
+script:pre-request {
+  const target = bru.interpolate(req.getUrl());
+  if (!['http://localhost:3000/','http://127.0.0.1:3000/','http://localhost:3100/','http://127.0.0.1:3100/','http://127.0.0.1:54321/'].some(prefix=>target.startsWith(prefix))) throw new Error('LOCAL_ONLY: localhost:3000/3100 or local Supabase required');
+  const fake=bru.getVar('confirmFakeProviders')==='true', real=bru.getVar('confirmRealGemini')==='true';
+  if(fake&&real)throw new Error('Choose one provider mode: confirmFakeProviders or confirmRealGemini');
+  if(target.includes('/api/dev/')&&!target.includes('/discussions/auth')&&!fake&&!real)throw new Error('Confirm documented server provider mode: confirmFakeProviders=true or confirmRealGemini=true');
+  if(real&&req.getMethod()==='POST'){
+    const body=req.getBody(), text=bru.interpolate(typeof body==='string'?body:JSON.stringify(body));
+    const generation=target.endsWith('/api/dev/discussions')&&/"action"\s*:\s*"send"/.test(text)||target.endsWith('/api/dev/blueprints')&&/"action"\s*:\s*"(?:create|revise)"/.test(text)||/\/api\/dev\/(?:evaluations|memories)$/.test(target)&&/"action"\s*:\s*"(?:generate|run_worker|retrieve)"/.test(text);
+    if(generation&&bru.getVar('allowPaidRequests')!=='true')throw new Error('OPT_IN_REQUIRED: allowPaidRequests=true; Gemini generation may incur charges');
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    const b = res.getBody();
+    if (b.session && b.session.id) {
+      bru.setVar('sessionId', b.session.id); bru.setVar('businessId', b.session.businessId); bru.setVar('preorderId', b.session.preorderId);
+      bru.setVar('expectedVersion', b.session.version); bru.setVar('discussionHash', b.session.contextHash);
+      const g = b.session.generations && b.session.generations[0]; if (g) bru.setVar('generationId', g.id);
+    }
+    if (b.campaign && b.campaign.id) { bru.setVar('campaignId', b.campaign.id); bru.setVar('campaignVersion', b.campaign.version); }
+    if (b.active) {
+      const a=b.active, p=a.blueprint_json;
+      bru.setVar('blueprintId',a.id); bru.setVar('blueprintVersion',a.version); bru.setVar('blueprintHash',a.context_hash);
+      bru.setVar('blueprintTitle',p.campaignTitle); bru.setVar('marketingApproach',p.marketingApproach); bru.setVar('discountBps',p.offer.discountBps);
+      bru.setVar('budgetCapIdr',p.budgetCapIdr); bru.setVar('targetAdditionalUnits',p.targetAdditionalUnits);
+      bru.setVar('startsAt',p.executionWindow.startsAt); bru.setVar('endsAt',p.executionWindow.endsAt);
+      const plan={}; for(const k of ['goal','hypothesis','audienceHypothesis','rationale','tasks','contents','risks','dependencies','ownerChecklist']) plan[k]=p[k];
+      bru.setVar('blueprintPlanJson',JSON.stringify(plan));
+    }
+    if (b.tasks && b.tasks.length) {
+      const t=b.tasks.find(x=>x.id===bru.getVar('taskId'))||b.tasks[0];
+      bru.setVar('taskId',t.id); bru.setVar('taskVersion',t.version); bru.setVar('blueprintId',t.blueprint_id);
+    }
+    if (b.context && b.summary) {
+      bru.setVar('campaignVersion',b.context.snapshot.campaign.version); bru.setVar('evaluationHash',b.context.contextHash);
+      bru.setVar('expectedEvaluationIdJson',JSON.stringify(b.latestEvaluationId)); if(b.latestEvaluationId) bru.setVar('evaluationId',b.latestEvaluationId);
+      const cost=b.context.costs.find(x=>!x.voided_at); if(cost){bru.setVar('costId',cost.id);bru.setVar('costVersion',cost.version);}
+    }
+    if (b.source) {bru.setVar('sourceEvaluationId',b.source.evaluationId);bru.setVar('memorySourceHash',b.source.contextHash);}
+    if (b.row && b.row.source_evaluation_id) {bru.setVar('memoryId',b.row.id);bru.setVar('memoryHash',b.row.content_hash);}
+  }
+}
+
+docs {
+  Local development only. Mutations, auth changes, negative tests and lifecycle transitions have separate explicit opt-in guards.
+  Cookie authentication is managed by Bruno; do not copy HttpOnly cookies into variables.
+  Secrets and runtime IDs use no bru.setEnvVar writes. See README.md and docs/qa/BRUNO_API_TESTING_GUIDE.md.
+}

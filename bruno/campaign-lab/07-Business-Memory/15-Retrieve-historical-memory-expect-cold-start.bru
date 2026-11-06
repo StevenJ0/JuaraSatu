@@ -1,0 +1,52 @@
+meta {
+  name: [READ-ONLY] Retrieve-historical-memory-expect-cold-start
+  type: http
+  seq: 15
+  tags: [
+    read-only
+  ]
+}
+
+post {
+  url: {{baseUrl}}/api/dev/memories
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "action": "retrieve",
+    "query": "pengeluaran promosi dan checklist preorder",
+    "limit": 3
+  }
+}
+
+script:pre-request {
+  if (bru.getVar('allowMutations') !== 'true') throw new Error('OPT_IN_REQUIRED: allowMutations=true');
+}
+
+tests {
+  test('HTTP 200', function () {
+    if(res.getStatus()!==200) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(res.getBody().history.status!=='cold_start')throw new Error('Expected cold-start for synthetic drafts');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  READ-ONLY. Expected HTTP 200.
+  Previous request in workflow: 07-Business-Memory/14-Run-scoped-worker-expect-idle.bru.
+  Prerequisites: local development server; configuration per README.
+  Required opt-in flags: allowMutations.
+  POST is read-only semantically but still uses the mutation opt-in conservatively. Embedding provider may be fake or gemini. Without live embedding authorization, prove the owned scope has no memory rows before executing: cold-start returns before query embedding.
+  If eligible approved/ready sources exist, retrieval may call the real query embedding provider; mark BLOCKED until separately authorized with verified no-billing eligibility.
+}

@@ -1,0 +1,67 @@
+meta {
+  name: [NEGATIVE] Provider-timeout
+  type: http
+  seq: 7
+  tags: [
+    negative
+  ]
+}
+
+post {
+  url: {{baseUrl}}/api/dev/discussions
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "action": "send",
+    "sessionId": "{{sessionId}}",
+    "requestKey": "{{requestId}}",
+    "expectedVersion": {{expectedVersion}},
+    "expectedContextHash": "{{discussionHash}}",
+    "message": "Pengujian kegagalan sintetis",
+    "preferences": {
+      "budgetCapIdr": 50000,
+      "allowDiscount": true,
+      "channels": [
+        "whatsapp"
+      ]
+    },
+    "scenario": "failure"
+  }
+}
+
+script:pre-request {
+  if (bru.getVar('allowNegative') !== 'true') throw new Error('OPT_IN_REQUIRED: allowNegative=true');
+  if (bru.getVar('allowMutations') !== 'true') throw new Error('OPT_IN_REQUIRED: allowMutations=true');
+  if (!bru.getVar('sessionId')) throw new Error('PREREQUISITE_REQUIRED: sessionId; execute the preceding documented request');
+  if (!bru.getVar('expectedVersion')) throw new Error('PREREQUISITE_REQUIRED: expectedVersion; execute the preceding documented request');
+  if (!bru.getVar('discussionHash')) throw new Error('PREREQUISITE_REQUIRED: discussionHash; execute the preceding documented request');
+  bru.setVar('requestId',bru.interpolate('{{$randomUUID}}'));
+}
+
+tests {
+  test('HTTP 504 / PROVIDER_TIMEOUT', function () {
+    if(res.getStatus()!==504) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(res.getBody().code!=='PROVIDER_TIMEOUT') throw new Error('Unexpected safe error code');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  NEGATIVE. Expected HTTP 504 code=PROVIDER_TIMEOUT.
+  Previous request in workflow: 03-AI-Strategist/06-Reload-follow-up.bru.
+  Prerequisites: sessionId, expectedVersion, discussionHash.
+  Required opt-in flags: allowNegative, allowMutations.
+  Persists the user turn and failed generation; it does not save an assistant success. Reload next because session version advances.
+}

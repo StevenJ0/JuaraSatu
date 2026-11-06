@@ -1,0 +1,91 @@
+{
+  "capturedAt": "2026-11-05T05:30:55.494Z",
+  "node": "v24.11.0",
+  "undici": "7.16.0",
+  "requests": 9,
+  "realCredentialsUsed": false,
+  "generationCalls": 0,
+  "results": [
+    {
+      "mode": "native",
+      "status": 403,
+      "elapsedMs": 220
+    },
+    {
+      "mode": "ipv4-preferred",
+      "status": 403,
+      "elapsedMs": 164
+    },
+    {
+      "mode": "https4",
+      "status": 404,
+      "remoteAddress": "172.217.115.4",
+      "remoteFamily": "IPv4",
+      "tlsAuthorized": true,
+      "tlsProtocol": "TLSv1.3",
+      "elapsedMs": 163
+    },
+    {
+      "mode": "https6",
+      "status": 404,
+      "remoteAddress": "2001:4860:4843:400::",
+      "remoteFamily": "IPv6",
+      "tlsAuthorized": true,
+      "tlsProtocol": "TLSv1.3",
+      "elapsedMs": 178
+    },
+    {
+      "mode": "sdk-app",
+      "status": 400,
+      "sdkErrorChain": [
+        {
+          "name": "BadRequestError",
+          "code": null,
+          "status": 400
+        },
+        {
+          "name": "GetInteractionByIdClientError",
+          "code": null,
+          "status": 400
+        }
+      ],
+      "calls": 1,
+      "configuredHelper": false,
+      "elapsedMs": 306
+    },
+    {
+      "mode": "sdk-default",
+      "status": 400,
+      "sdkErrorChain": [
+        {
+          "name": "BadRequestError",
+          "code": null,
+          "status": 400
+        },
+        {
+          "name": "GetInteractionByIdClientError",
+          "code": null,
+          "status": 400
+        }
+      ],
+      "calls": 1,
+      "configuredHelper": false,
+      "elapsedMs": 350
+    },
+    {
+      "mode": "curl-default",
+      "error": "CURL_FAILED",
+      "exitCode": null
+    },
+    {
+      "mode": "curl-4",
+      "error": "CURL_FAILED",
+      "exitCode": null
+    },
+    {
+      "mode": "curl-6",
+      "error": "CURL_FAILED",
+      "exitCode": null
+    }
+  ]
+}

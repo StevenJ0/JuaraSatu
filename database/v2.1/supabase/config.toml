@@ -1,0 +1,27 @@
+# Isolated review project. Root supabase/ remains the unchanged legacy chain.
+project_id = "campaign-lab-v21-review"
+[api]
+enabled = true
+port = 55321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+[db]
+port = 55322
+shadow_port = 55320
+major_version = 17
+[db.migrations]
+enabled = true
+schema_paths = []
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+[studio]
+enabled = true
+port = 55323
+[inbucket]
+enabled = true
+port = 55324
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+enable_signup = true

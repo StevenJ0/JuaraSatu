@@ -1,0 +1,49 @@
+meta {
+  name: [MUTATING] Replay-creation
+  type: http
+  seq: 3
+  tags: [
+    mutating
+  ]
+}
+
+post {
+  url: {{baseUrl}}/api/dev/blueprints
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+  Content-Type: application/json
+}
+
+body:json {
+  {{createBlueprintBody}}
+}
+
+script:pre-request {
+  if (bru.getVar('allowMutations') !== 'true') throw new Error('OPT_IN_REQUIRED: allowMutations=true');
+  if (!bru.getVar('createBlueprintBody')) throw new Error('PREREQUISITE_REQUIRED: createBlueprintBody; execute the preceding documented request');
+  req.setBody(JSON.parse(bru.getVar('createBlueprintBody')));
+}
+
+tests {
+  test('HTTP 200', function () {
+    if(res.getStatus()!==200) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(res.getBody().replayed!==true)throw new Error('Expected creation replay');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  MUTATING. Expected HTTP 200.
+  Previous request in workflow: 04-Blueprint/02-Create-campaign-and-initial-blueprint.bru.
+  Prerequisites: createBlueprintBody.
+  Required opt-in flags: allowMutations.
+  Run in folder sequence. Reload using the next GET to verify actual persisted state.
+}

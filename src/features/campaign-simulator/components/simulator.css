@@ -1,0 +1,111 @@
+.simulator-workspace {
+  --canvas: #f8f9f5;
+  --surface: #fff;
+  --subtle: #f0f3ed;
+  --ink: #24392f;
+  --muted: #59665d;
+  --brand: #285b43;
+  --brand-hover: #1c4632;
+  --border: #dce2d9;
+  --warning-bg: #fcf1e3;
+  --warning-ink: #654526;
+  --error: #9b2424;
+  color-scheme: light;
+  flex: 1;
+  min-height: 100dvh;
+  padding: 24px;
+  background: var(--canvas);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.5;
+  accent-color: var(--brand);
+}
+.simulator-workspace ::selection { color: #fff; background: var(--brand); }
+.simulator-workspace :focus-visible { outline: 3px solid var(--brand); outline-offset: 4px; }
+.simulator-container { max-width: 1224px; margin-inline: auto; }
+.simulator-skipLink { position: absolute; top: 8px; left: 8px; padding: 12px; background: var(--surface); transform: translateY(-200%); z-index: 1; }
+.simulator-skipLink:focus { transform: none; }
+.simulator-previewNotice { display: flex; flex-wrap: wrap; gap: 4px 24px; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--warning-bg); color: var(--warning-ink); }
+.simulator-header { padding-block: 28px; }
+.simulator-brand { display: inline-flex; align-items: center; min-height: 44px; color: var(--brand); font-weight: 700; text-underline-offset: 4px; }
+.simulator-brand:hover { text-decoration: underline; }
+.simulator-workspace h1 { margin-block: 12px 8px; font-size: 2rem; font-weight: 650; line-height: 1.2; letter-spacing: -0.02em; text-wrap: balance; }
+.simulator-workspace h2 { font-size: 1.25rem; font-weight: 650; line-height: 1.35; }
+.simulator-workspace h3 { font-size: 1rem; font-weight: 650; }
+.simulator-header > p, .simulator-sectionHeading p, .simulator-intro, .simulator-snapshot, .simulator-hint, .simulator-comparison > p { color: var(--muted); }
+.simulator-header > p { max-width: 70ch; }
+.simulator-facts { padding: 24px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.simulator-sectionHeading { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 12px; }
+.simulator-sectionHeading p { margin-top: 4px; }
+.simulator-readOnly { color: var(--muted); font-size: 0.875rem; }
+.simulator-factsGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; margin-block: 24px; }
+.simulator-factsGrid dt, .simulator-unitPrices dt { color: var(--muted); }
+.simulator-factsGrid dd { margin-block: 4px; font-size: 1.25rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.simulator-factsGrid p, .simulator-snapshot, .simulator-hint { font-size: 0.875rem; }
+.simulator-factsGrid p { color: var(--muted); }
+.simulator-snapshot { padding-top: 16px; border-top: 1px solid var(--border); }
+.simulator-editorGrid { display: grid; grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr); align-items: start; gap: 40px; margin-top: 32px; }
+.simulator-formPanel, .simulator-resultPanel { min-width: 0; }
+.simulator-intro { margin-block: 8px 24px; }
+.simulator-field { margin-block: 24px; }
+.simulator-field label { display: block; margin-bottom: 8px; font-weight: 600; }
+.simulator-field input { width: 100%; min-height: 48px; min-width: 0; padding: 10px 12px; border: 1px solid var(--muted); border-radius: 8px; background: var(--surface); color: var(--ink); caret-color: var(--brand); font-size: 1rem; font-variant-numeric: tabular-nums; }
+.simulator-field input[aria-invalid="true"] { border-color: var(--error); }
+.simulator-hint, .simulator-fieldError { margin-top: 8px; }
+.simulator-fieldError { color: var(--error); font-size: 0.875rem; }
+.simulator-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.simulator-primaryButton, .simulator-secondaryButton { min-height: 48px; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 160ms ease-out; }
+.simulator-primaryButton { background: var(--brand); color: #fff; border: 1px solid var(--brand); }
+.simulator-primaryButton:hover { background: var(--brand-hover); }
+.simulator-secondaryButton { background: var(--surface); color: var(--ink); border: 1px solid var(--muted); }
+.simulator-secondaryButton:hover { background: var(--subtle); }
+.simulator-primaryButton:active, .simulator-secondaryButton:active { transform: translateY(1px); }
+.simulator-resultPanel { padding: 24px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.simulator-unitPrices { display: grid; grid-template-columns: 1fr; gap: 8px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+.simulator-unitPrices > div, .simulator-breakdown > div { display: flex; justify-content: space-between; gap: 16px; }
+.simulator-unitPrices dd, .simulator-breakdown dd { flex-shrink: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.simulator-breakdown { padding-top: 12px; }
+.simulator-breakdown > div { padding-block: 10px; }
+.simulator-breakdown .simulator-contribution { margin-top: 8px; padding: 16px; background: var(--subtle); font-weight: 650; }
+.simulator-contribution dd { color: var(--brand); }
+.simulator-warnings, .simulator-blockers, .simulator-errorSummary { margin-block: 20px; padding: 16px; border-radius: 8px; }
+.simulator-warnings { color: var(--warning-ink); background: var(--warning-bg); }
+.simulator-blockers, .simulator-errorSummary { color: var(--error); background: #fff0ee; }
+.simulator-errorSummary a { text-decoration: underline; text-underline-offset: 3px; }
+.simulator-warnings ul, .simulator-blockers ul, .simulator-errorSummary ul, .simulator-assumptions { margin-top: 8px; padding-left: 20px; list-style: disc; }
+.simulator-warnings li + li, .simulator-blockers li + li, .simulator-assumptions li + li { margin-top: 6px; }
+.simulator-status { margin-top: 20px; font-weight: 600; }
+.simulator-assumptions { color: var(--muted); font-size: 0.875rem; }
+.simulator-comparison { margin-top: 48px; }
+.simulator-comparison > p { margin-block: 8px 20px; }
+.simulator-comparisonInputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; margin-block: 24px; }
+.simulator-comparisonInputs fieldset { min-width: 0; padding-top: 16px; border-top: 1px solid var(--border); }
+.simulator-comparisonInputs legend { padding-right: 12px; font-size: 1.125rem; font-weight: 650; }
+.simulator-comparison a { text-decoration: underline; text-underline-offset: 3px; }
+.simulator-mobileHint { display: none; }
+.simulator-tableScroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.simulator-tableScroll table { width: 100%; min-width: 760px; text-align: left; border-collapse: collapse; }
+.simulator-tableScroll caption { padding: 16px; text-align: left; color: var(--muted); font-size: 0.875rem; }
+.simulator-tableScroll th, .simulator-tableScroll td { width: 25%; padding: 16px; vertical-align: top; border-top: 1px solid var(--border); }
+.simulator-tableScroll thead { background: var(--subtle); }
+.simulator-tableScroll th { font-weight: 600; }
+.simulator-tableScroll td { font-variant-numeric: tabular-nums; }
+.simulator-tableScroll li + li { margin-top: 8px; }
+@media (max-width: 900px) {
+  .simulator-comparisonInputs { grid-template-columns: 1fr; gap: 16px; }
+  .simulator-mobileHint { display: block; font-size: 0.875rem; }
+  .simulator-factsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .simulator-editorGrid { grid-template-columns: 1fr; gap: 28px; }
+}
+@media (max-width: 480px) {
+  .simulator-workspace { padding: 16px; }
+  .simulator-workspace h1 { font-size: 1.75rem; }
+  .simulator-facts, .simulator-resultPanel { padding: 16px; }
+  .simulator-factsGrid { gap: 20px 12px; }
+  .simulator-factsGrid dd { font-size: 1.125rem; }
+  .simulator-breakdown > div, .simulator-unitPrices > div { flex-wrap: wrap; gap: 4px; }
+  .simulator-actions > button { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .simulator-primaryButton, .simulator-secondaryButton { transition: none; }
+}

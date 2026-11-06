@@ -1,0 +1,60 @@
+meta {
+  name: [NEGATIVE] Invalid-campaign-state-publication
+  type: http
+  seq: 19
+  tags: [
+    negative
+  ]
+}
+
+post {
+  url: {{baseUrl}}/api/dev/campaigns
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "action": "publish",
+    "campaignId": "{{campaignId}}",
+    "blueprintId": "{{blueprintId}}",
+    "expectedBlueprintVersion": {{blueprintVersion}},
+    "expectedCampaignVersion": {{campaignVersion}},
+    "expectedContextHash": "{{blueprintHash}}",
+    "confirm": true
+  }
+}
+
+script:pre-request {
+  if (bru.getVar('allowNegative') !== 'true') throw new Error('OPT_IN_REQUIRED: allowNegative=true');
+  if (bru.getVar('allowMutations') !== 'true') throw new Error('OPT_IN_REQUIRED: allowMutations=true');
+  if (bru.getVar('allowLifecycle') !== 'true') throw new Error('OPT_IN_REQUIRED: allowLifecycle=true');
+  if (!bru.getVar('campaignId')) throw new Error('PREREQUISITE_REQUIRED: campaignId; execute the preceding documented request');
+  if (!bru.getVar('campaignVersion')) throw new Error('PREREQUISITE_REQUIRED: campaignVersion; execute the preceding documented request');
+  if (!bru.getVar('blueprintId')) throw new Error('PREREQUISITE_REQUIRED: blueprintId; execute the preceding documented request');
+}
+
+tests {
+  test('HTTP 409 / INVALID_CAMPAIGN_STATE', function () {
+    if(res.getStatus()!==409) throw new Error('Unexpected HTTP status: '+res.getStatus());
+    if(res.getBody().code!=='INVALID_CAMPAIGN_STATE') throw new Error('Unexpected safe error code');
+  });
+}
+
+settings {
+  followRedirects: false
+  timeout: 30000
+}
+
+docs {
+  NEGATIVE. Expected HTTP 409 code=INVALID_CAMPAIGN_STATE.
+  Previous request in workflow: 08-Negative-Security/18-Stale-discussion-context.bru.
+  Prerequisites: campaignId, campaignVersion, blueprintId.
+  Required opt-in flags: allowNegative, allowMutations, allowLifecycle.
+  Run on the owner-A completed campaign, not on a fresh approved draft.
+}

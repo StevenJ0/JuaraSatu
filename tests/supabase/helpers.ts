@@ -31,7 +31,7 @@ const env = readEnvFile();
 export const url = required("URL Supabase", process.env.TEST_SUPABASE_URL ?? env.NEXT_PUBLIC_SUPABASE_URL);
 export const anonKey = required("anon key", process.env.TEST_SUPABASE_ANON_KEY ?? env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
 const serviceKey = required("service key", process.env.TEST_SUPABASE_SERVICE_KEY ?? env.SUPABASE_SERVICE_ROLE_KEY);
-const container = process.env.TEST_DB_CONTAINER ?? "supabase_db_GTNIC_Lomba";
+const container = process.env.TEST_DB_CONTAINER ?? "supabase_db_campaign-lab";
 
 if (!/^http:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(url)) throw new Error("Bukan Supabase lokal, uji integrasi dihentikan");
 

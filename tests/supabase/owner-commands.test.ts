@@ -5,7 +5,7 @@ import { publicOrderSchema } from "@/features/orders/schemas";
 import { cancelOrder, createManualOrder, createPrivateOrderToken, createStandaloneManualOrder, placePublicOrder, resolveProductionCost, runOrderAction } from "@/features/orders/service";
 import { applyVerifiedPayment, claimPaymentAttempt } from "@/features/payments/service";
 import { findPreorder, findPublicPreorder } from "@/features/preorders/repository";
-import { anon, cleanupOwners, createCapacity, createOwner, createPublishedPreorder, service, sql, type Owner, type PreorderFixture } from "./helpers";
+import { anon, cleanupOwners, createCapacity, createOwner, createPublishedPreorder, service, sha256, sql, type Owner, type PreorderFixture } from "./helpers";
 
 const stamp = Date.now();
 const PREFIX = "own";
@@ -49,7 +49,7 @@ async function paidOrder(target: PreorderFixture) {
   const order = await placed(target);
   const claim = await claimPaymentAttempt(service, order.privateToken);
   if (claim.kind !== "ok") throw new Error("claim");
-  await applyVerifiedPayment(service, { providerOrderId: claim.value.providerOrderId, providerEventKey: `evt-${order.id}`, payloadHash: "h", providerStatus: "settlement", providerTransactionId: null, amountIdr: claim.value.amountIdr, providerPaidAt: new Date().toISOString() });
+  await applyVerifiedPayment(service, { providerOrderId: claim.value.providerOrderId, providerEventKey: `evt-${order.id}`, payloadHash: sha256("h"), providerStatus: "settlement", providerTransactionId: null, amountIdr: claim.value.amountIdr, providerPaidAt: new Date().toISOString() });
   return order;
 }
 async function manualInProduction(owner: Owner, target: PreorderFixture) {
@@ -244,12 +244,12 @@ describe("batal preorder terbit", () => {
 
   it("tanpa pesanan: batal, tautan tertutup, dan tanggal bisa dipakai lagi", async () => {
     const schedule = createCapacity(A, 10);
-    const target = createPublishedPreorder(A, PREFIX, stamp, { capacityId: schedule.capacityId, date: schedule.date });
+    const target = createPublishedPreorder(A, PREFIX, stamp, { quota: 10, capacityId: schedule.capacityId, date: schedule.date });
     expect((await cancel(A, target.id, preorderVersion(target.id))).error).toBeNull();
     expect(sql(`select status from public.preorders where id = '${target.id}'`)).toBe("cancelled");
     expect(await findPublicPreorder(service, target.slug)).toBeNull();
     expect(await placePublicOrder(service, buyer(target), 900)).toEqual({ kind: "rejected", violation: "PREORDER_NOT_OPEN" });
-    expect(() => createPublishedPreorder(A, PREFIX, stamp, { capacityId: schedule.capacityId, date: schedule.date })).not.toThrow();
+    expect(() => createPublishedPreorder(A, PREFIX, stamp, { quota: 10, capacityId: schedule.capacityId, date: schedule.date })).not.toThrow();
   });
 
   it.each([["pembeli"], ["manual"]])("sudah ada pesanan %s: ditolak", async (kind) => {
@@ -292,8 +292,6 @@ describe("batal preorder terbit", () => {
 });
 
 describe("colokan asal pesanan", () => {
-  const campaign = "88888888-8888-4888-8888-888888888888";
-
   it("tanpa kampanye: referensi apa pun tetap jadi pesanan, tanpa asal", async () => {
     const outcome = await placePublicOrder(service, buyer(createPublishedPreorder(A, PREFIX, stamp), 1, { attributionRef: "tautan-kampanye" }), 900);
     expect(outcome.kind).toBe("ok");
@@ -301,9 +299,13 @@ describe("colokan asal pesanan", () => {
   });
 
   it("setelah colokan diisi: asal tercatat terpisah dari harga, dan harga tidak berubah", async () => {
+    const target = createPublishedPreorder(A, PREFIX, stamp);
+    // FK baseline: asal pesanan wajib menunjuk kampanye sungguhan pada preorder yang sama.
+    const campaign = sql(`insert into public.campaigns (business_id, preorder_id, name, status, offer_type, marketing_approach, discount_bps, budget_cap_idr, primary_kpi, target_additional_units, starts_at, ends_at, costs_completeness)
+      select business_id, id, 'Kampanye uji', 'draft', 'normal_price', 'value_content', 0, 0, 'paid_units_in_window', 1, starts_at, ends_at, 'unreviewed'
+      from public.preorders where id = '${target.id}' returning id`);
     sql(`create or replace function private.resolve_attribution(p_preorder_id uuid, p_attribution_ref text) returns uuid language sql stable security definer set search_path = '' as $$ select case when p_attribution_ref = 'sah' then '${campaign}'::uuid end; $$;`);
     try {
-      const target = createPublishedPreorder(A, PREFIX, stamp);
       const valid = await placePublicOrder(service, buyer(target, 1, { attributionRef: "sah" }), 900);
       const invalid = await placePublicOrder(service, buyer(target, 1, { attributionRef: "palsu" }), 900);
       const organic = await placePublicOrder(service, buyer(target, 1), 900);
@@ -327,7 +329,7 @@ describe("colokan asal pesanan", () => {
   it("referensi terlalu panjang ditolak schema dan database", async () => {
     const target = createPublishedPreorder(A, PREFIX, stamp);
     expect(publicOrderSchema.safeParse({ ...buyer(target), attributionRef: "x".repeat(201) }).success).toBe(false);
-    const { error } = await service.rpc("create_preorder_order", { p_slug: target.slug, p_quantity: 1, p_customer_name: "P", p_customer_email: "own-long@example.com", p_customer_contact: null, p_token_hash: "h", p_idempotency_key: `own-long-${stamp}`, p_request_hash: "r", p_expected_unit_price_idr: 120000, p_hold_ttl_seconds: 900, p_attribution_ref: "x".repeat(201) });
+    const { error } = await service.rpc("create_preorder_order", { p_slug: target.slug, p_quantity: 1, p_customer_name: "P", p_customer_email: "own-long@example.com", p_customer_contact: null, p_token_hash: sha256("h"), p_idempotency_key: `own-long-${stamp}`, p_request_hash: sha256("r"), p_expected_unit_price_idr: 120000, p_hold_ttl_seconds: 900, p_attribution_ref: "x".repeat(201) });
     expect(error?.message).toContain("VALIDATION_ERROR");
   });
 });

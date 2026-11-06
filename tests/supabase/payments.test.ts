@@ -7,7 +7,7 @@ import { acceptLatePayment, cancelOrder, createManualOrder, createPrivateOrderTo
 import { listOrderPayments } from "@/features/payments/repository";
 import { applyVerifiedPayment, claimPaymentAttempt, recordPaymentCharge } from "@/features/payments/service";
 import { findPreorder, findPublicPreorder } from "@/features/preorders/repository";
-import { anon, anonKey, service, sql, url } from "./helpers";
+import { anon, anonKey, publishFixture, service, sha256, sql, url } from "./helpers";
 
 const options = { auth: { persistSession: false, autoRefreshToken: false } };
 const stamp = Date.now();
@@ -33,14 +33,22 @@ async function owner(label: string): Promise<Owner> {
 
 let day = 300;
 let slugCount = 0;
+/** Kampanye draf untuk preorder uji, cukup untuk memenuhi FK harga. Kampanye sungguhan dibuat modul Steven. */
+function draftCampaign(target: { id: string; who: Owner }, discountBps: number): string {
+  return sql(`insert into public.campaigns (business_id, preorder_id, name, status, offer_type, marketing_approach, discount_bps, budget_cap_idr, primary_kpi, target_additional_units, starts_at, ends_at, costs_completeness)
+    select business_id, id, 'Kampanye uji', 'draft', 'percent_discount', 'limited_discount', ${discountBps}, 0, 'paid_units_in_window', 1, starts_at, ends_at, 'unreviewed'
+    from public.preorders where id = '${target.id}' returning id`);
+}
+
 function preorder(who: Owner, { capacity = 40, quota = 40, price = 120000 } = {}) {
   day += 1;
   slugCount += 1;
   const date = new Date(Date.now() + day * 86400e3).toISOString().slice(0, 10);
   const capacityId = sql(`insert into public.production_capacity (business_id, product_id, fulfillment_date, total_units, intake_cutoff_at, fulfillment_window_end_at) values ('${who.businessId}', '${who.productId}', '${date}', ${capacity}, now() + interval '6 days', '${date} 17:00+07') returning id`);
   const slug = `pay-${stamp}-${slugCount}`;
-  const id = sql(`insert into public.preorders (business_id, name, slug, status, fulfillment_date, starts_at, ends_at, pickup_terms_snapshot) values ('${who.businessId}', 'Preorder', '${slug}', 'published', '${date}', now() - interval '1 day', now() + interval '5 days', jsonb_build_object('pickup_instructions', 'Ambil', 'public_contact', null, 'intake_cutoff_at', now() + interval '6 days', 'fulfillment_window_end_at', '${date} 17:00+07'::timestamptz)) returning id`);
+  const id = sql(`insert into public.preorders (business_id, name, slug, status, fulfillment_date, starts_at, ends_at, pickup_terms_snapshot) values ('${who.businessId}', 'Preorder', '${slug}', 'draft', '${date}', now() - interval '1 day', now() + interval '5 days', jsonb_build_object('pickup_instructions', 'Ambil', 'public_contact', null, 'intake_cutoff_at', now() + interval '6 days', 'fulfillment_window_end_at', '${date} 17:00+07'::timestamptz)) returning id`);
   sql(`insert into public.preorder_items (business_id, preorder_id, product_id, capacity_id, target_units, quota_units, base_price_snapshot_idr, product_name_snapshot, sku_snapshot) values ('${who.businessId}', '${id}', '${who.productId}', '${capacityId}', ${Math.min(quota, 10)}, ${quota}, ${price}, 'Kaos', 'PAY')`);
+  publishFixture(id, "published");
   return { id, slug, capacityId, who };
 }
 
@@ -62,7 +70,7 @@ const claim = async (token: string) => {
 let eventCount = 0;
 const fact = (providerOrderId: string, status: string, amountIdr: number, key?: string) => {
   eventCount += 1;
-  return { providerOrderId, providerEventKey: key ?? `evt-${stamp}-${eventCount}`, payloadHash: `hash-${eventCount}`, providerStatus: status, providerTransactionId: null, amountIdr, providerPaidAt: status === "settlement" ? new Date().toISOString() : null };
+  return { providerOrderId, providerEventKey: key ?? `evt-${stamp}-${eventCount}`, payloadHash: sha256(`hash-${eventCount}`), providerStatus: status, providerTransactionId: null, amountIdr, providerPaidAt: status === "settlement" ? new Date().toISOString() : null };
 };
 const apply = async (factValue: ReturnType<typeof fact>) => {
   const outcome = await applyVerifiedPayment(service, factValue);
@@ -98,6 +106,7 @@ afterAll(() => {
     delete from public.order_events where business_id in (select id from doomed);
     delete from public.order_items where business_id in (select id from doomed);
     delete from public.orders where business_id in (select id from doomed);
+    delete from public.campaigns where business_id in (select id from doomed);
     delete from public.preorder_items where business_id in (select id from doomed);
     delete from public.preorders where business_id in (select id from doomed);
     delete from public.production_capacity where business_id in (select id from doomed);
@@ -120,7 +129,8 @@ describe("colokan harga", () => {
 
   it("contoh kontrak C2: 120.000 diskon 1.000 bps, 2 unit", async () => {
     const target = preorder(A);
-    const campaign = "99999999-9999-4999-8999-999999999999";
+    // pricing_campaign_id wajib menunjuk kampanye sungguhan pada preorder yang sama (FK baseline).
+    const campaign = draftCampaign(target, 1000);
     setOffer(1000, campaign);
 
     expect(await findPublicPreorder(service, target.slug)).toMatchObject({ unitPriceIdr: 108000, basePriceIdr: 120000, discountBps: 1000 });
@@ -255,7 +265,7 @@ describe("apply_verified_payment", () => {
     const event = fact(attempt.providerOrderId, "settlement", 240000);
     await apply(event);
 
-    const result = await apply({ ...event, payloadHash: "hash-format-baru" });
+    const result = await apply({ ...event, payloadHash: sha256("hash-format-baru") });
 
     expect(result).toMatchObject({ outcome: "duplicate", payloadChanged: true });
     expect(eventCountOf(attempt.paymentId)).toBe(1);
@@ -545,7 +555,7 @@ describe("akses", () => {
   it("fungsi pembayaran hanya untuk server", async () => {
     const placed = await order(preorder(A));
     const attempt = await claim(placed.token);
-    const args = { p_provider_order_id: attempt.providerOrderId, p_provider_event_key: "x", p_payload_hash: "x", p_provider_status: "settlement", p_provider_transaction_id: null, p_amount_idr: 240000, p_provider_paid_at: null };
+    const args = { p_provider_order_id: attempt.providerOrderId, p_provider_event_key: "x", p_payload_hash: sha256("x"), p_provider_status: "settlement", p_provider_transaction_id: null, p_amount_idr: 240000, p_provider_paid_at: null };
     for (const client of [anon, A.client, B.client]) {
       expect((await client.rpc("apply_verified_payment", args)).error).not.toBeNull();
       expect((await client.rpc("claim_payment_attempt", { p_token_hash: "x" })).error).not.toBeNull();
@@ -569,12 +579,16 @@ describe("akses", () => {
     expect(orderRow(placed.id)).toBe("requires_review|cancelled");
   });
 
-  it("pemilik hanya bisa membaca, tamu tidak bisa apa-apa, dan event tidak terbaca", async () => {
+  it("pemilik hanya bisa membaca miliknya, tamu tidak bisa apa-apa", async () => {
     const placed = await order(preorder(A));
     const attempt = await claim(placed.token);
     expect((await A.client.from("payments").update({ status: "paid_sandbox" }).eq("id", attempt.paymentId)).error).not.toBeNull();
     expect((await A.client.from("payments").insert({ business_id: A.businessId, order_id: placed.id, provider_order_id: "x", attempt_number: 9, amount_idr: 1, status: "paid_sandbox", is_active_attempt: false })).error).not.toBeNull();
-    expect((await A.client.from("payment_events").select("id")).error).not.toBeNull();
+    // Baseline memberi pemilik akses baca event pembayaran usahanya sendiri lewat RLS.
+    const events = await A.client.from("payment_events").select("business_id");
+    expect(events.error).toBeNull();
+    expect(events.data?.every((row) => row.business_id === A.businessId)).toBe(true);
+    expect((await anon.from("payment_events").select("id")).error).not.toBeNull();
     expect((await anon.from("payments").select("id")).error).not.toBeNull();
     expect(paymentRow(attempt.paymentId)).toBe("initiating|false|true");
   });
@@ -591,8 +605,9 @@ describe("akses", () => {
     expect(orderRow(first.id)).toBe("requires_review|cancelled");
   });
 
-  it("riwayat event pembayaran tidak bisa diubah", () => {
-    expect(() => sql(`update public.payment_events set outcome = 'applied' where id = (select id from public.payment_events limit 1)`)).toThrow();
+  // Baseline mengisi hasil event setelah dicatat, jadi yang dijaga adalah penghapusan, bukan perubahan.
+  it("riwayat event pembayaran tidak bisa dihapus", () => {
+    expect(() => sql(`delete from public.payment_events where id = (select id from public.payment_events limit 1)`)).toThrow();
   });
 
   it("job email tidak memuat data pelanggan", async () => {

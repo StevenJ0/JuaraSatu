@@ -8,7 +8,8 @@ export const verifiedPaymentFactSchema = z.object({
   providerOrderId: z.string().min(1).max(120),
   /** Identitas event untuk dedupe, misalnya `transaction_id:transaction_status`. Bukan order_id saja, karena pending dan settlement adalah event berbeda. */
   providerEventKey: z.string().min(1).max(200),
-  payloadHash: z.string().min(1).max(128),
+  /** SHA-256 hex payload kanonis (schema `payment_events.payload_hash`), untuk audit saja. */
+  payloadHash: z.string().regex(/^[0-9a-f]{64}$/),
   providerStatus: z.string().min(1).max(40),
   providerTransactionId: z.string().min(1).max(120).nullable(),
   amountIdr: z.number().int().nonnegative(),

@@ -1,8 +1,9 @@
 // Uji C1 terhadap Supabase lokal sungguhan. Data uji dibuat lewat SQL dan dibersihkan. Nilai key tidak pernah dicetak.
+import { randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { findPreorder, findPreorderContext, findPublicPreorder } from "@/features/preorders/repository";
-import { anon, anonKey, service, sql, url } from "./helpers";
+import { anon, anonKey, publishFixture, service, sha256, sql, url } from "./helpers";
 
 const stamp = Date.now();
 const COST = 75317;
@@ -10,7 +11,8 @@ const SKU = `SKUC1${stamp}`;
 const BUYER_EMAIL = `c1-buyer-${stamp}@example.com`;
 const BUYER_NAME = `PembeliRahasia${stamp}`;
 const BUYER_CONTACT = `0899${String(stamp).slice(-7)}`;
-const TOKEN_HASH = `tokenhash${stamp}`;
+// 60 karakter hex + 4 digit nomor pesanan = SHA-256 hex yang sah menurut schema.
+const TOKEN_HASH = sha256(`tokenhash${stamp}`).slice(0, 60);
 const INTERNAL_NOTE = `catatan${stamp}`;
 const password = "C1Check-Lokal-12345";
 
@@ -52,9 +54,10 @@ function preorder(
     ? "null"
     : `jsonb_build_object('pickup_instructions', 'Ambil beku ${key}', 'public_contact', '0812-beku', 'intake_cutoff_at', (now() + interval '${cutoffIn}'), 'fulfillment_window_end_at', '${date} 17:00+07'::timestamptz)`;
   const id = sql(`insert into public.preorders (business_id, name, slug, status, fulfillment_date, starts_at, ends_at, pickup_terms_snapshot)
-    values ('${owner.businessId}', 'Preorder ${key}', '${slug}', '${status}', '${date}', now() + interval '${startsIn}', now() + interval '${endsIn}', ${terms}) returning id`);
+    values ('${owner.businessId}', 'Preorder ${key}', '${slug}', 'draft', '${date}', now() + interval '${startsIn}', now() + interval '${endsIn}', ${terms}) returning id`);
   const itemId = sql(`insert into public.preorder_items (business_id, preorder_id, product_id, capacity_id, target_units, quota_units, base_price_snapshot_idr, product_name_snapshot, sku_snapshot)
     values ('${owner.businessId}', '${id}', '${owner.productId}', '${capacityId}', ${Math.min(40, quota)}, ${quota}, 120000, 'Kaos beku', '${SKU}') returning id`);
+  publishFixture(id, status);
   slugs[key] = slug;
   ids[key] = id;
   return { id, itemId, capacityId, date, owner };
@@ -70,12 +73,17 @@ function reservation(
   orderCount += 1;
   const { owner, date } = target;
   const amount = quantity * 120000;
-  const orderId = sql(`insert into public.orders (business_id, preorder_id, public_order_number, private_token_hash, idempotency_key, request_hash, source, customer_name, customer_email, customer_contact, fulfillment_date, payment_mode, order_status, fulfillment_status, subtotal_idr, discount_total_idr, total_idr)
-    values ('${owner.businessId}', '${target.id}'::uuid, 'C1-${stamp}-${orderCount}', '${TOKEN_HASH}${orderCount}', 'idem-${stamp}-${orderCount}', 'hash-${stamp}-${orderCount}', 'public', '${BUYER_NAME}', '${BUYER_EMAIL}', '${BUYER_CONTACT}', '${date}', 'midtrans_sandbox', '${state === "held" ? "pending_payment" : "active"}', '${state === "held" ? "pending_confirmation" : "confirmed"}', ${amount}, 0, ${amount}) returning id`);
-  const orderItemId = sql(`insert into public.order_items (business_id, order_id, preorder_item_id, product_id, product_name_snapshot, sku_snapshot, quantity, base_unit_price_idr, discount_bps_snapshot, discount_per_unit_idr, final_unit_price_idr, variable_cost_per_unit_idr, cost_quality_snapshot, line_total_idr)
-    values ('${owner.businessId}', '${orderId}', '${target.itemId}', '${owner.productId}', 'Kaos beku', '${SKU}', ${quantity}, 120000, 0, 0, 120000, ${COST}, 'estimated', ${amount}) returning id`);
-  sql(`insert into public.capacity_reservations (business_id, order_id, order_item_id, preorder_item_id, capacity_id, quantity, state, expires_at)
-    values ('${owner.businessId}', '${orderId}', '${orderItemId}', '${target.itemId}', '${target.capacityId}', ${quantity}, '${state}', ${state === "held" ? `now() + interval '${expiresIn}'` : "null"})`);
+  // Satu transaksi: cek total pesanan di baseline berjalan saat commit dan butuh item sudah ada.
+  const orderId = randomUUID();
+  const orderItemId = randomUUID();
+  sql(`begin;
+    insert into public.orders (id, business_id, preorder_id, public_order_number, private_token_hash, idempotency_key, request_hash, source, customer_name, customer_email, customer_contact, fulfillment_date, payment_mode, order_status, fulfillment_status, subtotal_idr, discount_total_idr, total_idr)
+    values ('${orderId}', '${owner.businessId}', '${target.id}'::uuid, 'C1-${stamp}-${orderCount}', '${TOKEN_HASH}${String(orderCount).padStart(4, "0")}', 'idem-${stamp}-${orderCount}', '${sha256(`hash-${stamp}-${orderCount}`)}', 'public', '${BUYER_NAME}', '${BUYER_EMAIL}', '${BUYER_CONTACT}', '${date}', 'midtrans_sandbox', '${state === "held" ? "pending_payment" : "active"}', '${state === "held" ? "pending_confirmation" : "confirmed"}', ${amount}, 0, ${amount});
+    insert into public.order_items (id, business_id, order_id, preorder_item_id, product_id, product_name_snapshot, sku_snapshot, quantity, base_unit_price_idr, discount_bps_snapshot, discount_per_unit_idr, final_unit_price_idr, variable_cost_per_unit_idr, cost_quality_snapshot, line_total_idr)
+    values ('${orderItemId}', '${owner.businessId}', '${orderId}', '${target.itemId}', '${owner.productId}', 'Kaos beku', '${SKU}', ${quantity}, 120000, 0, 0, 120000, ${COST}, 'estimated', ${amount});
+    insert into public.capacity_reservations (business_id, order_id, order_item_id, preorder_item_id, capacity_id, quantity, state, expires_at)
+    values ('${owner.businessId}', '${orderId}', '${orderItemId}', '${target.itemId}', '${target.capacityId}', ${quantity}, '${state}', ${state === "held" ? `now() + interval '${expiresIn}'` : "null"});
+    commit;`);
 }
 
 function cleanup() {
@@ -111,7 +119,13 @@ beforeAll(async () => {
   reservation(sharedCapacity, 5, "allocated");
   preorder(A, "notstarted", { startsIn: "2 days", endsIn: "5 days" });
   preorder(A, "ended", { startsIn: "-3 days", endsIn: "-1 day" });
-  preorder(A, "cutoff", { startsIn: "-3 days", endsIn: "5 days", cutoffIn: "-1 hour" });
+  // Baseline menolak batas pesan sebelum akhir preorder, jadi keadaan ini dibuat paksa untuk menguji penjagaan C1.
+  const cutoff = preorder(A, "cutoff", { startsIn: "-3 days", endsIn: "5 days" });
+  sql(`begin;
+    set local session_replication_role = replica;
+    update public.production_capacity set intake_cutoff_at = now() - interval '1 hour' where id = '${cutoff.capacityId}';
+    update public.preorders set pickup_terms_snapshot = pickup_terms_snapshot || jsonb_build_object('intake_cutoff_at', now() - interval '1 hour') where id = '${cutoff.id}';
+    commit;`);
   preorder(A, "closed", { status: "closed" });
   preorder(A, "completed", { status: "completed" });
   preorder(A, "draft", { status: "draft" });
@@ -176,9 +190,9 @@ describe("findPublicPreorder di database sungguhan", () => {
       p_customer_name: "Pembeli RPC",
       p_customer_email: `c1-rpc-${stamp}@example.com`,
       p_customer_contact: "",
-      p_token_hash: `rpc-token-${stamp}`,
+      p_token_hash: sha256(`rpc-token-${stamp}`),
       p_idempotency_key: `rpc-key-${stamp}-abcdef`,
-      p_request_hash: `rpc-hash-${stamp}`,
+      p_request_hash: sha256(`rpc-hash-${stamp}`),
       p_expected_unit_price_idr: 120000,
       p_hold_ttl_seconds: 900,
     });

@@ -11,7 +11,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["tests/integration/**/*.test.ts"],
+    include: ["tests/supabase/**/*.test.ts"],
     testTimeout: 90000,
     hookTimeout: 180000,
     // Uji harga mengganti fungsi penawaran sementara, jadi berkas tidak boleh berjalan bersamaan.

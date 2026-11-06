@@ -5,7 +5,7 @@ import { runExpireJobs } from "@/features/jobs/service";
 import { publicOrderSchema } from "@/features/orders/schemas";
 import { createPrivateOrderToken, placePublicOrder } from "@/features/orders/service";
 import { applyVerifiedPayment, claimPaymentAttempt } from "@/features/payments/service";
-import { anon, cleanupOwners, createOwner, createPublishedPreorder, service, sleep, sql, type Owner, type PreorderFixture } from "./helpers";
+import { anon, cleanupOwners, createOwner, createPublishedPreorder, service, sha256, sleep, sql, type Owner, type PreorderFixture } from "./helpers";
 
 const stamp = Date.now();
 const PREFIX = "job";
@@ -145,8 +145,12 @@ describe("claim_jobs", () => {
       expect((await client.rpc("complete_job", { p_job_id: id, p_attempt: 1 })).error).not.toBeNull();
       expect((await client.rpc("fail_job", { p_job_id: id, p_attempt: 1, p_error_code: "X" })).error).not.toBeNull();
       expect((await client.rpc("enqueue_expire_jobs", { p_limit: 1 })).error).not.toBeNull();
-      expect((await client.from("job_runs").select("id")).error).not.toBeNull();
     }
+    // Baseline memberi pemilik akses baca job usahanya sendiri lewat RLS. Tamu tetap ditolak.
+    const ownJobs = await A.client.from("job_runs").select("business_id");
+    expect(ownJobs.error).toBeNull();
+    expect(ownJobs.data?.every((row) => row.business_id === A.businessId)).toBe(true);
+    expect((await anon.from("job_runs").select("id")).error).not.toBeNull();
     expect(jobRow(id)).toBe("queued|0");
     sql(`update public.job_runs set status = 'succeeded' where id = '${id}'`);
   });
@@ -175,7 +179,7 @@ describe("runExpireJobs", () => {
     const placed = await order(target, 900);
     const claim = await claimPaymentAttempt(service, placed.token);
     if (claim.kind !== "ok") throw new Error("claim");
-    await applyVerifiedPayment(service, { providerOrderId: claim.value.providerOrderId, providerEventKey: `evt-${placed.id}`, payloadHash: "h", providerStatus: "settlement", providerTransactionId: null, amountIdr: 120000, providerPaidAt: null });
+    await applyVerifiedPayment(service, { providerOrderId: claim.value.providerOrderId, providerEventKey: `evt-${placed.id}`, payloadHash: sha256("h"), providerStatus: "settlement", providerTransactionId: null, amountIdr: 120000, providerPaidAt: null });
     sql(`insert into public.job_runs (job_type, entity_id, business_id, dedupe_key) values ('expire', '${placed.id}', '${A.businessId}', 'expire:${placed.id}')`);
 
     await runExpireJobs(service, 100);

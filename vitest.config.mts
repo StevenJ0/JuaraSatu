@@ -11,7 +11,8 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    // Uji yang butuh Supabase lokal ada di tests/supabase dan dijalankan lewat `npm run test:integration`.
-    include: ["src/**/*.test.ts", "tests/unit/**/*.test.{ts,tsx}", "tests/integration/**/*.test.ts"],
+    // Uji Supabase lokal Rafi ada di tests/supabase (`npm run test:integration`). tests/integration milik Steven
+    // butuh fixture lokalnya sendiri (node_modules/.cache, container campaign-lab), jadi tidak ikut di sini.
+    include: ["src/**/*.test.ts", "tests/unit/**/*.test.{ts,tsx}"],
   },
 });

@@ -16,7 +16,7 @@ import {
 import { nextOrderStep, type OrderStatusFacts } from "@/features/orders/status";
 import { applyVerifiedPayment, claimPaymentAttempt } from "@/features/payments/service";
 import { findPreorder, findPublicPreorder } from "@/features/preorders/repository";
-import { cleanupOwners, createOwner, createPublishedPreorder, service, sleep, sql, type Owner, type PreorderFixture } from "./helpers";
+import { cleanupOwners, createOwner, createPublishedPreorder, service, sha256, sleep, sql, type Owner, type PreorderFixture } from "./helpers";
 
 const stamp = Date.now();
 const PREFIX = "cmb";
@@ -41,7 +41,7 @@ async function settle(token: string, amountIdr: number) {
   const claim = await claimPaymentAttempt(service, token);
   if (claim.kind !== "ok") throw new Error(`claim: ${claim.violation}`);
   counter += 1;
-  return applyVerifiedPayment(service, { providerOrderId: claim.value.providerOrderId, providerEventKey: `cmb-${stamp}-${counter}`, payloadHash: "h", providerStatus: "settlement", providerTransactionId: null, amountIdr, providerPaidAt: null });
+  return applyVerifiedPayment(service, { providerOrderId: claim.value.providerOrderId, providerEventKey: `cmb-${stamp}-${counter}`, payloadHash: sha256("h"), providerStatus: "settlement", providerTransactionId: null, amountIdr, providerPaidAt: null });
 }
 
 async function placeBuyer(target: PreorderFixture, quantity: number, ttl = 900) {
@@ -60,7 +60,7 @@ async function createFrom(source: Source, target: PreorderFixture): Promise<stri
     if (source === "public_late_accepted") {
       await claimPaymentAttempt(service, order.token);
       await sleep(1300);
-      const applied = await applyVerifiedPayment(service, { providerOrderId: sql(`select provider_order_id from public.payments where order_id = '${order.id}'`), providerEventKey: `late-${order.id}`, payloadHash: "h", providerStatus: "settlement", providerTransactionId: null, amountIdr: order.total, providerPaidAt: null });
+      const applied = await applyVerifiedPayment(service, { providerOrderId: sql(`select provider_order_id from public.payments where order_id = '${order.id}'`), providerEventKey: `late-${order.id}`, payloadHash: sha256("h"), providerStatus: "settlement", providerTransactionId: null, amountIdr: order.total, providerPaidAt: null });
       if (applied.kind !== "ok" || applied.value.outcome !== "review") throw new Error("late");
       const paymentId = sql(`select id from public.payments where order_id = '${order.id}'`);
       const accepted = await acceptLatePayment(A.client, order.id, version(order.id), paymentId);

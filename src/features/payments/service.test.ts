@@ -21,7 +21,7 @@ const TOKEN = "t".repeat(43);
 const fact = {
   providerOrderId: "CL-ABC-1",
   providerEventKey: "txn-1:settlement",
-  payloadHash: "hash",
+  payloadHash: "a".repeat(64),
   providerStatus: "settlement",
   providerTransactionId: "txn-1",
   amountIdr: 216000,

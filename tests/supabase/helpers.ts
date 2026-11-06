@@ -3,6 +3,7 @@
 // Secara bawaan memakai `.env.local`. Isi TEST_SUPABASE_URL, TEST_SUPABASE_ANON_KEY, TEST_SUPABASE_SERVICE_KEY, dan TEST_DB_CONTAINER
 // untuk memakai stack terpisah. Uji berhenti bila alamatnya bukan lokal, jadi tidak bisa menyentuh Supabase Cloud.
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -83,6 +84,16 @@ export function createCapacity(owner: Owner, units: number): { capacityId: strin
   return { capacityId, date };
 }
 
+/** Kolom hash di schema wajib SHA-256 hex, jadi data uji memakai hash sungguhan. */
+export const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
+
+/** Trigger baseline menolak preorder terbit tanpa item, jadi fixture dibuat draf dulu lalu statusnya diubah, seperti aplikasi. */
+export function publishFixture(preorderId: string, status: string) {
+  if (status === "draft") return;
+  const publishedAt = status === "cancelled" ? "published_at" : "now()";
+  sql(`update public.preorders set status = '${status}', published_at = ${publishedAt} where id = '${preorderId}'`);
+}
+
 export function createPublishedPreorder(
   owner: Owner,
   prefix: string,
@@ -96,9 +107,10 @@ export function createPublishedPreorder(
     ? "null"
     : `jsonb_build_object('pickup_instructions', 'Ambil beku', 'public_contact', '0812-beku', 'intake_cutoff_at', now() + interval '6 days', 'fulfillment_window_end_at', '${schedule.date} 17:00+07'::timestamptz)`;
   const id = sql(`insert into public.preorders (business_id, name, slug, status, fulfillment_date, starts_at, ends_at, published_at, pickup_terms_snapshot)
-    values ('${owner.businessId}', 'Preorder ${slugCount}', '${slug}', '${status}', '${schedule.date}', now() - interval '1 day', now() + interval '5 days', ${status === "draft" ? "null" : "now()"}, ${terms}) returning id`);
+    values ('${owner.businessId}', 'Preorder ${slugCount}', '${slug}', 'draft', '${schedule.date}', now() - interval '1 day', now() + interval '5 days', null, ${terms}) returning id`);
   const itemId = sql(`insert into public.preorder_items (business_id, preorder_id, product_id, capacity_id, target_units, quota_units, base_price_snapshot_idr, product_name_snapshot, sku_snapshot)
     values ('${owner.businessId}', '${id}', '${owner.productId}', '${schedule.capacityId}', ${Math.min(quota, 10)}, ${quota}, (select base_price_idr from public.products where id = '${owner.productId}'), 'Kaos beku', 'SKU-BEKU') returning id`);
+  publishFixture(id, status);
   return { id, itemId, slug, capacityId: schedule.capacityId, date: schedule.date, owner };
 }
 
@@ -116,6 +128,7 @@ export function cleanupOwners(prefix: string, stamp: number): void {
     delete from public.order_events where business_id in (select id from doomed);
     delete from public.order_items where business_id in (select id from doomed);
     delete from public.orders where business_id in (select id from doomed);
+    delete from public.campaigns where business_id in (select id from doomed);
     delete from public.preorder_items where business_id in (select id from doomed);
     delete from public.preorders where business_id in (select id from doomed);
     delete from public.production_capacity where business_id in (select id from doomed);

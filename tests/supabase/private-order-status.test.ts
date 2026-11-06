@@ -2,7 +2,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { publicOrderSchema } from "@/features/orders/schemas";
 import { createPrivateOrderToken, findOrderByPrivateToken, hashPrivateOrderToken, placePublicOrder } from "@/features/orders/service";
-import { anon, service, sql } from "./helpers";
+import { anon, publishFixture, service, sql } from "./helpers";
 
 const stamp = Date.now();
 const COST = 75317;
@@ -17,10 +17,11 @@ function seed(label: string, day: number) {
     values ('${businessId}', '${productId}', '${date}', 50, now() + interval '6 days', '${date} 17:00+07') returning id`);
   const slug = `tok-${label}-${stamp}`;
   const preorderId = sql(`insert into public.preorders (business_id, name, slug, status, fulfillment_date, starts_at, ends_at, pickup_terms_snapshot)
-    values ('${businessId}', 'Preorder ${label}', '${slug}', 'published', '${date}', now() - interval '1 day', now() + interval '5 days',
+    values ('${businessId}', 'Preorder ${label}', '${slug}', 'draft', '${date}', now() - interval '1 day', now() + interval '5 days',
       jsonb_build_object('pickup_instructions', 'Ambil beku ${label}', 'public_contact', '0812-beku', 'intake_cutoff_at', now() + interval '6 days', 'fulfillment_window_end_at', '${date} 17:00+07'::timestamptz)) returning id`);
   sql(`insert into public.preorder_items (business_id, preorder_id, product_id, capacity_id, target_units, quota_units, base_price_snapshot_idr, product_name_snapshot, sku_snapshot)
     values ('${businessId}', '${preorderId}', '${productId}', '${capacityId}', 10, 40, 120000, 'Kaos beku ${label}', 'SKUTOK${stamp}${label}')`);
+  publishFixture(preorderId, "published");
   return { businessId, slug, preorderId };
 }
 

@@ -53,7 +53,7 @@ export function LandingPage() {
       <main id="konten-utama" tabIndex={-1}>
         <section className={styles.hero} aria-labelledby="hero-title">
           <div className={`ui-container ${styles.heroCopy}`}>
-            <p className={styles.eyebrow}>Campaign Lab untuk usaha preorder</p>
+            <p className={styles.eyebrow}>Juara Satu untuk usaha preorder</p>
             <h1 id="hero-title">Kelola preorder dan promosi <span>sesuai kapasitas usahamu.</span></h1>
             <p className={styles.heroDescription}>Bagikan halaman pesanan ke pelanggan. Rencanakan penawaran dengan melihat sisa kuota dan biaya produk.</p>
             <ButtonLink className={styles.primaryAction} href={authLinks.signUp.href}>Daftar sekarang<Icon name="arrow-right" /></ButtonLink>

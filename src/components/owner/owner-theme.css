@@ -4,29 +4,30 @@
  * (`bg-brand`, `text-ink`, `text-sm`) membaca variabel itu.
  */
 .owner-theme {
-  --ui-canvas: #f8fafc;
+  /* Hijau yang sama dengan landing (globals.css), supaya pemilik merasa di aplikasi yang sama. */
+  --ui-canvas: #f8f9f5;
   --ui-surface: #ffffff;
-  --ui-subtle: #f1f5f9;
-  --ui-ink: #0f172a;
-  --ui-muted: #5b6577;
-  --ui-brand: #2563eb;
-  --ui-brand-hover: #1e3a8a;
+  --ui-subtle: #f0f3ed;
+  --ui-ink: #24392f;
+  --ui-muted: #59665d;
+  --ui-brand: #285b43;
+  --ui-brand-hover: #1c4632;
   --ui-on-brand: #ffffff;
-  --ui-brand-soft: #dbeafe;
-  --ui-line: #e2e8f0;
+  --ui-brand-soft: #e6eee5;
+  --ui-line: #dce2d9;
 
-  --owner-primary-strong: #1e3a8a;
-  --owner-highlight: #eff6ff;
-  --owner-focus: #1d4ed8;
+  --owner-primary-strong: #1c4632;
+  --owner-highlight: #f2f6f0;
+  --owner-focus: #285b43;
   --owner-success-bg: #dcfce7;
   --owner-success-fg: #166534;
   --owner-warning-bg: #fef3c7;
   --owner-warning-fg: #92400e;
   --owner-danger-bg: #fee2e2;
   --owner-danger-fg: #991b1b;
-  --owner-sim-bg: #f1f5f9;
-  --owner-sim-fg: #334155;
-  --owner-sim-border: #94a3b8;
+  --owner-sim-bg: #f0f3ed;
+  --owner-sim-fg: #3d4a42;
+  --owner-sim-border: #849182;
 
   --font-body: var(--font-owner), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-owner-mono), ui-monospace, monospace;

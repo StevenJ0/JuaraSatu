@@ -2,12 +2,12 @@ Biru tenang untuk platform preorder UMKM: dashboard pemilik, wizard AI Campaign 
 
 ## Prinsip
 - Biru untuk aksi, bukan dekorasi. `primary` hanya untuk satu tombol utama per layar, isi progress kapasitas, tautan, dan menu aktif. Sisanya `surface`, `canvas`, dan `ink`.
-- Status pakai warna semantik, bukan biru. Setiap badge selalu memuat kata, tidak hanya warna.
+- Status pakai warna semantik, bukan hijau brand. Setiap badge selalu memuat kata, tidak hanya warna.
 - Bedakan sumber angka: Saran AI, hasil simulasi, data tercatat, dan biaya estimasi selalu diberi label berbeda.
 - Ringkasan dulu, detail kemudian. Kartu KPI dan daftar tindakan di atas, tabel di bawah.
 
 ## Token warna (tema terang)
-canvas #f8fafc · surface #ffffff · surface-sunken #f1f5f9 · border #e2e8f0 · ink #0f172a · ink-muted #5b6577 · primary #2563eb · on-primary #ffffff · primary-strong #1e3a8a · primary-soft #dbeafe · highlight #eff6ff · focus #1d4ed8
+canvas #f8f9f5 · surface #ffffff · surface-sunken #f0f3ed · border #dce2d9 · ink #24392f · ink-muted #59665d · primary #285b43 · on-primary #ffffff · primary-strong #1c4632 · primary-soft #e6eee5 · highlight #f2f6f0 · focus #285b43 (hijau landing)
 success-bg #dcfce7 / success-fg #166534 · warning-bg #fef3c7 / warning-fg #92400e · danger-bg #fee2e2 / danger-fg #991b1b
 ai-bg #e0f2fe / ai-fg #075985 · sim-bg #f1f5f9 / sim-fg #334155 / sim-border #94a3b8 (garis putus-putus)
 

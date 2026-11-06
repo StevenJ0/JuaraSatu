@@ -18,7 +18,7 @@ export function PreorderPhone({ titleId }: { titleId: string }) {
       <div className={styles.phoneFrame}>
         <div className={styles.phoneHardware} aria-hidden="true"><span /><i /></div>
         <div className={styles.orderSheet}>
-          <div className={styles.deviceToolbar}><span>Campaign Lab</span><span>Contoh preorder</span></div>
+          <div className={styles.deviceToolbar}><span>Juara Satu</span><span>Contoh preorder</span></div>
           <div className={styles.productIdentity}>
             <div className={styles.productIllustration}><ShirtIllustration /></div>
             <div><p className={styles.productType}>Satu jenis produk</p><h2 id={titleId}>{demo.product}</h2><p>Satu jadwal pengambilan</p><strong>{rupiah(demo.basePrice)}<small> / unit</small></strong></div>

@@ -1,6 +1,7 @@
 const IDR_FORMAT = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
 
-export function formatIdr(value: number): string {
+/** `bigint` untuk total lintas pesanan yang bisa melewati batas aman Number. */
+export function formatIdr(value: number | bigint): string {
   return `Rp${IDR_FORMAT.format(value)}`;
 }
 

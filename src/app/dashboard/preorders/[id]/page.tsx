@@ -14,6 +14,8 @@ import { formatIdr } from "@/lib/format-idr";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDateOnly, formatWibDateTime } from "@/lib/wib-time";
 import { getCurrentBusinessProfile } from "@/features/business/guard";
+import { CampaignResults } from "@/features/campaign-results/components/campaign-results";
+import { listPreorderCampaignResults } from "@/features/campaign-results/repository";
 import { CapacityUsage } from "@/features/capacity/components/capacity-usage";
 import { listPreorderOrders } from "@/features/orders/repository";
 import { cancelPreorderDraftAction, cancelPublishedPreorderAction, completePreorderAction, publishPreorderAction } from "@/features/preorders/actions";
@@ -217,10 +219,12 @@ export default async function PreorderDetailPage({ params, searchParams }: PageP
   const supabase = await createSupabaseServerClient();
   const preorder = await findPreorder(supabase, business.id, preorderId.data);
   if (!preorder) notFound();
-  const [product, orders, closeNote] = await Promise.all([
+  const [product, orders, closeNote, campaignResults] = await Promise.all([
     findProduct(supabase, business.id, preorder.productId),
     listPreorderOrders(supabase, business.id, preorder.id),
     preorder.status === "closed" || preorder.status === "completed" ? findPreorderCloseNote(supabase, business.id, preorder.id) : null,
+    // Hasil kampanye hanya pelengkap. Bila gagal dibaca, halaman preorder tetap tampil dengan pemberitahuan.
+    preorder.status === "draft" ? [] : listPreorderCampaignResults(supabase, business.id, preorder.id).catch(() => null),
   ]);
 
   const savedMessage = SAVED_NOTICES.get(saved);
@@ -262,6 +266,14 @@ export default async function PreorderDetailPage({ params, searchParams }: PageP
             )}
           </Card>
         </>
+      )}
+
+      {campaignResults === null ? (
+        <Card>
+          <p className="text-base text-muted">Hasil kampanye belum dapat dimuat. Muat ulang halaman beberapa saat lagi.</p>
+        </Card>
+      ) : (
+        <CampaignResults results={campaignResults} preorderSlug={preorder.slug} />
       )}
 
       <PreorderActions preorder={preorder} hasOrders={orders.length > 0} closeNote={closeNote} />

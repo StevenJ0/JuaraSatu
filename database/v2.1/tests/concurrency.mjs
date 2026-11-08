@@ -42,7 +42,7 @@ export async function runConcurrency(sql, connection) {
   sql(`INSERT INTO public.job_runs(job_type,business_id,dedupe_key,status,attempt_count,next_run_at)
     VALUES('expire','${business}','race-job-1','queued',0,now()),('expire','${business}','race-job-2','queued',0,now());`);
   const workers = await Promise.all([0, 1].map(() => connection(`BEGIN; SET ROLE service_role; SET request.jwt.claim.role='service_role';
-    SELECT to_jsonb(j) FROM public.claim_jobs(1,60,5) j; SELECT pg_sleep(0.4); COMMIT;`)));
+    SELECT jsonb_array_elements(public.claim_jobs(ARRAY['expire']::text[],1,60)); SELECT pg_sleep(0.4); COMMIT;`)));
   for (const result of workers) assert.equal(result.code, 0, result.stderr);
   const jobIds = workers.map((result) => JSON.parse(result.stdout.split(/\r?\n/).find((line) => line.startsWith("{"))).id);
   assert.equal(new Set(jobIds).size, 2);

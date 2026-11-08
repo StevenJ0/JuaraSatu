@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { positiveUnits } from "@/features/preorders/schemas";
 import { parseIdr } from "@/features/products/schemas";
+import { MAX_MONEY_IDR } from "@/features/pricing/contracts";
 
 const CUSTOMER_NAME_MAX = 160;
 const CUSTOMER_EMAIL_MAX = 254;
@@ -70,7 +71,7 @@ export const publicOrderSchema = z.object({
   customerEmail: requiredEmail,
   customerContact,
   quantity: z.number().int().min(1).max(10_000),
-  expectedUnitPriceIdr: z.number().int().positive(),
+  expectedUnitPriceIdr: z.number().int().positive().max(MAX_MONEY_IDR),
   /** Referensi tautan kampanye. Hanya mencatat asal pesanan, tidak mengubah harga. */
   attributionRef: z.string().trim().min(1).max(200).nullable().default(null),
 });

@@ -34,11 +34,17 @@ async function boundary(request: Request) {
   const workflow = blueprintWorkflow(repository, { loadContext, now,
     provider: (scenario) => configuredBlueprintProvider(scenario, process.env),
     approvalEnabled: process.env.CAMPAIGN_BLUEPRINT_APPROVAL === "synthetic" });
-  return { owner, repository, workflow, loadContext };
+  return { owner, repository, workflow, loadContext, ownerMode: false, checkOrigin: checkWriteOrigin };
 }
 export async function blueprintGet(request: Request) {
+  return blueprintGetFor(request, boundary);
+}
+export function createBlueprintHandlers(bind: typeof boundary) {
+  return { GET: (request: Request) => blueprintGetFor(request, bind), POST: (request: Request) => blueprintPostFor(request, bind) };
+}
+async function blueprintGetFor(request: Request, bind: typeof boundary) {
   try {
-    const bound = await boundary(request); const url = new URL(request.url);
+    const bound = await bind(request); const url = new URL(request.url);
     if (url.searchParams.has("sessionId")) {
       const sessionId = z.uuid().parse(url.searchParams.get("sessionId")); const scope = await ownedSession(bound.owner, sessionId);
       let currentHash: string | null = null;
@@ -58,10 +64,21 @@ const ActionSchema = z.discriminatedUnion("action", [
   ApproveBlueprintCommandSchema.extend({ action: z.literal("approve") }),
 ]);
 export async function blueprintPost(request: Request) {
+  return blueprintPostFor(request, boundary);
+}
+async function blueprintPostFor(request: Request, bind: typeof boundary) {
   try {
-    const bound = await boundary(request); checkWriteOrigin(request);
+    const bound = await bind(request); bound.checkOrigin(request);
     const raw = ActionSchema.parse(await readDiscussionBody(request, 65536));
     const { action, ...command } = raw;
+    if (bound.ownerMode && "scenario" in command && command.scenario !== "valid") throw new BlueprintError("FAKE_SCENARIO_DISABLED", 400);
+    if (bound.ownerMode && action === "create" && "selection" in command) {
+      const source = await bound.repository.selection(command.selection);
+      const existing = z.array(z.object({ id: z.uuid() })).parse(await bound.owner.user.select("campaigns", {
+        select: "id", business_id: `eq.${bound.owner.businessId}`, preorder_id: `eq.${source.proposal.preorderId}`,
+        status: "in.(draft,published)", limit: "1" }));
+      if (existing[0] && existing[0].id !== command.campaignId) throw new BlueprintError("CAMPAIGN_EXISTS", 409);
+    }
     const result = action === "create" ? await bound.workflow.create(command) : action === "revise" ? await bound.workflow.revise(command) : await bound.workflow.approve(command);
     return Response.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (error) { return errorResponse(error); }

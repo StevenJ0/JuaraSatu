@@ -65,6 +65,9 @@ export function validateBlueprint(blueprintInput: unknown, contextInput: BuildBu
     discountBps: blueprint.offer.discountBps, budgetCapIdr: blueprint.budgetCapIdr, targetAdditionalUnits: blueprint.targetAdditionalUnits,
     startsAt: blueprint.executionWindow.startsAt, endsAt: blueprint.executionWindow.endsAt, channels: blueprint.channels, notes: blueprint.revision.notes };
   const facts = validateBlueprintOffer(edits, contextInput, now);
+  if (blueprint.synthetic !== (facts.context.metadata.sources.c1.provenance === "development_fixture")) {
+    throw new BlueprintError("INVALID_PROVENANCE");
+  }
   if (blueprint.businessId !== facts.context.business.businessId || blueprint.preorderId !== facts.context.preorder.preorderId ||
     blueprint.contextHash !== facts.context.contextHash) throw new BlueprintError("STALE_CONTEXT");
   const current = facts.context.metadata.sources.c1;

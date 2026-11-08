@@ -8,7 +8,7 @@
 **Auth:** Supabase Auth  
 **Vector Database:** pgvector — 768 dimensions  
 **Architecture:** Next.js Modular Monolith  
-**Status:** TARGET SCHEMA — NOT YET IMPLEMENTED
+**Status:** Kontrak kolom terverifikasi pada PostgreSQL disposable dari 14 root migrations sampai `20261108090000` (8 November 2026). Aturan produk di bawah tetap memerlukan verifikasi implementasi per fitur; ini bukan bukti deployment atau kesiapan produksi. Lihat addendum §29–30.
 
 ---
 
@@ -200,6 +200,7 @@ Menyimpan informasi bisnis UMKM.
 | name | varchar(120) | NOT NULL |
 | slug | varchar(140) | NOT NULL, UNIQUE |
 | category | varchar(80) | NOT NULL |
+| categories | text[] | NOT NULL |
 | description | text | NULLABLE |
 | public_contact | varchar(120) | NULLABLE |
 | pickup_instructions | text | NOT NULL |
@@ -214,6 +215,7 @@ Rules:
 - Informasi rekening bank tidak disimpan.
 - Kontak publik hanya ditampilkan berdasarkan persetujuan owner.
 - Setiap bisnis memiliki satu owner pada MVP.
+- `categories` tidak mempunyai column default. CHECK `businesses_categories_valid` memerlukan array satu dimensi berisi 1–3 label non-NULL; panjang label setelah trim 1–80, unik tanpa membedakan kapital/spasi tepi. Tidak ada enum kategori database. Migration `20261106160000_core_preorder_on_v21.sql` membackfill array dari `category`, lalu menetapkan NOT NULL. Trigger `business_category_sync` mengisi array dari legacy category bila NULL dan menyinkronkan `category` ke 80 karakter pertama elemen pertama. Generated Insert tetap memerlukan kedua kolom karena generator mengikuti column defaults/nullability, bukan efek trigger.
 
 ## 4.3 `business_members`
 
@@ -358,7 +360,7 @@ Menyimpan event preorder yang dibuat UMKM.
 | business_id | uuid | FK businesses |
 | name | varchar(160) | NOT NULL |
 | slug | varchar(160) | UNIQUE |
-| status | text | NOT NULL |
+| status | text | NOT NULL, DEFAULT draft |
 | fulfillment_date | date | NOT NULL |
 | starts_at | timestamptz | NOT NULL |
 | ends_at | timestamptz | NOT NULL |
@@ -1029,7 +1031,7 @@ Menyimpan payment attempts Midtrans Sandbox.
 | id | uuid | PK |
 | business_id | uuid | FK businesses |
 | order_id | uuid | FK orders |
-| provider | text | midtrans_sandbox |
+| provider | text | NOT NULL, DEFAULT midtrans_sandbox |
 | provider_order_id | text | UNIQUE |
 | provider_transaction_id | text | UNIQUE, NULLABLE |
 | attempt_number | integer | NOT NULL |
@@ -1508,9 +1510,9 @@ Menangani pekerjaan persisten yang aman terhadap retry.
 | entity_id | uuid | NULLABLE |
 | business_id | uuid | NULLABLE |
 | dedupe_key | text | NOT NULL |
-| status | text | NOT NULL |
-| attempt_count | integer | NOT NULL |
-| next_run_at | timestamptz | NOT NULL |
+| status | text | NOT NULL, DEFAULT queued |
+| attempt_count | integer | NOT NULL, DEFAULT 0 |
+| next_run_at | timestamptz | NOT NULL, DEFAULT now() |
 | locked_until | timestamptz | NULLABLE |
 | last_error_code | text | NULLABLE |
 | provider_reference | text | NULLABLE |
@@ -1608,7 +1610,7 @@ Audit generik untuk domain event penting.
 | actor_type | text | NOT NULL |
 | actor_user_id | uuid | NULLABLE |
 | safe_details_json | jsonb | NULLABLE |
-| occurred_at | timestamptz | NOT NULL |
+| occurred_at | timestamptz | NOT NULL, DEFAULT now() |
 
 Rules:
 
@@ -2155,8 +2157,9 @@ Dokumen acuan:
 1. `Campaign_Lab_PRD_v2_1.md`
 2. `AGENTS.md`
 3. `docs/database-rules.md`
-4. `supabase/migrations/20261030210000_initial_schema.sql`
-5. `supabase/migrations/20261030225000_add_campaign_memory_and_calendar_contents.sql`
+4. `database/legacy/migrations/20261030210000_initial_schema.sql` (historis, bukan chain aktif)
+5. `database/legacy/migrations/20261030225000_add_campaign_memory_and_calendar_contents.sql` (historis)
+6. `supabase/migrations/20261103000000_initial_v21.sql` dan migration additive root sampai `20261107110000` (chain aktif)
 
 PRD merupakan acuan target produk.
 
@@ -2195,3 +2198,35 @@ Tugas Slice 8B pada 4 November 2026 secara eksplisit mengizinkan perubahan RPC/g
 - `match_campaign_memories` tetap SECURITY INVOKER owner-scoped dengan filter tenant/approved/ready/model/profile/version sebelum ranking. Aplikasi tetap memerlukan source attestation tepercaya; belum ada approved production RAG dari completion sintetis.
 
 Kontrak, batas uji disposable versus aplikasi aktif, status provider nyata dan QA: [Slice 8B](../src/features/business-memory/SLICE_8B.md). Hasil uji legacy tetap dicatat pada migration contract asalnya, bukan dianggap izin approval sintetis pada kontrak baru.
+
+---
+
+# 29. Kontrak pascamerge — A1/A2/A3 dan sinkronisasi A5
+
+Root `supabase/migrations/` adalah chain aktif, berbeda dari snapshot `database/v2.1/supabase/migrations/` dan `database/legacy/migrations/`. Verifikasi A5 memakai database baru disposable; deployment A1/A2/A3 ke persistent local/remote **belum dilakukan**. Tidak ada tabel bernama `reservations` atau `payment_attempts`: entitas aktual ialah `capacity_reservations` dan `payments` (satu row per payment attempt).
+
+| Area | Kontrak aktual |
+|---|---|
+| Publikasi preorder, A3 | `publish_preorder(uuid,integer) → void` tetap authenticated-only dan derive business dari sesi. `publish_preorder(uuid,uuid,integer,uuid DEFAULT NULL) → preorders` tetap mendukung owner dan service dengan explicit owner actor. Keduanya memanggil private canonical primitive dengan version/draft/product/schedule/remaining-capacity guards. Pickup snapshot wajib berisi `pickup_instructions: string`, `public_contact: string atau null`, `intake_cutoff_at: string`, `fulfillment_window_end_at: string`. Harga/nama/SKU dibekukan pada preorder_items, tanggal/window pada preorders. Row lama tidak dibackfill otomatis. |
+| Generic job claim, A2 | `claim_jobs(text[],integer,integer) → jsonb` service-only, menerima hanya expire/reconcile/send_paid_email, limit 1–100, lease 1–3600 detik, maksimum 5 attempt; validation sebelum mutation, scoped exhaustion dan SKIP LOCKED. Legacy `claim_jobs(integer DEFAULT 10,integer DEFAULT 60,integer DEFAULT 5) → SETOF job_runs` mempertahankan signature tetapi selalu menolak dengan TYPED_JOB_CLAIM_REQUIRED untuk service call. |
+| Generic ACK, A1 | `complete_job(uuid,integer,text DEFAULT NULL) → boolean`, `fail_job(uuid,integer,text,text DEFAULT NULL) → text` service-only; menolak embed_memory dan memerlukan running/current attempt/live lease sesudah lock. Stale/missing menghasilkan false/NULL; failure memakai retry 1/5/15/60 menit dan dead pada attempt kelima. |
+| Memory | embed_memory memakai dedicated claim dan atomic indexing §28. Public synthetic approval tetap dilarang; vector-only legacy completion tidak mempunyai service EXECUTE. Private helpers bukan application RPC meskipun ada di catalog. |
+| Payment persistence | Canonical core `apply_verified_payment(text,text,text,text,text,bigint,timestamptz) → jsonb` memakai parameter provider_order_id/event_key/payload_hash/status/transaction_id/amount_idr/paid_at dengan prefix `p_`. Legacy overload tetap ada; caller tidak boleh menyamakan signature/return. `payments` menyimpan attempt/provider facts, `payment_events` dedupe event, dan verified apply mengalokasikan hold serta enqueue email atomik. Keberadaan RPC bukan bukti callback/provider autentik telah terintegrasi. |
+| AI claims/admission | `admit_ai_generation` service-only menggabungkan durable identity dan tiga allowance secara atomik. Generation replay tidak mengulang inference/charge; nullable context/session/generation fields bergantung generation_type. Evaluation/Memory source authority C6/C7 tetap terbatas seperti §27–28. CHECK bukan enum PostgreSQL; generated field string tidak menggantikan runtime validation. |
+
+Type contract di `src/lib/supabase/database.types.ts` harus dihasilkan/diverifikasi dari final public schema dengan seluruh overload, defaults, FK dan nullability. Metadata generation tidak memberi izin EXECUTE; RLS/grants tetap sumber otorisasi. Layer 1 dan parser/type tests tidak membuktikan PostgREST overload resolution atau Supabase Auth/Storage HTTP.
+
+Postgres-meta menghasilkan SQL void sebagai TypeScript `undefined`, JSON/JSONB sebagai `Json`, vector sebagai string dan CHECK-based status sebagai string. Ia tidak dapat menyimpulkan argumen/return NULL kondisional dari function body. Typed transport mempertahankan alias type-only untuk nullable initial Evaluation CAS token dan enam nullable context fields AI admission, sesuai SQL. Return stale `fail_job=NULL` tetap diperiksa parser runtime; generated metadata saja tidak menggantikan guard/validation tersebut.
+
+---
+
+# 30. A6-F1 — Financial bounds dan owner CAS (8 November 2026)
+
+Migration forward-only `20261108090000_financial_bounds_owner_cas.sql` mengikuti A3 sebagai migration root ke14. Tidak menambah tabel/kolom/RPC publik, mengubah ACL/RLS, atau memperbarui data historis. Kontrak public metadata A5 tetap26tabel/352kolom/50signature; penerapan pada database persisten memerlukan rollout tersendiri. Bukti pengujian dicatat pada laporan QA A6-F1.
+
+- Seluruh pembuatan order manual preorder, standalone manual, dan public memakai `private.insert_order`. Harga dasar/unit wajib1..1.000.000.000 IDR, quantity1..10.000, diskon0..9999bps, dan **subtotal sebelum diskon** maksimal1.000.000.000. Nilai di atas batas ditolak dengan `VALIDATION_ERROR` (P0001), tidak dipotong. Perkalian pemeriksaan memakai numeric sebelum arithmetic bigint atau insert. Unit variable-cost snapshot yang diketahui tetap0..1.000.000.000; NULL tetap berarti unknown.
+- `private.discount_per_unit` mempertahankan floor per unit lalu dikalikan quantity. Bound subtotal juga membatasi discount total/final total. Diskon valid tidak membuat subtotal di atas batas menjadi sah walaupun final totalnya lebih rendah. Harga unit expected dari client tetap advisory; SQL yang menghitung harga. Penolakan membatalkan seluruh transaksi, termasuk reservation/version/event; tidak ada backfill atau validasi ulang seluruh historical rows.
+- `private.lock_owned_preorder` mewajibkan expected version nonNULL, positif dan sama dengan versi row milik owner, dengan `PREORDER_VERSION_CONFLICT`. Ini berlaku untuk update draft, cancellation, close/complete yang memakai helper; create draft baru boleh memakai NULL karena belum ada row/version. Publikasi A3 tetap memakai guard kanonisnya sendiri.
+- `private.lock_order` mewajibkan versi valid/matching untuk jalur owner: fulfillment, late accept/decline, cancellation, cost resolution dan owner expiry. Rejection memakai `VERSION_CONFLICT`; scope ownership diperiksa sebelum konflik versi. Tidak ada perubahan signature/default/return/owner/security/search_path/grant publik.
+- Pengecualian NULL hanya bagi expiry internal tanpa business scope, `auth.uid()` NULL, JWT role service_role **dan database request role aktual service_role**. Helper private tetap tidak executable langsung oleh application roles. Mengirim business/user/role palsu tidak menyediakan jalur owner tanpa CAS. Service cancellation tetap ditolak oleh boundary cancellation existing; service tidak mendapat hak RPC owner-only.
+- F1 membatasi harga/transaksi order baru, bukan mengubah seluruh financial ledger aplikasi. Tidak menyelesaikan deadline settlement A6-09, lock-order U01, historical pickup snapshots atau integrasi C1/C8/C6/C7.

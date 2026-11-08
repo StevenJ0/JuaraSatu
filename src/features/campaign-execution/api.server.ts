@@ -18,7 +18,7 @@ async function boundary(request: Request) {
   const source = blueprintRepository(owner.user, privilegedTransport, owner); const seeded = seededDevelopmentContext(owner.user, process.env, now);
   const service = campaignExecutionService(repository, { now, publishingEnabled: true, selection: source.selection, databaseError: executionDatabaseError,
     loadContext: async (scope) => { try { return await seeded(scope); } catch { throw new CampaignExecutionError("CONTEXT_UNAVAILABLE", 503); } } });
-  return { owner, now, repository, service };
+  return { owner, now, repository, service, ownerMode: false, checkOrigin: checkWriteOrigin };
 }
 function response(body: unknown, status = 200) { return Response.json(body, { status, headers: { "Cache-Control": "no-store" } }); }
 function failure(error: unknown): Response {
@@ -30,19 +30,29 @@ function failure(error: unknown): Response {
   return discussionApiError(error);
 }
 export async function executionGet(request: Request) {
+  return executionGetFor(request, boundary);
+}
+export function createExecutionHandlers(bind: typeof boundary) {
+  return { GET: (request: Request) => executionGetFor(request, bind), POST: (request: Request) => executionPostFor(request, bind) };
+}
+async function executionGetFor(request: Request, bind: typeof boundary) {
   try {
-    const bound = await boundary(request); const url = new URL(request.url);
+    const bound = await bind(request); const url = new URL(request.url);
     if (url.searchParams.has("campaignId")) return response(await bound.service.view(z.uuid().parse(url.searchParams.get("campaignId"))));
     if (url.searchParams.has("preorderId")) return response(await readPublishedOffer(bound.repository, { businessId: bound.owner.businessId, preorderId: z.uuid().parse(url.searchParams.get("preorderId")) }, bound.now()));
-    return response({ campaigns: await bound.repository.list(), synthetic: true });
+    return response({ campaigns: await bound.repository.list(), synthetic: !bound.ownerMode });
   } catch (error) { return failure(error); }
 }
 const ActionSchema = z.discriminatedUnion("action", [PublishCampaignCommandSchema.extend({ action: z.literal("publish") }),
   CloseCampaignCommandSchema.extend({ action: z.literal("close") }), TaskCommandSchema.extend({ action: z.literal("task") })]);
 export async function executionPost(request: Request) {
+  return executionPostFor(request, boundary);
+}
+async function executionPostFor(request: Request, bind: typeof boundary) {
   try {
-    const bound = await boundary(request); checkWriteOrigin(request);
+    const bound = await bind(request); bound.checkOrigin(request);
     const { action, ...body } = ActionSchema.parse(await readDiscussionBody(request));
+    if (bound.ownerMode && action === "publish") throw new CampaignExecutionError("C8_NOT_READY", 409);
     return response(action === "publish" ? await bound.service.publish(body) : action === "close" ? await bound.service.close(body) : await bound.service.task(body));
   } catch (error) { return failure(error); }
 }

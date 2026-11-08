@@ -6,7 +6,7 @@ import { ExecutionViewSchema, LifecycleCampaignSchema, type ExecutionView } from
 import "../../campaign-strategist/components/discussion.css";
 import "./execution.css";
 
-const ListSchema = z.object({ campaigns: z.array(LifecycleCampaignSchema), synthetic: z.literal(true) });
+const ListSchema = z.object({ campaigns: z.array(LifecycleCampaignSchema), synthetic: z.boolean() });
 const time = (value: string) => new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 const money = (value: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value);
 const labels: Record<string, string> = { completed: "Selesai", overdue: "Terlambat", upcoming: "Akan datang" };
@@ -29,14 +29,15 @@ const errors: Record<string, string> = {
   DISCOUNT_POLICY_BLOCKER: "Diskon tidak memenuhi kebijakan biaya dan kontribusi. Publikasi diblokir.",
   CLIPBOARD_UNAVAILABLE: "Browser belum mengizinkan clipboard. Pilih teks caption lalu salin secara manual.",
 };
-async function api(query = "", body?: unknown) {
-  const response = await fetch(`/api/dev/campaigns${query}`, { method: body ? "POST" : "GET", cache: "no-store",
+async function api(base: string, query = "", body?: unknown) {
+  const response = await fetch(`${base}${query}`, { method: body ? "POST" : "GET", cache: "no-store",
     headers: { "Content-Type": "application/json" }, ...(body ? { body: JSON.stringify(body) } : {}) });
   const raw: unknown = await response.json();
   if (!response.ok) { const parsed = z.object({ code: z.string() }).safeParse(raw); throw new Error(parsed.success ? parsed.data.code : "PERSISTENCE_UNAVAILABLE"); }
   return raw;
 }
-export function ExecutionWorkspace() {
+export function ExecutionWorkspace({ owner = false }: { owner?: boolean }) {
+  const call = useCallback((query = "", body?: unknown) => api(owner ? "/api/owner/campaigns" : "/api/dev/campaigns", query, body), [owner]);
   const [campaigns, setCampaigns] = useState<z.infer<typeof ListSchema>["campaigns"]>([]);
   const [view, setView] = useState<ExecutionView | null>(null); const [busy, setBusy] = useState(false);
   const [error, setError] = useState(""); const [notice, setNotice] = useState(""); const [publishConfirm, setPublishConfirm] = useState(false); const [closeConfirm, setCloseConfirm] = useState(false);
@@ -44,28 +45,29 @@ export function ExecutionWorkspace() {
   const failed = useCallback((value: unknown) => { const code = value instanceof Error ? value.message : "PERSISTENCE_UNAVAILABLE";
     setError(errors[code] ?? "Hasil penyimpanan belum dapat dipastikan. Muat ulang atau ulangi aksi yang sama untuk rekonsiliasi."); }, []);
   const load = useCallback(async (id: string) => {
-    const next = ExecutionViewSchema.parse(await api(`?campaignId=${encodeURIComponent(id)}`)); setView(next); setPublishConfirm(false); setCloseConfirm(false);
+    const next = ExecutionViewSchema.parse(await call(`?campaignId=${encodeURIComponent(id)}`)); setView(next); setPublishConfirm(false); setCloseConfirm(false);
     const url = new URL(location.href); url.searchParams.set("campaignId", id); history.replaceState(null, "", url);
-  }, []);
-  const list = useCallback(async () => { setCampaigns(ListSchema.parse(await api()).campaigns); }, []);
+  }, [call]);
+  const list = useCallback(async () => { setCampaigns(ListSchema.parse(await call()).campaigns); }, [call]);
   useEffect(() => {
     let mounted = true;
-    void api().then(async (raw) => { if (!mounted) return; setCampaigns(ListSchema.parse(raw).campaigns);
+    void call().then(async (raw) => { if (!mounted) return; setCampaigns(ListSchema.parse(raw).campaigns);
       const id = new URL(location.href).searchParams.get("campaignId"); if (id) await load(id);
     }).catch((error: unknown) => { if (mounted) failed(error); });
     return () => { mounted = false; };
-  }, [load, failed]);
+  }, [load, failed, call]);
   async function run(work: () => Promise<void>) {
     if (lock.current) return; lock.current = true; setBusy(true); setError(""); setNotice("");
     try { await work(); } catch (error) { failed(error); } finally { lock.current = false; setBusy(false); }
   }
   async function mutate(body: unknown, message: string) {
-    const saved = ExecutionViewSchema.parse(await api("", body)); await load(saved.campaign.id); await list(); setNotice(saved.replayed ? "Aksi sebelumnya sudah tersimpan; tidak ada perubahan ganda." : message);
+    const saved = ExecutionViewSchema.parse(await call("", body)); await load(saved.campaign.id); await list(); setNotice(saved.replayed ? "Aksi sebelumnya sudah tersimpan; tidak ada perubahan ganda." : message);
   }
   const c = view?.campaign; const bp = view?.blueprint;
-  return <main className="discussion-workspace execution-workspace" lang="id"><div className="discussion-container">
-    <header><Link href="/dev/discussion">Kembali ke diskusi & blueprint</Link><h1>Eksekusi campaign</h1>
-      <p className="discussion-mode">Development sintetis · Auth, publikasi, checklist dan persistence Supabase nyata. Harga C3 belum terhubung ke checkout C8.</p></header>
+  const Root = owner ? "div" : "main";
+  return <Root className="discussion-workspace execution-workspace" lang="id"><div className="discussion-container">
+    <header><Link href={owner ? "/dashboard/campaigns" : "/dev/discussion"}>Kembali ke diskusi & blueprint</Link><h1>Eksekusi campaign</h1>
+      <p className="discussion-mode">{owner ? "Rencana dari preorder usaha Anda. Publikasi untuk pembeli menunggu integrasi C8." : "Development sintetis · Auth, publikasi, checklist dan persistence Supabase nyata. Harga C3 belum terhubung ke checkout C8."}</p></header>
     {error && <p role="alert" className="discussion-error">{error}</p>}{notice && <p role="status">{notice}</p>}
     <div className="discussion-layout"><aside aria-label="Campaign milik Anda"><h2>Campaign tersimpan</h2>
       <button className="discussion-secondary" id="execution-refresh" disabled={busy} onClick={() => void run(async () => { await list(); if (c) await load(c.id); })}>Muat ulang</button>
@@ -76,14 +78,15 @@ export function ExecutionWorkspace() {
       {!view && <p>Pilih campaign tersimpan untuk meninjau kelayakan publikasi dan jadwalnya.</p>}
       {view && c && <>
         <h2>{c.name}</h2><p className="execution-state" data-campaign-state>{c.status} · campaign v{c.version} · blueprint v{bp?.version ?? "—"}</p>
-        {["closed", "completed"].includes(c.status) && <p><Link id="campaign-open-evaluation" href={`/dev/evaluations?campaignId=${c.id}`}>Tinjau KPI, biaya & evaluasi</Link></p>}
+        {!owner && ["closed", "completed"].includes(c.status) && <p><Link id="campaign-open-evaluation" href={`/dev/evaluations?campaignId=${c.id}`}>Tinjau KPI, biaya & evaluasi</Link></p>}
         <p>Periode: {time(c.starts_at)} — {time(c.ends_at)} WIB</p>
         {c.published_at && <p>Dipublikasikan: {time(c.published_at)} WIB{c.closed_at && ` · Ditutup: ${time(c.closed_at)} WIB`}</p>}
         {bp && <p>KPI rencana: {bp.blueprint_json.primaryKpi}, target {bp.blueprint_json.targetAdditionalUnits} unit. Ini target, bukan hasil aktual.</p>}
+        {bp && <p>Anggaran rencana: {money(bp.blueprint_json.budgetCapIdr)}</p>}
         {c.status === "draft" && <div className="execution-action"><h3>Publikasi oleh pemilik</h3>
-          <p>{view.eligibility.eligible ? "Blueprint approved dan fakta terkini lolos pemeriksaan publikasi." : errors[view.eligibility.code ?? ""] ?? "Campaign belum memenuhi syarat publikasi."}</p>
-          <label><input id="campaign-publish-confirm" type="checkbox" checked={publishConfirm} disabled={busy} onChange={(event) => setPublishConfirm(event.target.checked)} /> Saya sudah meninjau versi ini dan ingin mempublikasikan campaign sekarang.</label>
-          <button id="campaign-publish" disabled={busy || !publishConfirm || !view.eligibility.eligible || !bp} onClick={() => void run(async () => {
+          <p>{owner ? "Publikasi untuk pembeli belum tersedia sampai integrasi C8 selesai." : view.eligibility.eligible ? "Blueprint approved dan fakta terkini lolos pemeriksaan publikasi." : errors[view.eligibility.code ?? ""] ?? "Campaign belum memenuhi syarat publikasi."}</p>
+          <label><input id="campaign-publish-confirm" type="checkbox" checked={publishConfirm} disabled={owner || busy} onChange={(event) => setPublishConfirm(event.target.checked)} /> Saya sudah meninjau versi ini dan ingin mempublikasikan campaign sekarang.</label>
+          <button id="campaign-publish" disabled={owner || busy || !publishConfirm || !view.eligibility.eligible || !bp} onClick={() => void run(async () => {
             if (!bp) return; await mutate({ action: "publish", campaignId: c.id, blueprintId: bp.id, expectedBlueprintVersion: bp.version,
               expectedCampaignVersion: c.version, expectedContextHash: bp.context_hash, confirm: true }, "Campaign published dan baseline tersimpan atomik. Checkout belum terintegrasi.");
           })}>Publikasikan campaign</button></div>}
@@ -91,6 +94,7 @@ export function ExecutionWorkspace() {
         {view.c3.configuration && <p>{view.c3.configuration.offer.offerType} · diskon {view.c3.configuration.offer.discountBps / 100}% · harga frozen {money(view.c3.configuration.frozenBaseUnitPriceIdr)} → {money(view.c3.configuration.unitPriceIdr)}</p>}
         <p>Kelayakan C3 adalah input untuk C8. Ketersediaan preorder dan harga checkout tetap perlu diverifikasi oleh integrasi checkout.</p>
         <h3>Progress checklist manual</h3><p data-execution-progress>{view.calendar.progress.completed} dari {view.calendar.progress.total} tugas selesai · {view.calendar.progress.percent}% · {view.calendar.progress.overdue} terlambat</p>
+        {owner && c.status === "draft" && <p>Checklist dapat diperbarui setelah campaign dipublikasikan. Rencana approved ini masih hanya dapat ditinjau sampai C8 tersedia.</p>}
         <progress aria-label="Progress tugas manual" max={100} value={view.calendar.progress.percent} />
         <p>Menandai tugas selesai merupakan konfirmasi pemilik, bukan bukti posting atau keberhasilan penjualan. Jadwal tidak digeser otomatis.</p>
         <h3>Kalender aktivitas · WIB</h3>
@@ -118,5 +122,5 @@ export function ExecutionWorkspace() {
         {c.status === "completed" && <p className="execution-state">Campaign completed. Checklist dan biaya dibekukan; tinjau provenance serta audit penyelesaian pada evaluasi tersimpan.</p>}
       </>}
     </section></div>
-  </div></main>;
+  </div></Root>;
 }

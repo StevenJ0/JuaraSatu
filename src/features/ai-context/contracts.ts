@@ -15,6 +15,7 @@ const ScopeSchema = z.object({ businessId: z.uuid(), preorderId: z.uuid() });
 const BusinessSchema = z.object({
   businessId: z.uuid(), name: z.string().trim().min(1).max(120),
   category: z.string().trim().min(1).max(80),
+  categories: z.array(z.string().trim().min(1).max(80)).min(1).max(3).optional(),
   description: TextSchema.nullable(), locationContext: TextSchema.nullable(),
 });
 const ProductDetailsSchema = z.object({
@@ -46,8 +47,16 @@ const PreorderSchema = z.object({
   path: ["endsAt"], message: "Periode preorder tidak valid.",
 });
 
+const CapacityContextSchema = z.object({
+  capacityId: z.uuid(), version: VersionSchema, totalUnits: UnitsSchema,
+  allocatedUnits: UnitsSchema, heldUnits: UnitsSchema, availableUnits: UnitsSchema,
+}).refine((capacity) => capacity.availableUnits === Math.max(capacity.totalUnits - capacity.allocatedUnits - capacity.heldUnits, 0), {
+  path: ["availableUnits"], message: "Sisa kapasitas harus mengikuti komitmen aktual.",
+});
+
 export const C1ContextSnapshotSchema = z.object({
   business: BusinessSchema, product: ProductSchema, preorder: PreorderSchema, snapshot: SnapshotSchema,
+  capacity: CapacityContextSchema.optional(),
 });
 export const C6ContextSnapshotSchema = ScopeSchema.extend({
   productId: z.uuid(), preorderItemId: z.uuid(),
@@ -145,6 +154,7 @@ const HypotheticalContextSchema = z.object({
 export const CampaignContextV1Schema = z.object({
   schemaVersion: z.literal(1), calculatedAt: z.iso.datetime(), contextHash: z.string().regex(/^[a-f0-9]{64}$/),
   business: BusinessSchema,
+  capacity: CapacityContextSchema.optional(),
   product: ProductDetailsSchema,
   preorder: PreorderSchema.safeExtend({ paidTargetGapUnits: UnitsSchema, isOrderIntakeOpen: z.boolean() }),
   effectiveOffer: C8ContextSnapshotSchema.shape.effectiveOffer,

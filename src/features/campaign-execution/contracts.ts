@@ -42,6 +42,6 @@ export const ExecutionViewSchema = ExecutionSnapshotSchema.extend({ c3: Publishe
     tasks: z.array(ExecutionTaskSchema.extend({ executionStatus: z.enum(["completed", "overdue", "upcoming"]) })) })),
     progress: z.object({ total: z.number().int().min(0).max(12), completed: z.number().int().min(0).max(12), remaining: z.number().int().min(0).max(12),
       percent: z.number().int().min(0).max(100), overdue: z.number().int().min(0).max(12) }) }),
-  eligibility: z.object({ eligible: z.boolean(), code: z.string().nullable() }), calculatedAt: Timestamp, synthetic: z.literal(true), replayed: z.boolean().optional() });
+  eligibility: z.object({ eligible: z.boolean(), code: z.string().nullable() }), calculatedAt: Timestamp, synthetic: z.boolean(), replayed: z.boolean().optional() });
 export type ExecutionView = z.infer<typeof ExecutionViewSchema>;
 export class CampaignExecutionError extends Error { constructor(readonly code: string, readonly status = 409) { super(code); } }

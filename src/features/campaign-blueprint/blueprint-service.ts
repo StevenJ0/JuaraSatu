@@ -32,7 +32,10 @@ export async function generateBlueprint(input: BlueprintInput, dependencies: Blu
   if (facts.edits.plan) plan = facts.edits.plan;
   else try {
     if (!dependencies.provider) throw new BlueprintError("CONFIGURATION_ERROR", 503);
-    const output = await dependencies.provider.generate({ alternative, edits: facts.edits, now });
+    const output = await dependencies.provider.generate({ alternative: { ...alternative,
+      marketingApproach: facts.edits.marketingApproach, offer: facts.offer,
+      assumedAdditionalUnits: facts.edits.targetAdditionalUnits, assumedPromotionCostIdr: facts.edits.budgetCapIdr,
+      computedScenario: facts.calculation }, edits: facts.edits, now });
     if (dependencies.provider.kind === "gemini") {
       const result = GeminiBlueprintResultSchema.parse(output);
       plan = result.plan; provenance = { model: result.model, providerRequestId: result.providerRequestId };
@@ -54,7 +57,8 @@ export async function generateBlueprint(input: BlueprintInput, dependencies: Blu
     assumptions: ["Unit tambahan dan budget promosi adalah asumsi pemilik, bukan prediksi atau penjualan aktual.", "Capacity adalah snapshot, bukan reservasi."],
     revision: { requestId: command.requestId, requestHash, expectedCampaignVersion: command.expectedCampaignVersion,
       parentBlueprintId: command.expectedBlueprintId, parentVersion: command.expectedBlueprintVersion, notes: command.edits.notes },
-    provider: manual ? "manual" : provenance ? "gemini" : "development-fake-blueprint", ...provenance, synthetic: true,
+    provider: manual ? "manual" : provenance ? "gemini" : "development-fake-blueprint", ...provenance,
+    synthetic: facts.context.metadata.sources.c1.provenance === "development_fixture",
   });
   return validateBlueprint(blueprint, await dependencies.loadContext(), dependencies.now());
 }

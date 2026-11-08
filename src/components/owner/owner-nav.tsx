@@ -1,12 +1,13 @@
 "use client";
 
-import { CalendarDays, ClipboardList, LayoutDashboard, Package, ReceiptText, Store } from "lucide-react";
+import { CalendarDays, ClipboardList, LayoutDashboard, Package, ReceiptText, Store, Megaphone } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Ringkasan", icon: LayoutDashboard },
   { href: "/dashboard/preorders", label: "Preorder", icon: ClipboardList },
+  { href: "/dashboard/campaigns", label: "Campaign AI", icon: Megaphone },
   { href: "/dashboard/orders", label: "Pesanan", icon: ReceiptText },
   { href: "/dashboard/products", label: "Produk", icon: Package },
   { href: "/dashboard/capacity", label: "Kapasitas", icon: CalendarDays },
@@ -23,8 +24,7 @@ export function OwnerNav({ className = "" }: { className?: string }) {
 
   return (
     <nav aria-label="Menu utama" className={className}>
-      {/* Enam menu di layar 320px: memakai sebagian jarak tepi agar label terpanjang tetap muat. */}
-      <ul className="grid grid-cols-6 max-[359px]:-mx-2 lg:flex lg:gap-1">
+      <ul className="grid grid-cols-4 sm:grid-cols-7 lg:flex lg:gap-1">
         {NAV_ITEMS.map(({ href, label, icon: NavIcon }) => {
           const active = isActive(pathname, href);
           return (

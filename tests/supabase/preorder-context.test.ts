@@ -73,6 +73,17 @@ function reservation(
   orderCount += 1;
   const { owner, date } = target;
   const amount = quantity * 120000;
+  if (state === "allocated") {
+    // Allocated alone is not paid: use the existing owner-confirmed manual-order contract for this paid fixture.
+    sql(`begin;
+      set local role authenticated;
+      set local request.jwt.claim.role = 'authenticated';
+      set local request.jwt.claim.sub = '${owner.userId}';
+      select public.create_manual_order('${target.id}', ${quantity}, '${BUYER_NAME}', '${BUYER_EMAIL}', '${BUYER_CONTACT}', true,
+        'idem-${stamp}-${orderCount}', '${sha256(`hash-${stamp}-${orderCount}`)}');
+      commit;`);
+    return;
+  }
   // Satu transaksi: cek total pesanan di baseline berjalan saat commit dan butuh item sudah ada.
   const orderId = randomUUID();
   const orderItemId = randomUUID();
@@ -217,9 +228,13 @@ describe("findPreorderContext di database sungguhan", () => {
     expect((await findPreorderContext(A.client, A.businessId, ids.draft))?.preorder.status).toBe("draft");
   });
 
-  it("tidak memuat angka biaya atau data pelanggan", async () => {
-    const text = JSON.stringify(await findPreorderContext(A.client, A.businessId, ids.main));
-    for (const forbidden of FORBIDDEN) expect(text.includes(forbidden), forbidden).toBe(false);
+  it("memuat biaya privat untuk C1 owner tanpa data pelanggan atau token", async () => {
+    const context = await findPreorderContext(A.client, A.businessId, ids.main);
+    expect(context?.product.variableCostIdr).toBe(COST);
+    const text = JSON.stringify(context);
+    for (const forbidden of FORBIDDEN.filter((value) => value !== String(COST) && value !== "variable")) {
+      expect(text.includes(forbidden), forbidden).toBe(false);
+    }
   });
 
   it("usaha lain tidak bisa membaca, walau memalsukan businessId", async () => {

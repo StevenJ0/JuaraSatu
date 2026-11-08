@@ -127,6 +127,10 @@ describe("token dan hash", () => {
 });
 
 describe("placePublicOrder", () => {
+  it("melaporkan penolakan batas nominal SQL sebagai pelanggaran domain", async () => {
+    createPublic.mockRejectedValue(new OrderRepositoryError("createPublicOrder", "P0001", "VALIDATION_ERROR"));
+    await expect(placePublicOrder(client, buyer, 900)).resolves.toEqual({ kind: "rejected", violation: "VALIDATION_ERROR" });
+  });
   it("mengirim hash token, bukan token mentah", async () => {
     createPublic.mockResolvedValue(result);
     await expect(placePublicOrder(client, buyer, 900)).resolves.toEqual({ kind: "ok", value: result });

@@ -14,6 +14,7 @@ export function hashContext(context: Omit<CampaignContextV1, "contextHash">): st
   const { c1, c6, c8 } = context.metadata.sources;
   const facts = {
     schemaVersion: context.schemaVersion,
+    ...(context.capacity ? { capacity: context.capacity } : {}),
     business, product, preorder, effectiveOffer, analytics, hypotheticalScenario,
     history: history.status === "available" ? {...history,memories:history.memories.map(({similarity,...memory})=>{void similarity;return memory;}).sort((a,b)=>a.memoryId.localeCompare(b.memoryId))} : history, constraints,
     sourceVersions: {

@@ -60,7 +60,8 @@ export function campaignExecutionService(repository: ExecutionRepository, depend
     }
     if (snapshot.blueprint?.approval_status === "approved") assertMaterializedPlan(snapshot);
     return { ...snapshot, calendar: executionCalendar(snapshot.tasks, now), eligibility,
-      c3: projectPublishedOffer(scope(snapshot), snapshot.campaign.published_at ? snapshot : null, now), calculatedAt: now, synthetic: true as const };
+      c3: projectPublishedOffer(scope(snapshot), snapshot.campaign.published_at ? snapshot : null, now), calculatedAt: now,
+      synthetic: snapshot.blueprint?.blueprint_json.synthetic ?? true };
   }
   return { view,
     async publish(input: unknown) {

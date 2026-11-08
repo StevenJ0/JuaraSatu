@@ -34,7 +34,9 @@ export function buildStrategyPrompt(context: CampaignContextV1, discussion: Disc
   const data = {
     contextBinding: { contextHash: context.contextHash, calculatedAt: context.calculatedAt,
       sourceVersions: context.metadata.sources },
-    authoritativeFacts: { business: { businessId, category: redact(category) },
+    authoritativeFacts: { business: { businessId, category: redact(category),
+      ...(context.business.categories ? { categories: context.business.categories.map(redact) } : {}) },
+      ...(context.capacity ? { capacity: context.capacity } : {}),
       product: { productId, variableCostIdr, costQuality }, preorder: preorderFacts,
       effectiveOffer: context.effectiveOffer, analytics: context.analytics, constraints: context.constraints },
     hypotheticalScenario: context.hypotheticalScenario,

@@ -145,8 +145,10 @@ describe("toPreorderContext", () => {
   it("memisahkan dibayar, terpakai, ditahan, sisa, dan selisih target", () => {
     const context = toPreorderContext(
       preorder,
-      { name: "Toko Contoh", categories: ["Fashion"], description: null },
-      { description: null, costQuality: "estimated", isActive: true },
+      { id: "business-1", name: "Toko Contoh", categories: ["Fashion"], description: null },
+      { description: null, costQuality: "estimated", isActive: true, variableCostIdr: 75000, catalogPriceIdr: 130000, version: 2 },
+      { itemId: "item-1", itemVersion: 2, capacity: { id: "capacity-1", version: 4, totalUnits: 60,
+        availability: { allocated: 30, effectiveHeld: 2, available: 28 } } },
       now,
     );
 
@@ -156,13 +158,16 @@ describe("toPreorderContext", () => {
     expect(context.asOf).toBe(now.toISOString());
   });
 
-  it("tidak membawa data di luar daftar walau masukannya memuat biaya", () => {
-    const business = { name: "Toko Contoh", categories: [], description: null, publicContact: "0812" };
-    const product = { description: null, costQuality: "verified" as const, isActive: true, variableCostIdr: 75000 };
+  it("projection owner membawa biaya yang disetujui untuk C1 tanpa kontak privat atau field publik lain", () => {
+    const business = { id: "business-1", name: "Toko Contoh", categories: [], description: null, publicContact: "0812" };
+    const product = { description: null, costQuality: "verified" as const, isActive: true, variableCostIdr: 75000,
+      catalogPriceIdr: 130000, version: 2 };
 
-    const context = toPreorderContext(preorder, business, product, now);
+    const context = toPreorderContext(preorder, business, product, { itemId: "item-1", itemVersion: 2,
+      capacity: { id: "capacity-1", version: 4, totalUnits: 60, availability: { allocated: 30, effectiveHeld: 2, available: 28 } } }, now);
 
     const text = JSON.stringify(context);
-    for (const forbidden of ["75000", "0812", "slug", "frozenTerms"]) expect(text).not.toContain(forbidden);
+    expect(context.product.variableCostIdr).toBe(75000);
+    for (const forbidden of ["0812", "slug", "frozenTerms"]) expect(text).not.toContain(forbidden);
   });
 });

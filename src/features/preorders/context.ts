@@ -1,4 +1,5 @@
 import type { CostQuality } from "@/features/products/schemas";
+import type { CapacityAvailability } from "@/features/capacity/availability";
 import type { Preorder } from "@/features/preorders/repository";
 
 /**
@@ -81,12 +82,16 @@ export function toPublicPreorder(
   };
 }
 
-/** Untuk fitur AI di sisi pemilik. Angka biaya sengaja tidak ikut, hanya kualitasnya, sampai disepakati dengan pemilik modul AI. */
+/** Projection C1 privat untuk owner; tidak digunakan oleh halaman publik. */
 export type PreorderContext = {
-  business: { name: string; categories: string[]; description: string | null };
-  product: { id: string; name: string; description: string | null; basePriceIdr: number; costQuality: CostQuality; isActive: boolean };
+  business: { id: string; name: string; categories: string[]; description: string | null };
+  product: { id: string; name: string; description: string | null; basePriceIdr: number; catalogPriceIdr: number;
+    variableCostIdr: number | null; costQuality: CostQuality; isActive: boolean; version: number };
+  capacity: { id: string; version: number; totalUnits: number; availability: CapacityAvailability };
   preorder: {
     id: string;
+    itemId: string;
+    itemVersion: number;
     name: string;
     status: Preorder["status"];
     fulfillmentDate: string;
@@ -105,11 +110,12 @@ export type PreorderContext = {
 export function toPreorderContext(
   preorder: Preorder,
   business: PreorderContext["business"],
-  product: Pick<PreorderContext["product"], "description" | "costQuality" | "isActive">,
+  product: Pick<PreorderContext["product"], "description" | "costQuality" | "isActive" | "variableCostIdr" | "catalogPriceIdr" | "version">,
+  source: { itemId: string; itemVersion: number; capacity: PreorderContext["capacity"] },
   now: Date,
 ): PreorderContext {
   return {
-    business: { name: business.name, categories: business.categories, description: business.description },
+    business: { id: business.id, name: business.name, categories: business.categories, description: business.description },
     product: {
       id: preorder.productId,
       name: preorder.productName,
@@ -117,9 +123,15 @@ export function toPreorderContext(
       basePriceIdr: preorder.basePriceIdr,
       costQuality: product.costQuality,
       isActive: product.isActive,
+      variableCostIdr: product.variableCostIdr,
+      catalogPriceIdr: product.catalogPriceIdr,
+      version: product.version,
     },
+    capacity: source.capacity,
     preorder: {
       id: preorder.id,
+      itemId: source.itemId,
+      itemVersion: source.itemVersion,
       name: preorder.name,
       status: preorder.status,
       fulfillmentDate: preorder.fulfillmentDate,

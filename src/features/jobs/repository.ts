@@ -16,7 +16,7 @@ function fail(operation: string, error: PostgrestError): never {
   throw new JobRepositoryError(operation, error.code);
 }
 
-export const JOB_TYPES = ["expire", "reconcile", "embed_memory", "send_paid_email"] as const;
+export const JOB_TYPES = ["expire", "reconcile", "send_paid_email"] as const;
 export type JobType = (typeof JOB_TYPES)[number];
 
 const claimedJobSchema = z.object({
@@ -37,6 +37,7 @@ export type ClaimedJob = {
 };
 
 export async function claimJobs(client: SupabaseClient, types: readonly JobType[], limit: number, leaseSeconds: number): Promise<ClaimedJob[]> {
+  z.array(z.enum(JOB_TYPES)).min(1).parse(types);
   const { data, error } = await client.rpc("claim_jobs", { p_job_types: types, p_limit: limit, p_lease_seconds: leaseSeconds });
   if (error) fail("claimJobs", error);
   return z

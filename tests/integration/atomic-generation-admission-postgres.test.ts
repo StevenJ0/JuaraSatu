@@ -4,9 +4,9 @@ import { z } from "zod";
 vi.mock("server-only", () => ({}));
 import { postgresClaimFixture, pgConnection } from "../fixtures/postgres-generation-claims";
 import { generationQuotaPolicy } from "../../src/lib/ai/generation-quota-policy.server";
-import type { Database } from "../../src/lib/supabase/database.types";
+import type { AiAdmissionArgs } from "../../src/lib/supabase/transport.server";
 
-type Args = Database["public"]["Functions"]["admit_ai_generation"]["Args"];
+type Args = AiAdmissionArgs;
 describe.skipIf(process.env.AI_ADMISSION_POSTGRES !== "1")("Batch 04B atomic local PostgreSQL admission", () => {
   let f: Awaited<ReturnType<typeof postgresClaimFixture>>;
   beforeAll(async () => { f = await postgresClaimFixture(); console.log(`Batch 04B fixture evidence: ${f.evidence}`); }, 30000);

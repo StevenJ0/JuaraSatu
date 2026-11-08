@@ -28,6 +28,9 @@ export function buildBusinessContext(input: unknown): ContextBuildResult {
   const c8 = request.c8.data;
   const c6 = request.c6.status === "available" ? request.c6.data : null;
   const { business, product, preorder, snapshot } = c1;
+  if (c1.capacity && (c1.capacity.version !== snapshot.capacityVersion || preorder.orderableUnits > c1.capacity.availableUnits)) {
+    return failure("SOURCE_MISMATCH", "c1", "capacity");
+  }
   const scope = request.scope;
   if (business.businessId !== scope.businessId || product.businessId !== scope.businessId ||
     preorder.businessId !== scope.businessId || preorder.preorderId !== scope.preorderId ||
@@ -131,6 +134,7 @@ export function buildBusinessContext(input: unknown): ContextBuildResult {
   const context = CampaignContextV1Schema.omit({ contextHash: true }).safeParse({
     schemaVersion: 1, calculatedAt: request.calculatedAt,
     business,
+    ...(c1.capacity ? { capacity: c1.capacity } : {}),
     product: { productId: product.productId, name: product.name, category: product.category,
       description: product.description, variableCostIdr: product.variableCostIdr, costQuality: product.costQuality },
     preorder: { ...preorder, paidTargetGapUnits: Math.max(preorder.targetUnits - preorder.paidUnits, 0), isOrderIntakeOpen },

@@ -3,9 +3,19 @@ import { z } from "zod";
 import type { Database } from "./database.types";
 
 type Rpc = Database["public"]["Functions"];
-// PostgreSQL permits NULL for the initial CAS token; generated RPC UUID args omit nullability.
+// The generator cannot infer conditional SQL NULL inputs from function bodies.
+export type AiAdmissionArgs = Omit<Rpc["admit_ai_generation"]["Args"],
+  "p_generation_id" | "p_preorder_id" | "p_session_id" | "p_expected_version" | "p_context_hash" | "p_message"> & {
+    p_generation_id: string | null;
+    p_preorder_id: string | null;
+    p_session_id: string | null;
+    p_expected_version: number | null;
+    p_context_hash: string | null;
+    p_message: string | null;
+  };
 type RpcArgs<K extends keyof Rpc> = K extends "record_campaign_evaluation_cas"
-  ? Omit<Rpc[K]["Args"], "p_expected_evaluation_id"> & { p_expected_evaluation_id: string | null } : Rpc[K]["Args"];
+  ? Omit<Rpc[K]["Args"], "p_expected_evaluation_id"> & { p_expected_evaluation_id: string | null }
+  : K extends "admit_ai_generation" ? AiAdmissionArgs : Rpc[K]["Args"];
 type Table = keyof Database["public"]["Tables"];
 export class SupabaseError extends Error {
   constructor(readonly code: string, readonly detail: string, readonly status: number) { super("Supabase request failed"); }
@@ -14,8 +24,12 @@ const ErrorSchema = z.object({ code: z.string().optional(), message: z.string().
 export function localSupabaseConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_PUBLISHABLE_KEY;
-  if (!url || !key || new URL(url).origin !== "http://127.0.0.1:54321") throw new SupabaseError("CONFIGURATION_ERROR", "LOCAL_ONLY", 503);
-  return { url, key };
+  const target = url && URL.canParse(url) ? new URL(url) : null;
+  if (!key || !target || target.protocol !== "http:" || target.hostname !== "127.0.0.1" ||
+    target.username || target.password || target.pathname !== "/" || target.search || target.hash) {
+    throw new SupabaseError("CONFIGURATION_ERROR", "LOCAL_ONLY", 503);
+  }
+  return { url: target.origin, key };
 }
 export async function supabaseRequest(path: string, token?: string, method = "GET", body?: unknown): Promise<unknown> {
   const { url, key } = localSupabaseConfig();

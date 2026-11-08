@@ -50,6 +50,10 @@ describe("manualOrderSchema", () => {
 });
 
 describe("publicOrderSchema", () => {
+  it("menerima harga batas Rp1 miliar dan menolak nominal di atasnya", () => {
+    expect(publicOrderSchema.safeParse({ ...buyer, expectedUnitPriceIdr: 1_000_000_000 }).success).toBe(true);
+    expect(publicOrderSchema.safeParse({ ...buyer, expectedUnitPriceIdr: 1_000_000_001 }).success).toBe(false);
+  });
   it("menormalkan email", () => {
     expect(publicOrderSchema.parse(buyer).customerEmail).toBe("budi@example.com");
   });

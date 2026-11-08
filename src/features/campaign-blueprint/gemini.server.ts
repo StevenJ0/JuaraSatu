@@ -23,6 +23,9 @@ export function configuredBlueprintProvider(scenario: "valid" | "failure" | "inv
   if (!blueprintDevelopmentEnabled(env)) throw new BlueprintError("CONFIGURATION_ERROR", 503);
   if (env.CAMPAIGN_BLUEPRINT_PROVIDER === "fake") return developmentBlueprintProvider(scenario, env);
   if (scenario !== "valid") throw new BlueprintError("FAKE_SCENARIO_DISABLED", 400);
+  return createGeminiBlueprintProvider(env);
+}
+export function createGeminiBlueprintProvider(env: GeminiEnvironment): BlueprintProvider {
   let config: ReturnType<typeof geminiConfiguration>;
   try { config = geminiConfiguration(env); } catch { throw new BlueprintError("CONFIGURATION_ERROR", 503); }
   const provider = createGeminiJsonProvider(config, BlueprintPlanSchema);

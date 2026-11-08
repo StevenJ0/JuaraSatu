@@ -50,7 +50,7 @@ export const CampaignBlueprintSchema = BlueprintPlanSchema.safeExtend({
   evaluationPlan: TextSchema, assumptions: z.array(TextSchema).min(1).max(8),
   revision: z.strictObject({ requestId: z.uuid(), requestHash: HashSchema, expectedCampaignVersion: z.number().int().positive(),
     parentBlueprintId: z.uuid().nullable(), parentVersion: z.number().int().positive().nullable(), notes: z.string().max(500) }),
-  provider: z.enum(["development-fake-blueprint", "gemini", "manual"]), synthetic: z.literal(true),
+  provider: z.enum(["development-fake-blueprint", "gemini", "manual"]), synthetic: z.boolean(),
   model: z.string().regex(/^gemini-[a-zA-Z0-9.-]{1,100}$/).optional(), providerRequestId: z.string().min(1).max(256).nullable().optional(),
 }).refine(body => body.provider === "gemini" ? body.model !== undefined && body.providerRequestId !== undefined
   : body.model === undefined && body.providerRequestId === undefined && (body.provider !== "manual" ||

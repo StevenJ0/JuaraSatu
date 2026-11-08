@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
-import type { ReservationFact } from "@/features/capacity/availability";
+import { summarizeCapacity, type ReservationFact } from "@/features/capacity/availability";
 import { toPreorderContext, toPublicPreorder, type PreorderContext, type PublicPreorder } from "@/features/preorders/context";
 import { computeOrderableUnits, summarizePreorder, type PreorderMetrics, type PreorderReservationFact } from "@/features/preorders/metrics";
 import type { PreorderInput } from "@/features/preorders/schemas";
@@ -60,7 +60,10 @@ const reservationRowSchema = z.object({
   state: z.enum(["held", "allocated", "released"]),
   expires_at: z.string().nullable(),
   preorder_item_id: z.string().nullable(),
-  orders: z.object({ order_status: z.string(), external_payment_status: z.string().nullable() }),
+  orders: z.object({
+    order_status: z.string(), external_payment_status: z.string().nullable(),
+    payments: z.array(z.object({ status: z.string(), verified_at: z.string().nullable(), applied_at: z.string().nullable() })),
+  }),
 });
 
 const pickupTermsSchema = z.object({
@@ -103,7 +106,7 @@ const preorderRowSchema = z.object({
 const PREORDER_ROOT_COLUMNS = "id, name, slug, status, fulfillment_date, starts_at, ends_at, version, pickup_terms_snapshot";
 const PREORDER_ITEM_COLUMNS = `id, product_id, capacity_id, target_units, quota_units, base_price_snapshot_idr, product_name_snapshot,
     production_capacity(total_units, intake_cutoff_at, fulfillment_window_end_at,
-      capacity_reservations(quantity, state, expires_at, preorder_item_id, orders(order_status, external_payment_status)))`;
+      capacity_reservations(quantity, state, expires_at, preorder_item_id, orders(order_status, external_payment_status, payments(status, verified_at, applied_at))))`;
 const PREORDER_COLUMNS = `${PREORDER_ROOT_COLUMNS}, preorder_items(${PREORDER_ITEM_COLUMNS})`;
 
 export type PreorderStatus = z.infer<typeof preorderRowSchema>["status"];
@@ -137,8 +140,10 @@ function toReservationFact(row: Pick<z.infer<typeof reservationRowSchema>, "quan
 
 function toPreorderReservationFact(row: z.infer<typeof reservationRowSchema>): PreorderReservationFact {
   const { order_status: orderStatus, external_payment_status: externalPayment } = row.orders;
-  const isVoid = orderStatus === "cancelled" || orderStatus === "expired";
-  return { ...toReservationFact(row), payment: isVoid ? "void" : externalPayment === "unpaid" ? "awaiting" : "paid" };
+  const isVoid = orderStatus === "cancelled" || orderStatus === "expired" || externalPayment === "voided";
+  const isPaid = externalPayment === "confirmed" || row.orders.payments.some((payment) =>
+    payment.status === "paid_sandbox" && payment.verified_at !== null && payment.applied_at !== null);
+  return { ...toReservationFact(row), payment: isVoid ? "void" : isPaid ? "paid" : "awaiting" };
 }
 
 function toPreorder(row: z.infer<typeof preorderRowSchema>, now: Date = new Date()): Preorder {
@@ -295,18 +300,24 @@ export async function findPublicPreorder(client: SupabaseClient, slug: string, n
 }
 
 const preorderContextRowSchema = preorderRowSchema.extend({
-  businesses: z.object({ name: z.string(), categories: z.array(z.string()), description: z.string().nullable() }),
+  businesses: z.object({ id: z.uuid(), name: z.string(), categories: z.array(z.string()).min(1), description: z.string().nullable() }),
   preorder_items: z.tuple([
     preorderItemRowSchema.extend({
-      products: z.object({ description: z.string().nullable(), cost_quality: z.enum(COST_QUALITIES), is_active: z.boolean() }),
+      version: z.number().int().positive(),
+      products: z.object({ description: z.string().nullable(), cost_quality: z.enum(COST_QUALITIES), is_active: z.boolean(),
+        base_price_idr: z.number(), variable_cost_idr: z.number().nullable(), version: z.number().int().positive() }),
+      production_capacity: preorderItemRowSchema.shape.production_capacity.extend({ version: z.number().int().positive() }),
     }),
   ]),
 });
 
 // Satu query, sehingga semua angkanya berasal dari satu snapshot database.
 const PREORDER_CONTEXT_COLUMNS = `${PREORDER_ROOT_COLUMNS},
-  businesses(name, categories, description),
-  preorder_items(${PREORDER_ITEM_COLUMNS}, products(description, cost_quality, is_active))`;
+  businesses(id, name, categories, description),
+  preorder_items(id, product_id, capacity_id, target_units, quota_units, base_price_snapshot_idr, product_name_snapshot, version,
+    products(description, cost_quality, is_active, base_price_idr, variable_cost_idr, version),
+    production_capacity(total_units, intake_cutoff_at, fulfillment_window_end_at, version,
+      capacity_reservations(quantity, state, expires_at, preorder_item_id, orders(order_status, external_payment_status, payments(status, verified_at, applied_at)))))`;
 
 /** Kontrak C1 untuk fitur AI. `client` wajib client bersesi dan `businessId` dari `requireBusinessOwner()`, bukan dari browser. */
 export async function findPreorderContext(
@@ -325,11 +336,15 @@ export async function findPreorderContext(
   if (data === null) return null;
 
   const row = preorderContextRowSchema.parse(data);
-  const { products } = row.preorder_items[0];
+  const item = row.preorder_items[0];
+  const { products, production_capacity: capacity } = item;
   return toPreorderContext(
     toPreorder(row, now),
     row.businesses,
-    { description: products.description, costQuality: products.cost_quality, isActive: products.is_active },
+    { description: products.description, costQuality: products.cost_quality, isActive: products.is_active,
+      variableCostIdr: products.variable_cost_idr, catalogPriceIdr: products.base_price_idr, version: products.version },
+    { itemId: item.id, itemVersion: item.version, capacity: { id: item.capacity_id, version: capacity.version,
+      totalUnits: capacity.total_units, availability: summarizeCapacity(capacity.total_units, capacity.capacity_reservations.map(toReservationFact), now) } },
     now,
   );
 }

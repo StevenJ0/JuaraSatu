@@ -17,8 +17,10 @@ const publicFacts = {
   discountBps: 1000,
   fulfillmentDate: "2026-11-20",
   fulfillmentWindowEndAt: "2026-11-20T10:00:00.000Z",
+  quotaUnits: 30,
   businessName: "Toko Contoh",
-  product: { name: "Kaos", description: null, photoUrl: null, thumbnailUrl: null },
+  isDemo: false,
+  product: { name: "Kaos", sku: "KAOS-1", description: null, photoUrl: null, thumbnailUrl: null },
   pickup: { instructions: "Ambil di toko", publicContact: null },
   version: 2,
 };
@@ -59,7 +61,7 @@ describe("toPublicPreorder", () => {
       variableCostIdr: 75000,
       targetUnits: 40,
       customerEmail: "pembeli@example.com",
-      product: { ...publicFacts.product, variableCostIdr: 75000, sku: "SKU-1" },
+      product: { ...publicFacts.product, variableCostIdr: 75000, photoPath: "bisnis-lain/rahasia.jpg" },
       pickup: { ...publicFacts.pickup, privateToken: "rahasia" },
     };
 
@@ -76,10 +78,12 @@ describe("toPublicPreorder", () => {
         "fulfillmentDate",
         "fulfillmentWindowEndAt",
         "intakeCutoffAt",
+        "isDemo",
         "name",
         "orderableUnits",
         "pickup",
         "product",
+        "quotaUnits",
         "slug",
         "startsAt",
         "unitPriceIdr",
@@ -87,7 +91,8 @@ describe("toPublicPreorder", () => {
       ].sort(),
     );
     const text = JSON.stringify(result);
-    for (const forbidden of ["75000", "SKU-1", "pembeli@example.com", "rahasia", "status"]) expect(text).not.toContain(forbidden);
+    for (const forbidden of ["75000", "bisnis-lain", "pembeli@example.com", "rahasia", "status"]) expect(text).not.toContain(forbidden);
+    expect(Object.keys(result.product).sort()).toEqual(["description", "name", "photoUrl", "sku", "thumbnailUrl"]);
   });
 
   it("sisa ditampilkan saat buka dan nol saat tidak bisa dipesan", () => {

@@ -220,13 +220,14 @@ const publicPreorderRowSchema = z.object({
   ends_at: z.string(),
   version: z.number(),
   pickup_terms_snapshot: pickupTermsSchema,
-  businesses: z.object({ name: z.string() }),
+  businesses: z.object({ name: z.string(), is_demo: z.boolean() }),
   preorder_items: z.tuple([
     z.object({
       id: z.uuid(),
       quota_units: z.number(),
       base_price_snapshot_idr: z.number(),
       product_name_snapshot: z.string(),
+      sku_snapshot: z.string(),
       products: z.object({ description: z.string().nullable(), photo_path: z.string().nullable() }),
       production_capacity: z.object({
         total_units: z.number(),
@@ -238,8 +239,8 @@ const publicPreorderRowSchema = z.object({
 
 // Tanpa kolom biaya dan tanpa tabel pesanan, jadi data privat tidak pernah keluar dari database untuk permintaan ini.
 const PUBLIC_PREORDER_COLUMNS = `id, slug, name, status, fulfillment_date, starts_at, ends_at, version, pickup_terms_snapshot,
-  businesses(name),
-  preorder_items(id, quota_units, base_price_snapshot_idr, product_name_snapshot,
+  businesses(name, is_demo),
+  preorder_items(id, quota_units, base_price_snapshot_idr, product_name_snapshot, sku_snapshot,
     products(description, photo_path),
     production_capacity(total_units, capacity_reservations(quantity, state, expires_at, preorder_item_id)))`;
 
@@ -278,6 +279,7 @@ export async function findPublicPreorder(client: SupabaseClient, slug: string, n
         },
         now,
       ),
+      quotaUnits: item.quota_units,
       unitPriceIdr: offer.final_unit_price_idr,
       basePriceIdr: item.base_price_snapshot_idr,
       discountBps: offer.discount_bps,
@@ -287,8 +289,10 @@ export async function findPublicPreorder(client: SupabaseClient, slug: string, n
       intakeCutoffAt: terms.intake_cutoff_at,
       fulfillmentWindowEndAt: terms.fulfillment_window_end_at,
       businessName: row.businesses.name,
+      isDemo: row.businesses.is_demo,
       product: {
         name: item.product_name_snapshot,
+        sku: item.sku_snapshot,
         description: item.products.description,
         ...productPhotoUrls(client, item.products.photo_path),
       },

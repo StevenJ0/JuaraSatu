@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 
 // Never accept a caller-provided base URL or follow redirects with the server key.
@@ -175,7 +176,9 @@ export function createMidtransSandboxClient(configuration: unknown, options: Cli
     }
     const amountIdr = providerAmount(row.gross_amount, operation);
     if (amountIdr !== expected.amountIdr) throw new MidtransSandboxError("AMOUNT_MISMATCH", operation);
-    if (!row.status_code.startsWith("2")) throw new MidtransSandboxError("PROVIDER_REJECTED", operation);
+    // Midtrans memberi kode 407 untuk transaksi kedaluwarsa. Pada GET Status itu fakta status, bukan penolakan permintaan.
+    const expiredStatus = operation === "status" && row.status_code === "407" && row.transaction_status === "expire";
+    if (!row.status_code.startsWith("2") && !expiredStatus) throw new MidtransSandboxError("PROVIDER_REJECTED", operation);
     const transaction: SandboxTransaction = {
       providerOrderId: row.order_id,
       providerTransactionId: row.transaction_id,
@@ -224,8 +227,7 @@ export function createMidtransSandboxClient(configuration: unknown, options: Cli
     } catch {
       throw new MidtransSandboxError("INVALID_PROVIDER_RESPONSE", "create");
     }
-    const expectedPath = `/v2/qris/${encodeURIComponent(transaction.providerTransactionId)}/qr-code`;
-    if (qrUrl.origin !== SANDBOX_URL || qrUrl.pathname !== expectedPath || qrUrl.username || qrUrl.password || qrUrl.search || qrUrl.hash) {
+    if (qrUrl.href !== sandboxQrImageUrl(transaction.providerTransactionId) || qrUrl.username || qrUrl.password) {
       throw new MidtransSandboxError("INVALID_PROVIDER_RESPONSE", "create");
     }
     return { ...transaction, qrImageUrl: qrUrl.href, expiryConfirmed: true };
@@ -241,4 +243,41 @@ export function createMidtransSandboxClient(configuration: unknown, options: Cli
   }
 
   return { createQris, getStatus };
+}
+
+/** URL gambar QR Sandbox untuk satu transaksi. Dipakai juga saat rekonsiliasi, karena respons status tidak membawa URL QR. */
+export function sandboxQrImageUrl(providerTransactionId: string): string {
+  return new URL(`/v2/qris/${encodeURIComponent(providerTransactionId)}/qr-code`, SANDBOX_URL).href;
+}
+
+const notificationSchema = z.object({
+  order_id: referenceSchema,
+  status_code: z.string().regex(/^\d{3}$/),
+  // Teks asli dipakai untuk signature, jadi tidak diubah ke angka di sini.
+  gross_amount: z.string().regex(/^(0|[1-9]\d*)(?:\.\d{2})?$/),
+  signature_key: z.string().regex(/^[a-f0-9]{128}$/i),
+  transaction_id: z.string().min(1).max(128),
+  transaction_status: z.string().min(1).max(40),
+});
+export type MidtransNotification = {
+  providerOrderId: string;
+  providerTransactionId: string;
+  providerStatus: string;
+  amountIdr: number;
+};
+
+/**
+ * Notifikasi HTTP Midtrans hanya dipercaya bila `signature_key` = SHA-512(order_id + status_code + gross_amount + server key).
+ * Hasil null berarti tidak sah, termasuk bentuk tidak dikenal. Isi notifikasi tetap dicek ulang lewat `getStatus` sebelum diterapkan.
+ */
+export function verifyMidtransNotification(configuration: MidtransSandboxConfig, payload: unknown): MidtransNotification | null {
+  const parsed = notificationSchema.safeParse(payload);
+  if (!parsed.success) return null;
+  const row = parsed.data;
+  const expected = createHash("sha512").update(`${row.order_id}${row.status_code}${row.gross_amount}${configuration.serverKey}`).digest();
+  const received = Buffer.from(row.signature_key, "hex");
+  if (received.length !== expected.length || !timingSafeEqual(received, expected)) return null;
+  const amountIdr = Number(row.gross_amount);
+  if (!Number.isSafeInteger(amountIdr) || amountIdr <= 0) return null;
+  return { providerOrderId: row.order_id, providerTransactionId: row.transaction_id, providerStatus: row.transaction_status, amountIdr };
 }

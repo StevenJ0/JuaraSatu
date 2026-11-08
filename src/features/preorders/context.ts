@@ -16,6 +16,8 @@ export type PublicPreorder = {
   availability: PublicPreorderAvailability;
   /** Jumlah yang bisa dipesan saat ini. Selalu 0 bila `availability` bukan `open`. */
   orderableUnits: number;
+  /** Batas pesanan preorder ini, untuk teks "tersedia X dari kuota Y". */
+  quotaUnits: number;
   /** Harga setelah diskon penawaran aktif. Kirim sebagai `expectedUnitPriceIdr` ke `placePublicOrder`. */
   unitPriceIdr: number;
   /** Harga sebelum diskon. Sama dengan `unitPriceIdr` bila tidak ada penawaran aktif. */
@@ -27,7 +29,10 @@ export type PublicPreorder = {
   intakeCutoffAt: string;
   fulfillmentWindowEndAt: string;
   businessName: string;
-  product: { name: string; description: string | null; photoUrl: string | null; thumbnailUrl: string | null };
+  /** Usaha contoh, sehingga halaman pembeli wajib memberi label. */
+  isDemo: boolean;
+  /** `sku` dari snapshot saat terbit, bukan katalog terbaru. */
+  product: { name: string; sku: string; description: string | null; photoUrl: string | null; thumbnailUrl: string | null };
   /** Ketentuan yang dibekukan saat terbit, sehingga tidak berubah walau profil usaha diubah. */
   pickup: { instructions: string; publicContact: string | null };
   version: number;
@@ -61,6 +66,7 @@ export function toPublicPreorder(
     name: facts.name,
     availability,
     orderableUnits: availability === "open" ? facts.orderableUnits : 0,
+    quotaUnits: facts.quotaUnits,
     unitPriceIdr: facts.unitPriceIdr,
     basePriceIdr: facts.basePriceIdr,
     discountBps: facts.discountBps,
@@ -70,8 +76,10 @@ export function toPublicPreorder(
     intakeCutoffAt: facts.intakeCutoffAt,
     fulfillmentWindowEndAt: facts.fulfillmentWindowEndAt,
     businessName: facts.businessName,
+    isDemo: facts.isDemo,
     product: {
       name: facts.product.name,
+      sku: facts.product.sku,
       description: facts.product.description,
       photoUrl: facts.product.photoUrl,
       thumbnailUrl: facts.product.thumbnailUrl,

@@ -1,4 +1,4 @@
-.page { min-height: 100vh; background: var(--ui-surface); color: var(--ui-ink); }
+.page { --buyer-danger-fg: #991b1b; --buyer-danger-bg: #fdecec; min-height: 100vh; background: var(--ui-surface); color: var(--ui-ink); }
 .header, .main, .footer { width: min(1180px, calc(100% - 64px)); margin-inline: auto; }
 .header { min-height: 96px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid var(--ui-line); }
 .header > span, .footer { font-size: 13px; color: var(--ui-muted); }
@@ -44,6 +44,48 @@
 .message h1 { font-size: 32px; line-height: 1.2; letter-spacing: -.7px; }
 .message p { color: var(--ui-muted); }
 .retry { min-height: 48px; padding: 12px 20px; background: var(--ui-brand); color: var(--ui-on-brand); border: 0; border-radius: 8px; font-weight: 600; }
+.basePrice { font-size: 16px; font-weight: 400; color: var(--ui-muted); letter-spacing: 0; }
+.discountBadge { display: inline-block; margin-left: 8px; padding: 3px 8px; border-radius: 4px; background: var(--ui-accent-soft); color: var(--ui-on-accent) !important; font-size: 12px !important; font-weight: 600 !important; }
+.checkout { display: grid; gap: 16px; }
+.checkout .orderTitle { margin: 0; font-size: 16px; }
+.lastOrder { margin: 0; font-size: 13px; color: var(--ui-muted); }
+.lastOrder a, .alert a { color: var(--ui-brand); font-weight: 600; text-underline-offset: 4px; }
+.alert { padding: 12px 14px; border-radius: 8px; background: var(--buyer-danger-bg); color: var(--buyer-danger-fg); }
+.alert p { margin: 0; }
+.notice { padding: 12px 14px; border-radius: 8px; background: var(--ui-brand-soft); color: var(--ui-brand); }
+.notice p { margin: 0; }
+.form { display: grid; gap: 16px; }
+.field { display: grid; gap: 6px; }
+.field label { font-size: 14px; font-weight: 600; }
+.input { min-height: 44px; width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid var(--ui-line); border-radius: 8px; background: var(--ui-surface); color: var(--ui-ink); font-size: 16px; }
+.input:focus { border-color: var(--ui-brand); }
+.input[aria-invalid="true"] { border-color: var(--buyer-danger-fg); }
+.hint { margin: 0; font-size: 12px; color: var(--ui-muted); }
+.error { margin: 0; font-size: 13px; color: var(--buyer-danger-fg); }
+.totalLine { display: flex; justify-content: space-between; gap: 12px; margin: 0; padding-top: 12px; border-top: 1px solid var(--ui-line); }
+.totalLine strong { font-size: 18px; }
+.primary, .secondary { min-height: 48px; padding: 12px 20px; border-radius: 8px; font-weight: 600; font-size: 16px; cursor: pointer; }
+.primary { background: var(--ui-brand); color: var(--ui-on-brand); border: 0; }
+.primary:hover { background: var(--ui-brand-hover); }
+.secondary { background: var(--ui-surface); color: var(--ui-ink); border: 1px solid var(--ui-line); }
+.primary:disabled, .secondary:disabled { opacity: .6; cursor: not-allowed; }
+.review { display: grid; gap: 14px; }
+.summary { margin: 0; display: grid; gap: 10px; }
+.summary div { display: flex; justify-content: space-between; gap: 16px; }
+.summary dt { color: var(--ui-muted); font-size: 13px; }
+.summary dd { margin: 0; font-weight: 600; text-align: right; overflow-wrap: anywhere; min-width: 0; }
+.summaryTotal { padding-top: 10px; border-top: 1px solid var(--ui-line); }
+.summaryTotal dd { font-size: 18px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.actions > * { flex: 1 1 160px; }
+.qrBox { display: flex; justify-content: center; padding: 16px; background: var(--ui-surface); border: 1px solid var(--ui-line); border-radius: 8px; }
+.qrImage { width: min(240px, 100%); height: auto; }
+.inlineLink { color: var(--ui-brand); font-weight: 600; text-underline-offset: 3px; }
+.pickupCard { padding: 24px; border: 1px solid var(--ui-line); border-radius: 12px; background: var(--ui-canvas); min-width: 0; }
+.pickupCard h2 { margin: 0 0 16px; font-size: 22px; }
+.pickupCard dl { margin: 0; display: grid; gap: 16px; }
+.pickupCard dt { font-size: 12px; color: var(--ui-muted); }
+.pickupCard dd { margin: 4px 0 0; font-size: 14px; overflow-wrap: anywhere; }
 @media (max-width: 800px) {
   .header, .main, .footer { width: calc(100% - 40px); }
   .header { min-height: 80px; }

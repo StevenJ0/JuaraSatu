@@ -45,7 +45,8 @@ function localError(code) {
 async function statePath(value) {
   if (!value || !isAbsolute(value) || !value.endsWith(".json")) throw localError("STATE_PATH_INVALID");
   const parent = await realpath(dirname(value));
-  const roots = await Promise.all([realpath(tmpdir()), realpath("/private/tmp")]);
+  // /private/tmp hanya ada di macOS. Di Windows dan Linux root yang tidak ada dilewati, bukan menggagalkan semua perintah.
+  const roots = (await Promise.all([tmpdir(), "/private/tmp"].map((root) => realpath(root).catch(() => null)))).filter((root) => root !== null);
   if (!roots.some((root) => {
     const subpath = relative(root, parent);
     return subpath === "" || (!isAbsolute(subpath) && subpath !== ".." && !subpath.startsWith(`..${sep}`));

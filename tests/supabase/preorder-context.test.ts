@@ -117,7 +117,8 @@ function cleanup() {
 
 let A: Tenant;
 let B: Tenant;
-const FORBIDDEN = [String(COST), SKU, BUYER_EMAIL, BUYER_NAME, BUYER_CONTACT, TOKEN_HASH, INTERNAL_NOTE, "variable", "customer", "token"];
+// SKU snapshot memang tampil ke pembeli (PRD buyer, kontrak C5 §3), jadi tidak termasuk daftar terlarang.
+const FORBIDDEN = [String(COST), BUYER_EMAIL, BUYER_NAME, BUYER_CONTACT, TOKEN_HASH, INTERNAL_NOTE, "variable", "customer", "token"];
 
 beforeAll(async () => {
   A = await tenant("a");
@@ -157,12 +158,13 @@ describe("findPublicPreorder di database sungguhan", () => {
     expect(result?.pickup).toEqual({ instructions: "Ambil beku main", publicContact: "0812-beku" });
   });
 
-  it("tidak memuat biaya, SKU, atau data pelanggan, dan field-nya tepat", async () => {
+  it("tidak memuat biaya atau data pelanggan, dan field-nya tepat", async () => {
     const result = await findPublicPreorder(service, slugs.main);
+    expect(result?.product.sku).toBe(SKU);
     const text = JSON.stringify(result);
     for (const forbidden of FORBIDDEN) expect(text.includes(forbidden), forbidden).toBe(false);
     expect(Object.keys(result ?? {}).sort()).toEqual(
-      ["asOf", "availability", "basePriceIdr", "businessName", "discountBps", "endsAt", "fulfillmentDate", "fulfillmentWindowEndAt", "intakeCutoffAt", "name", "orderableUnits", "pickup", "product", "slug", "startsAt", "unitPriceIdr", "version"].sort(),
+      ["asOf", "availability", "basePriceIdr", "businessName", "discountBps", "endsAt", "fulfillmentDate", "fulfillmentWindowEndAt", "intakeCutoffAt", "isDemo", "name", "orderableUnits", "pickup", "product", "quotaUnits", "slug", "startsAt", "unitPriceIdr", "version"].sort(),
     );
   });
 

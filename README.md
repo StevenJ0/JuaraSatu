@@ -1,36 +1,24 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Campaign Lab
 
-## Getting Started
+Platform manajemen preorder dan perencanaan promosi berbasis data untuk UMKM, proyek GTNIC 2026.
 
-First, run the development server:
+Alur target: produk/kapasitas → preorder mandiri → order/pembayaran Sandbox/email → rencana promosi dengan AI → persetujuan pemilik → campaign → dua analytics dan evaluasi privat.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+**Status:** B00 menyelaraskan dokumentasi. Checkout branch B00 berasal dari starter pada `main` lokal; fitur bisnis, database, payment, email dan AI belum diverifikasi berjalan di sini. Landing tersedia pada branch terpisah. Referensi lokal foundation belum terintegrasi dan branch-nya tidak tercantum pada remote saat audit; lihat [keputusan terbuka](docs/DECISIONS.md).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Mulai membaca
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. [Instruksi agent](AGENTS.md) dan [peta dokumen](docs/README.md).
+2. [PRD v2.1](docs/requirements/PRD.md), [schema target v2.1](docs/schema.md), [keputusan terbuka](docs/DECISIONS.md).
+3. [Kontrak tim](docs/architecture/integration-contracts.md) dan pembagian kerja PRD §21–22.
+4. [Aturan database](docs/requirements/database-rules.md), lalu kode/config/migrations yang benar-benar ada pada branch kerja.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Development aplikasi
 
-## Learn More
+Gunakan versi Node/npm yang sesuai dependency dan lockfile aktual, lalu `npm ci` dan `npm run dev`. Script tambahan dibaca dari `package.json`; jangan mengarang script test. B00 tidak menginstal dependency, menjalankan provider, atau memverifikasi aplikasi melalui build.
 
-To learn more about Next.js, take a look at the following resources:
+Setup Supabase mengikuti foundation tim setelah review/integrasi; jangan membuat ulang client/config atau menjalankan init/reset/migration dari asumsi dokumentasi. Secret hanya dalam environment lokal/server, tidak pernah di source atau output chat.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Cara bekerja
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Kerjakan satu slice pada branch khusus, verifikasi sesuai scope, lalu serahkan diff. **Pengembang pemilik task melakukan staging dan commit sendiri.** Tidak ada push, merge, deployment atau perubahan schema otomatis. Perubahan schema memerlukan tugas terpisah dan review tim. Data sintetis/Sandbox harus diberi label; tidak membuktikan dampak bisnis nyata.

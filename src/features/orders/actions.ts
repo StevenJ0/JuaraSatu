@@ -4,6 +4,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { schedulePaidEmails } from "@/features/paid-email/schedule.server";
 import { readTextFields, type FormState } from "@/lib/form-state";
 import { requireBusinessOwner } from "@/features/business/guard";
 import { OrderRepositoryError, type OrderViolation } from "@/features/orders/repository";
@@ -167,6 +168,8 @@ export async function acceptLatePaymentAction(_previous: FormState, formData: Fo
 
   const { orderId, version, paymentId } = parsed.data;
   const supabase = await createSupabaseServerClient();
+  // Menerima pembayaran terlambat mengantrekan email lunas di transaksi yang sama. Dikirim setelah respons, bila berhasil.
+  schedulePaidEmails();
   const state = await finishOrderChange(orderId, "late_accepted", () => acceptLatePayment(supabase, orderId, version, paymentId), "acceptLatePayment");
   return state.message === VIOLATION_MESSAGES.CAPACITY_UNAVAILABLE ? { ...state, message: LATE_PAYMENT_FULL_MESSAGE } : state;
 }

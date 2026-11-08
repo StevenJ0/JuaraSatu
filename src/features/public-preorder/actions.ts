@@ -1,15 +1,17 @@
 "use server";
 
+import { headers } from "next/headers";
 import { z } from "zod";
 import { OrderRepositoryError, type OrderViolation } from "@/features/orders/repository";
 import { placePublicOrder } from "@/features/orders/service";
+import { clientAddress, takeLimit } from "@/features/public-preorder/rate-limit.server";
 import { CHECKOUT_FIELDS, checkoutFormSchema, type CheckoutField } from "@/features/public-preorder/schemas";
 import { readTextFields } from "@/lib/form-state";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type CheckoutResult =
   | { status: "ok" }
-  | { status: "rejected"; code: OrderViolation | "FAILED"; message: string; fieldErrors?: Partial<Record<CheckoutField, string[]>> };
+  | { status: "rejected"; code: OrderViolation | "FAILED" | "RATE_LIMITED"; message: string; fieldErrors?: Partial<Record<CheckoutField, string[]>> };
 
 const FAILED_MESSAGE = "Pesanan belum terkirim. Coba kirim lagi, pesananmu tidak akan tercatat dua kali.";
 
@@ -38,7 +40,12 @@ export async function placeBuyerOrderAction(formData: FormData): Promise<Checkou
   }
 
   try {
-    const outcome = await placePublicOrder(createSupabaseServiceRoleClient(), parsed.data);
+    const client = createSupabaseServiceRoleClient();
+    // Dicek sebelum pesanan dibuat, karena setiap pesanan menahan slot sampai tenggat bayar.
+    if ((await takeLimit(client, "checkout", clientAddress(await headers()))) === "limited") {
+      return { status: "rejected", code: "RATE_LIMITED", message: "Terlalu banyak pesanan dari jaringan ini. Coba lagi beberapa menit lagi." };
+    }
+    const outcome = await placePublicOrder(client, parsed.data);
     if (outcome.kind === "rejected") return { status: "rejected", code: outcome.violation, message: VIOLATION_MESSAGES[outcome.violation] };
     return { status: "ok" };
   } catch (error) {

@@ -17,6 +17,7 @@ const MESSAGES: Partial<Record<PaymentPanelView["kind"], string>> = {
   provider_unavailable: "Layanan pembayaran Sandbox sedang tidak bisa dihubungi. Coba lagi sebentar lagi.",
   not_configured: "Pembayaran Sandbox belum diaktifkan oleh tim. Hubungi usaha untuk informasi pembayaran.",
   failed: "Pembayaran belum bisa diproses. Coba lagi sebentar lagi.",
+  rate_limited: "Status sudah dicek beberapa kali. Halaman ini tetap memperbarui sendiri, coba cek lagi beberapa menit lagi.",
 };
 
 export function PaymentPanel({ token, totalIdr, paymentDueAt }: { token: string; totalIdr: number; paymentDueAt: string }) {

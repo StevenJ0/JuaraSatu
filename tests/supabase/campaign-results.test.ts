@@ -2,6 +2,7 @@
 // Kampanye terbit dibuat lewat SQL seperti uji C8. Pembayaran memakai jalur webhook asli dengan transport Midtrans tiruan.
 import { createHash } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { z } from "zod";
 import { listPreorderCampaignResults } from "@/features/campaign-results/repository";
 import { publicOrderSchema } from "@/features/orders/schemas";
 import { createManualOrder, createPrivateOrderToken, placePublicOrder } from "@/features/orders/service";
@@ -18,6 +19,12 @@ let target: PreorderFixture;
 let campaignId: string;
 let campaignSlug: string;
 
+// Bentuk body charge yang dikirim adapter. Diparse, bukan di-cast, agar tiruan ikut gagal bila adapter berubah.
+const chargeBodySchema = z.object({
+  transaction_details: z.object({ order_id: z.string(), gross_amount: z.number() }),
+  custom_expiry: z.object({ order_time: z.string(), expiry_duration: z.number() }),
+});
+
 const wib = (ms: number) => new Date(ms + 7 * 3_600_000).toISOString().slice(0, 19).replace("T", " ");
 const transactions = new Map<string, { status: "pending" | "settlement"; amount: number; expiry: string }>();
 const gateway = createMidtransSandboxClient(config, {
@@ -32,7 +39,7 @@ const gateway = createMidtransSandboxClient(config, {
         actions: [{ name: "generate-qr-code", method: "GET", url: sandboxQrImageUrl(`txn-${orderId}`) }] }, { status: 200 });
     };
     if (init.method === "POST") {
-      const body = JSON.parse(String(init.body)) as { transaction_details: { order_id: string; gross_amount: number }; custom_expiry: { order_time: string; expiry_duration: number } };
+      const body = chargeBodySchema.parse(JSON.parse(String(init.body)));
       const orderTime = Date.parse(body.custom_expiry.order_time.replace(" ", "T").replace(" +0700", "+07:00"));
       transactions.set(body.transaction_details.order_id, { status: "pending", amount: body.transaction_details.gross_amount, expiry: wib(orderTime + body.custom_expiry.expiry_duration * 1000) });
       return reply(body.transaction_details.order_id);

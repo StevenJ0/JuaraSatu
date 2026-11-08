@@ -2,6 +2,7 @@
 // Midtrans diganti transport tiruan yang meniru respons Sandbox. Adapter, aturan pembayaran, dan database tetap yang asli.
 import { createHash } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { z } from "zod";
 import { publicOrderSchema } from "@/features/orders/schemas";
 import { createPrivateOrderToken, placePublicOrder } from "@/features/orders/service";
 import { createMidtransSandboxClient, sandboxQrImageUrl } from "@/features/payments/midtrans-sandbox";
@@ -19,6 +20,12 @@ beforeAll(async () => {
 
 afterAll(() => {
   cleanupOwners(PREFIX, stamp);
+});
+
+// Bentuk body charge yang dikirim adapter. Diparse, bukan di-cast, agar tiruan ikut gagal bila adapter berubah.
+const chargeBodySchema = z.object({
+  transaction_details: z.object({ order_id: z.string(), gross_amount: z.number() }),
+  custom_expiry: z.object({ order_time: z.string(), expiry_duration: z.number() }),
 });
 
 const wib = (ms: number) => new Date(ms + 7 * 3_600_000).toISOString().slice(0, 19).replace("T", " ");
@@ -46,7 +53,7 @@ class FakeMidtrans {
     const path = new URL(url).pathname;
     if (init.method === "POST" && path === "/v2/charge") {
       this.charges += 1;
-      const body = JSON.parse(String(init.body)) as { transaction_details: { order_id: string; gross_amount: number }; custom_expiry: { order_time: string; expiry_duration: number } };
+      const body = chargeBodySchema.parse(JSON.parse(String(init.body)));
       const orderTime = Date.parse(body.custom_expiry.order_time.replace(" ", "T").replace(" +0700", "+07:00"));
       const transaction: FakeTransaction = { orderId: body.transaction_details.order_id, txId: `txn-${body.transaction_details.order_id}`,
         amount: body.transaction_details.gross_amount, status: "pending", expiry: wib(orderTime + body.custom_expiry.expiry_duration * 1000), paidAt: null };

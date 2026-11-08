@@ -154,8 +154,13 @@ function BuyerPreview({
       <p className="mt-1 max-w-[65ch] text-sm text-muted">
         {isDraft
           ? "Pratinjau untuk Anda saja. Harga dan ketentuan mengikuti data terbaru dan dikunci saat diterbitkan."
-          : `Ketentuan sudah dikunci. Tautan pembeli: /p/${preorder.slug}. Halaman pembeli belum tersedia.`}
+          : "Ketentuan sudah dikunci. Buka halaman pembeli untuk memeriksa informasi sebelum membagikan tautannya."}
       </p>
+      {!isDraft && (
+        <Link href={`/p/${preorder.slug}`} target="_blank" rel="noopener noreferrer" className={`mt-4 w-full sm:w-fit ${SECONDARY_BUTTON_CLASS}`}>
+          Buka halaman pembeli
+        </Link>
+      )}
       <div className="mt-4 flex items-start gap-4">
         {product?.thumbnailUrl ? (
           <Image src={product.thumbnailUrl} alt="" width={80} height={80} unoptimized className="size-20 shrink-0 rounded-[10px] border border-line object-cover" />

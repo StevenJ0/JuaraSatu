@@ -67,7 +67,7 @@ export function ExecutionWorkspace({ owner = false }: { owner?: boolean }) {
   const Root = owner ? "div" : "main";
   return <Root className="discussion-workspace execution-workspace" lang="id"><div className="discussion-container">
     <header><Link href={owner ? "/dashboard/campaigns" : "/dev/discussion"}>Kembali ke diskusi & blueprint</Link><h1>Eksekusi campaign</h1>
-      <p className="discussion-mode">{owner ? "Rencana dari preorder usaha Anda. Publikasi untuk pembeli menunggu integrasi C8." : "Development sintetis · Auth, publikasi, checklist dan persistence Supabase nyata. Harga C3 belum terhubung ke checkout C8."}</p></header>
+      <p className="discussion-mode">{owner ? "Rencana dari preorder usaha Anda. Setelah dipublikasikan, diskon berlaku di harga checkout selama periode campaign." : "Development sintetis · Auth, publikasi, checklist dan persistence Supabase nyata. Harga checkout membaca campaign published yang aktif (C8)."}</p></header>
     {error && <p role="alert" className="discussion-error">{error}</p>}{notice && <p role="status">{notice}</p>}
     <div className="discussion-layout"><aside aria-label="Campaign milik Anda"><h2>Campaign tersimpan</h2>
       <button className="discussion-secondary" id="execution-refresh" disabled={busy} onClick={() => void run(async () => { await list(); if (c) await load(c.id); })}>Muat ulang</button>
@@ -84,17 +84,17 @@ export function ExecutionWorkspace({ owner = false }: { owner?: boolean }) {
         {bp && <p>KPI rencana: {bp.blueprint_json.primaryKpi}, target {bp.blueprint_json.targetAdditionalUnits} unit. Ini target, bukan hasil aktual.</p>}
         {bp && <p>Anggaran rencana: {money(bp.blueprint_json.budgetCapIdr)}</p>}
         {c.status === "draft" && <div className="execution-action"><h3>Publikasi oleh pemilik</h3>
-          <p>{owner ? "Publikasi untuk pembeli belum tersedia sampai integrasi C8 selesai." : view.eligibility.eligible ? "Blueprint approved dan fakta terkini lolos pemeriksaan publikasi." : errors[view.eligibility.code ?? ""] ?? "Campaign belum memenuhi syarat publikasi."}</p>
-          <label><input id="campaign-publish-confirm" type="checkbox" checked={publishConfirm} disabled={owner || busy} onChange={(event) => setPublishConfirm(event.target.checked)} /> Saya sudah meninjau versi ini dan ingin mempublikasikan campaign sekarang.</label>
-          <button id="campaign-publish" disabled={owner || busy || !publishConfirm || !view.eligibility.eligible || !bp} onClick={() => void run(async () => {
+          <p>{view.eligibility.eligible ? "Blueprint approved dan fakta terkini lolos pemeriksaan publikasi." : errors[view.eligibility.code ?? ""] ?? "Campaign belum memenuhi syarat publikasi."}</p>
+          <label><input id="campaign-publish-confirm" type="checkbox" checked={publishConfirm} disabled={busy} onChange={(event) => setPublishConfirm(event.target.checked)} /> Saya sudah meninjau versi ini dan ingin mempublikasikan campaign sekarang.</label>
+          <button id="campaign-publish" disabled={busy || !publishConfirm || !view.eligibility.eligible || !bp} onClick={() => void run(async () => {
             if (!bp) return; await mutate({ action: "publish", campaignId: c.id, blueprintId: bp.id, expectedBlueprintVersion: bp.version,
-              expectedCampaignVersion: c.version, expectedContextHash: bp.context_hash, confirm: true }, "Campaign published dan baseline tersimpan atomik. Checkout belum terintegrasi.");
+              expectedCampaignVersion: c.version, expectedContextHash: bp.context_hash, confirm: true }, "Campaign published dan baseline tersimpan atomik. Diskon berlaku di checkout selama periode campaign.");
           })}>Publikasikan campaign</button></div>}
         <h3>Konfigurasi offer C3</h3><p data-c3-state>{view.c3.state} · {view.c3.eligible ? "Eligible menurut konfigurasi dan waktu" : "Tidak eligible"}</p>
         {view.c3.configuration && <p>{view.c3.configuration.offer.offerType} · diskon {view.c3.configuration.offer.discountBps / 100}% · harga frozen {money(view.c3.configuration.frozenBaseUnitPriceIdr)} → {money(view.c3.configuration.unitPriceIdr)}</p>}
-        <p>Kelayakan C3 adalah input untuk C8. Ketersediaan preorder dan harga checkout tetap perlu diverifikasi oleh integrasi checkout.</p>
+        <p>Harga checkout dihitung ulang oleh database saat pesanan dibuat. Pembeli dengan atau tanpa link campaign mendapat harga yang sama.</p>
         <h3>Progress checklist manual</h3><p data-execution-progress>{view.calendar.progress.completed} dari {view.calendar.progress.total} tugas selesai · {view.calendar.progress.percent}% · {view.calendar.progress.overdue} terlambat</p>
-        {owner && c.status === "draft" && <p>Checklist dapat diperbarui setelah campaign dipublikasikan. Rencana approved ini masih hanya dapat ditinjau sampai C8 tersedia.</p>}
+        {owner && c.status === "draft" && <p>Checklist dapat diperbarui setelah campaign dipublikasikan.</p>}
         <progress aria-label="Progress tugas manual" max={100} value={view.calendar.progress.percent} />
         <p>Menandai tugas selesai merupakan konfirmasi pemilik, bukan bukti posting atau keberhasilan penjualan. Jadwal tidak digeser otomatis.</p>
         <h3>Kalender aktivitas · WIB</h3>

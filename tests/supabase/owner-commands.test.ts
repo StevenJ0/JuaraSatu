@@ -5,11 +5,12 @@ import { publicOrderSchema } from "@/features/orders/schemas";
 import { cancelOrder, createManualOrder, createPrivateOrderToken, createStandaloneManualOrder, placePublicOrder, resolveProductionCost, runOrderAction } from "@/features/orders/service";
 import { applyVerifiedPayment, claimPaymentAttempt } from "@/features/payments/service";
 import { findPreorder, findPublicPreorder } from "@/features/preorders/repository";
-import { anon, cleanupOwners, createCapacity, createOwner, createPublishedPreorder, service, sha256, sql, type Owner, type PreorderFixture } from "./helpers";
+import { anon, cleanupOwners, createCapacity, createOwner, createPublishedPreorder, functionDefinition, service, sha256, sql, type Owner, type PreorderFixture } from "./helpers";
 
 const stamp = Date.now();
 const PREFIX = "own";
-const STUB_ATTRIBUTION = "create or replace function private.resolve_attribution(p_preorder_id uuid, p_attribution_ref text) returns uuid language sql stable security definer set search_path = '' as $$ select null::uuid; $$;";
+// Resolver atribusi C8 asli disimpan dulu, karena satu uji menggantinya sementara.
+const REAL_ATTRIBUTION = functionDefinition("private.resolve_attribution(uuid,text)");
 
 let A: Owner;
 let B: Owner;
@@ -22,7 +23,7 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
-  sql(STUB_ATTRIBUTION);
+  sql(REAL_ATTRIBUTION);
   cleanupOwners(PREFIX, stamp);
 });
 
@@ -314,7 +315,7 @@ describe("colokan asal pesanan", () => {
       expect(sql(`select attribution_campaign_id is null, total_idr from public.orders where id = '${invalid.value.orderId}'`)).toBe("t|120000");
       expect(sql(`select attribution_campaign_id is null, total_idr from public.orders where id = '${organic.value.orderId}'`)).toBe("t|120000");
     } finally {
-      sql(STUB_ATTRIBUTION);
+      sql(REAL_ATTRIBUTION);
     }
   });
 

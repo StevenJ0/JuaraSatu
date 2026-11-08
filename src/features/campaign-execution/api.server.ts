@@ -52,7 +52,6 @@ async function executionPostFor(request: Request, bind: typeof boundary) {
   try {
     const bound = await bind(request); bound.checkOrigin(request);
     const { action, ...body } = ActionSchema.parse(await readDiscussionBody(request));
-    if (bound.ownerMode && action === "publish") throw new CampaignExecutionError("C8_NOT_READY", 409);
     return response(action === "publish" ? await bound.service.publish(body) : action === "close" ? await bound.service.close(body) : await bound.service.task(body));
   } catch (error) { return failure(error); }
 }

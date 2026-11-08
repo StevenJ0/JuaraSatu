@@ -41,5 +41,6 @@ export const ownerExecution = createExecutionHandlers(async () => {
   const repository = executionRepository(owner.user, privilegedTransport, owner);
   const source = blueprintRepository(owner.user, privilegedTransport, owner);
   return { ...bound, repository, service: campaignExecutionService(repository, { now: bound.now,
-    publishingEnabled: false, selection: source.selection, databaseError: executionDatabaseError, loadContext: bound.loadContext }) };
+    // P2-1: harga checkout membaca campaign published lewat resolver C8, jadi owner boleh publish dengan konteks asli P1-2.
+    publishingEnabled: true, selection: source.selection, databaseError: executionDatabaseError, loadContext: bound.loadContext }) };
 });

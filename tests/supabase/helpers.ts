@@ -31,7 +31,7 @@ const env = readEnvFile();
 export const url = required("URL Supabase", process.env.TEST_SUPABASE_URL ?? env.NEXT_PUBLIC_SUPABASE_URL);
 export const anonKey = required("anon key", process.env.TEST_SUPABASE_ANON_KEY ?? env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
 const serviceKey = required("service key", process.env.TEST_SUPABASE_SERVICE_KEY ?? env.SUPABASE_SERVICE_ROLE_KEY);
-const container = process.env.TEST_DB_CONTAINER ?? "supabase_db_campaign-lab";
+export const container = process.env.TEST_DB_CONTAINER ?? "supabase_db_campaign-lab";
 
 if (!/^http:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(url)) throw new Error("Bukan Supabase lokal, uji integrasi dihentikan");
 
@@ -82,6 +82,11 @@ export function createCapacity(owner: Owner, units: number): { capacityId: strin
   const capacityId = sql(`insert into public.production_capacity (business_id, product_id, fulfillment_date, total_units, intake_cutoff_at, fulfillment_window_end_at)
     values ('${owner.businessId}', '${owner.productId}', '${date}', ${units}, now() + interval '6 days', '${date} 17:00+07') returning id`);
   return { capacityId, date };
+}
+
+/** Definisi fungsi yang berlaku saat ini, agar uji yang menggantinya sementara bisa memulihkannya persis. */
+export function functionDefinition(signature: string): string {
+  return `${sql(`select pg_get_functiondef('${signature}'::regprocedure)`)};`;
 }
 
 /** Kolom hash di schema wajib SHA-256 hex, jadi data uji memakai hash sungguhan. */

@@ -7,12 +7,13 @@ import { acceptLatePayment, cancelOrder, createManualOrder, createPrivateOrderTo
 import { listOrderPayments } from "@/features/payments/repository";
 import { applyVerifiedPayment, claimPaymentAttempt, recordPaymentCharge } from "@/features/payments/service";
 import { findPreorder, findPublicPreorder } from "@/features/preorders/repository";
-import { anon, anonKey, publishFixture, service, sha256, sql, url } from "./helpers";
+import { anon, anonKey, functionDefinition, publishFixture, service, sha256, sql, url } from "./helpers";
 
 const options = { auth: { persistSession: false, autoRefreshToken: false } };
 const stamp = Date.now();
 const password = "PayCheck-Lokal-12345";
-const STUB_OFFER = "create or replace function private.current_order_offer(p_preorder_id uuid) returns table (discount_bps integer, pricing_campaign_id uuid) language sql stable security definer set search_path = '' as $$ select 0, null::uuid; $$;";
+// Resolver C8 asli disimpan dulu, karena beberapa uji harga menggantinya sementara dengan offer tetap.
+const REAL_OFFER = functionDefinition("private.current_order_offer(uuid)");
 const setOffer = (bps: number, campaignId: string | null) =>
   sql(`create or replace function private.current_order_offer(p_preorder_id uuid) returns table (discount_bps integer, pricing_campaign_id uuid) language sql stable security definer set search_path = '' as $$ select ${bps}, ${campaignId ? `'${campaignId}'::uuid` : "null::uuid"}; $$;`);
 
@@ -94,7 +95,7 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
-  sql(STUB_OFFER);
+  sql(REAL_OFFER);
   sql(`begin;
     create temp table doomed on commit drop as select id from public.businesses where slug like 'pay-%-${stamp}';
     set local session_replication_role = replica;
@@ -118,7 +119,7 @@ afterAll(() => {
 });
 
 describe("colokan harga", () => {
-  afterEach(() => sql(STUB_OFFER));
+  afterEach(() => sql(REAL_OFFER));
 
   it("tanpa kampanye: diskon 0, harga dasar", async () => {
     const target = preorder(A);

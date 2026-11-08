@@ -134,7 +134,7 @@ describe.skipIf(!workdir)("P1-3 real owner HTTP, persistence and isolation", () 
       expectedBlueprintId: saved.active.id, expectedBlueprintVersion: saved.active.version, edits: { title: b.campaignTitle, marketingApproach: b.marketingApproach,
         discountBps: 0, budgetCapIdr: -1, targetAdditionalUnits: 3, ...b.executionWindow, channels: b.channels, notes: "" } })).status).toBe(400);
   });
-  it("keeps checklist state restrictions and C8 publication fail-closed", async () => {
+  it("keeps checklist state restrictions and publishes only through the checked owner command", async () => {
     const execution = ExecutionViewSchema.parse((await request(`campaigns?campaignId=${campaignId}`)).body);
     const task = execution.calendar.days[0].tasks[0]; assert(task);
     const update = await request("campaigns", ownerCookie, { action: "task", campaignId, blueprintId: saved.active.id, taskId: task.id,
@@ -142,9 +142,12 @@ describe.skipIf(!workdir)("P1-3 real owner HTTP, persistence and isolation", () 
     expect(update.status).toBe(409); expect(update.body).toMatchObject({ code: "INVALID_CAMPAIGN_STATE" });
     const publish = await request("campaigns", ownerCookie, { action: "publish", campaignId, blueprintId: saved.active.id,
       expectedBlueprintVersion: saved.active.version, expectedCampaignVersion: saved.campaign.version, expectedContextHash: saved.active.context_hash, confirm: true });
-    expect(publish.status).toBe(409); expect(publish.body).toMatchObject({ code: "C8_NOT_READY" });
+    // P2-1: C8 resolver tersedia, jadi publikasi owner melewati publish_campaign (approval, versi, konteks), bukan ditahan C8_NOT_READY.
+    expect(publish.body).not.toMatchObject({ code: "C8_NOT_READY" });
     const reloaded = ExecutionViewSchema.parse((await request(`campaigns?campaignId=${campaignId}`)).body);
-    expect(reloaded.campaign.published_at).toBeNull(); expect(reloaded.calendar.progress.completed).toBe(0);
+    if (publish.status === 200) expect(reloaded.campaign.published_at).not.toBeNull();
+    else expect(reloaded.campaign.published_at).toBeNull();
+    expect(reloaded.calendar.progress.completed).toBe(0);
   });
   it.skipIf(process.env.CAMPAIGN_LAB_P13_EXPECT_UNCONFIGURED !== "1")("normal bundle has no mock provider fallback", async () => {
     expect((await request("discussions")).body).toMatchObject({ provider: "gemini-unconfigured" });

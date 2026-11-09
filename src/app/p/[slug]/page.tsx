@@ -16,6 +16,7 @@ export default async function PublicPreorderPage({ params, searchParams }: PageP
     <PublicPreorderView preorder={preorder}>
       {preorder.availability === "open" && (
         <CheckoutForm
+          key={preorder.slug}
           slug={preorder.slug}
           unitPriceIdr={preorder.unitPriceIdr}
           orderableUnits={preorder.orderableUnits}

@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore, useTransition, type FormEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatIdr } from "@/lib/format-idr";
 import { sanitizeUnitsInput } from "@/lib/units-input";
 import { placeBuyerOrderAction, type CheckoutResult } from "@/features/public-preorder/actions";
-import { finishCheckoutIntent, loadCheckoutIntent, loadLastOrderToken, rememberAttributionRef } from "@/features/public-preorder/checkout-intent";
+import { finishCheckoutIntent, loadCheckoutIntent, loadLastOrderToken, rememberAttributionRef, type CheckoutIntent } from "@/features/public-preorder/checkout-intent";
 import type { CheckoutField } from "@/features/public-preorder/schemas";
 import styles from "./public-preorder.module.css";
 
@@ -46,6 +46,12 @@ export function CheckoutForm({ slug, unitPriceIdr, orderableUnits, attributionRe
   const [step, setStep] = useState<"form" | "review">("form");
   const [rejected, setRejected] = useState<Rejected | null>(null);
   const [isPending, startTransition] = useTransition();
+  const activeIntent = useRef<{ slug: string; intent: CheckoutIntent } | null>(null);
+  const submitting = useRef(false);
+
+  useEffect(() => {
+    if (activeIntent.current?.slug !== slug) activeIntent.current = { slug, intent: loadCheckoutIntent(slug) };
+  }, [slug]);
 
   // Ref dari tautan kampanye disimpan untuk tab ini, sehingga tetap terbawa bila pembeli kembali lewat tautan biasa.
   useEffect(() => {
@@ -70,8 +76,11 @@ export function CheckoutForm({ slug, unitPriceIdr, orderableUnits, attributionRe
   };
 
   const submit = () => {
+    if (submitting.current) return;
+    submitting.current = true;
     // Niat yang sama dipakai sampai pesanan tercatat, jadi kirim ulang setelah respons hilang tidak membuat pesanan kedua.
-    const intent = loadCheckoutIntent(slug);
+    if (activeIntent.current?.slug !== slug) activeIntent.current = { slug, intent: loadCheckoutIntent(slug) };
+    const intent = activeIntent.current.intent;
     const ref = rememberAttributionRef(slug, attributionRef);
     const formData = new FormData();
     formData.set("slug", slug);
@@ -92,7 +101,7 @@ export function CheckoutForm({ slug, unitPriceIdr, orderableUnits, attributionRe
         result = { status: "rejected", code: "FAILED", message: "Koneksi terputus. Kirim lagi, pesananmu tidak akan tercatat dua kali." };
       }
       if (result.status === "ok") {
-        finishCheckoutIntent(slug, intent.token);
+        activeIntent.current = { slug, intent: finishCheckoutIntent(slug, intent.token) };
         router.push(`/o/${intent.token}`);
         return;
       }
@@ -104,6 +113,7 @@ export function CheckoutForm({ slug, unitPriceIdr, orderableUnits, attributionRe
         setStep("form");
         router.refresh();
       }
+      submitting.current = false;
     });
   };
 

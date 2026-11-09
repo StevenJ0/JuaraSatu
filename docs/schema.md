@@ -8,7 +8,7 @@
 **Auth:** Supabase Auth  
 **Vector Database:** pgvector — 768 dimensions  
 **Architecture:** Next.js Modular Monolith  
-**Status:** Kontrak kolom terverifikasi pada PostgreSQL disposable dari 14 root migrations sampai `20261108090000` (8 November 2026). Aturan produk di bawah tetap memerlukan verifikasi implementasi per fitur; ini bukan bukti deployment atau kesiapan produksi. Lihat addendum §29–30.
+**Status:** Kontrak terverifikasi pada PostgreSQL disposable dari 16 root migrations sampai `20261108110000` (9 November 2026): `node scripts/test-database-v21.mjs --strict-docs` PASS, 26 tabel/352 kolom MATCH, public function/ACL/RLS dan generated types existing cocok tanpa regenerasi; sembilan kelompok C8/P2-2 PASS. Ini metadata verifikasi T1, bukan perubahan schema, bukti deployment, provider live, atau sign-off MVP E2E. Checkpoint historis tetap dijalankan; lihat addendum §29–30 dan laporan QA T1.
 
 ---
 

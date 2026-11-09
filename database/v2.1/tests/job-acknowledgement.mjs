@@ -243,6 +243,24 @@ try {
             const { runFinancialCas } = await import("./financial-cas.mjs");
             await runFinancialCas({ sql, json, functions, migrationSql: migrationSql(financialMigration) });
             applied.push(financialMigration);
+            const before = functions();
+            for (const file of migrations.filter(file => file > financialMigration)) apply(file);
+            const after = functions();
+            assert.equal(after.length, before.length);
+            const changed = [];
+            for (const original of before) {
+              const current = after.find(fn => fn.id === original.id);
+              assert.ok(current);
+              if (current.body !== original.body) {
+                changed.push(current.name);
+                // C8 seals its two private SQL resolvers as definers; existing signatures/ACLs stay unchanged.
+                assert.equal(current.definer, ["current_order_offer", "resolve_attribution"].includes(current.name) ? true : original.definer);
+                assert.deepEqual({ ...current, body: original.body, definer: original.definer }, original);
+              } else assert.deepEqual(current, original);
+            }
+            assert.deepEqual(changed.sort(), ["accept_late_payment", "apply_verified_payment", "current_order_offer",
+              "lock_campaign_context", "resolve_attribution", "create_preorder_order"].sort());
+            console.log("PASS T1 migration delta: final 16 applied, six function bodies replaced; signatures/owners/ACLs preserved");
           } : undefined });
         if (!fullChain) applied.push(publicationMigration);
       } });

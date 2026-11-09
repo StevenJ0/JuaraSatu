@@ -28,4 +28,13 @@ describe("take_rate_limit untuk checkout", () => {
     expect(await takeLimit(service, "checkout", "192.0.2.1", now, undefined)).toBe("disabled");
     expect(await takeLimit(service, "checkout", "192.0.2.1", now, "pendek")).toBe("disabled");
   });
+
+  it("membatasi cek status provider ke-11 untuk satu pesanan tanpa membatasi pesanan lain", async () => {
+    const token = `private-order-${Date.now()}`;
+    for (let attempt = 0; attempt < LIMITS.paymentCheck.max; attempt += 1) {
+      expect(await takeLimit(service, "paymentCheck", token, now, secret)).toBe("allowed");
+    }
+    expect(await takeLimit(service, "paymentCheck", token, now, secret)).toBe("limited");
+    expect(await takeLimit(service, "paymentCheck", `${token}-other`, now, secret)).toBe("allowed");
+  });
 });

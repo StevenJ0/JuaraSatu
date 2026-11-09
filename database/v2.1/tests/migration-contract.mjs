@@ -16,6 +16,8 @@ export const ACTIVE_MIGRATIONS = [
   "20261107100000_job_claim_isolation.sql",
   "20261107110000_canonical_preorder_publication.sql",
   "20261108090000_financial_bounds_owner_cas.sql",
+  "20261108100000_c8_campaign_offer_resolver.sql",
+  "20261108110000_payment_settlement_clock_and_accept_lock_order.sql",
 ];
 
 export function verifyMigrationInventory(files) {

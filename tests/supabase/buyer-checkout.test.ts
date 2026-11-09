@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { publicOrderSchema } from "@/features/orders/schemas";
-import { createPrivateOrderToken, placePublicOrder } from "@/features/orders/service";
+import { createPrivateOrderToken, findOrderByPrivateToken, hashPrivateOrderToken, placePublicOrder } from "@/features/orders/service";
 import { createMidtransSandboxClient, sandboxQrImageUrl } from "@/features/payments/midtrans-sandbox";
 import { continueQrisPayment, handleMidtransNotification } from "@/features/payments/qris-checkout.server";
 import { cleanupOwners, createOwner, createPublishedPreorder, service, sleep, sql, type Owner, type PreorderFixture } from "./helpers";
@@ -115,6 +115,34 @@ const state = (orderId: string) => sql(`select o.order_status || '|' || coalesce
   (select count(*) from public.job_runs where job_type = 'send_paid_email' and entity_id = o.id) || '|' ||
   (select count(*) from public.payment_events e join public.payments p on p.id = e.payment_id where p.order_id = o.id)
   from public.orders o left join public.capacity_reservations r on r.order_id = o.id where o.id = '${orderId}'`);
+
+describe("Retry checkout setelah respons hilang", () => {
+  it("mengembalikan satu order, satu hold dan mapping token privat yang sama tanpa payment attempt", async () => {
+    const target = createPublishedPreorder(A, PREFIX, stamp);
+    const token = createPrivateOrderToken();
+    const key = `${PREFIX}-retry-${stamp}-${++count}-abcdef`;
+    const input = publicOrderSchema.parse({ slug: target.slug, idempotencyKey: key, privateToken: token,
+      customerName: "Pembeli retry", customerEmail: `${PREFIX}-retry-${count}@example.com`, customerContact: "",
+      quantity: 2, expectedUnitPriceIdr: 120000 });
+    const lost = await placePublicOrder(service, input).then((outcome) => {
+      expect(outcome.kind).toBe("ok");
+      throw new Error("response lost after commit");
+    }).catch((error: unknown) => error);
+    expect(lost).toBeInstanceOf(Error);
+    if (!(lost instanceof Error)) throw new Error("Expected a lost response error");
+    expect(lost.message).toBe("response lost after commit");
+
+    const replay = await placePublicOrder(service, input);
+    expect(replay.kind).toBe("ok");
+    if (replay.kind !== "ok") return;
+    expect(replay.value.replayed).toBe(true);
+    expect(sql(`select count(*) from public.orders where business_id = '${A.businessId}' and idempotency_key = '${key}'`)).toBe("1");
+    expect(sql(`select count(*) from public.capacity_reservations where order_id = '${replay.value.orderId}' and state = 'held' and quantity = 2`)).toBe("1");
+    expect(sql(`select count(*) from public.payments where order_id = '${replay.value.orderId}'`)).toBe("0");
+    expect(sql(`select private_token_hash from public.orders where id = '${replay.value.orderId}'`)).toBe(hashPrivateOrderToken(token));
+    expect((await findOrderByPrivateToken(service, token))?.publicOrderNumber).toBe(replay.value.publicOrderNumber);
+  });
+});
 
 describe("QRIS: membuat dan memakai ulang tagihan", () => {
   it("bayar pertama membuat satu tagihan dan QR tersimpan, membuka lagi memakai QR yang sama", async () => {

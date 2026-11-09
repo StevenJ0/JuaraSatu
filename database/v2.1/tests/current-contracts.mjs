@@ -5,6 +5,8 @@ import { resolve } from "node:path";
 import { verifySchemaColumns } from "./schema-contract.mjs";
 import { verifyMigrationInventory, ACTIVE_MIGRATIONS } from "./migration-contract.mjs";
 import { runConcurrency } from "./concurrency.mjs";
+import { verifyDatabaseTypes } from "./database-types-contract.mjs";
+import { runCampaignPaymentContracts } from "./campaign-payment-contracts.mjs";
 
 export async function verifyCurrentContracts(h) {
   const { sql, json, root } = h;
@@ -34,6 +36,8 @@ export async function verifyCurrentContracts(h) {
     assert.equal(sql(`SELECT to_regprocedure('${signature}') IS NOT NULL;`),"t",signature);
   }
   pass("26 RLS tables/352 columns, categories, restricted definers, owners, exact four overload pairs and named RPC signatures");
+  const types = verifyDatabaseTypes(resolve(root, "src/lib/supabase/database.types.ts"), json(read("database/v2.1/tests/type-catalog.sql")));
+  pass("existing generated database types match the final catalog without regeneration");
 
   const grants=[
     ["businesses","UPDATE",["name","categories","description","public_contact","pickup_instructions"]],
@@ -107,10 +111,12 @@ export async function verifyCurrentContracts(h) {
 
   await runConcurrency(sql,h.connection);
   pass("existing current-schema concurrency: last capacity slot, generation replay/stale version and distinct typed worker claims");
+  const campaignPayment = await runCampaignPaymentContracts(h);
 
   reject("BEGIN; CREATE TABLE public.a4_rollback_probe(id integer); SELECT 1/0; COMMIT;",/22012/);
   assert.equal(sql("SELECT to_regclass('public.a4_rollback_probe') IS NULL;"),"t");
-  for(const files of [ACTIVE_MIGRATIONS.slice(1),[...ACTIVE_MIGRATIONS,"99999999999999_unreviewed.sql"]]) assert.throws(()=>verifyMigrationInventory(files));
+  for(const files of [ACTIVE_MIGRATIONS.slice(1),[...ACTIVE_MIGRATIONS,"99999999999999_unreviewed.sql"],
+    ACTIVE_MIGRATIONS.toReversed(), [...ACTIVE_MIGRATIONS, ACTIVE_MIGRATIONS[0]]]) assert.throws(()=>verifyMigrationInventory(files));
   pass("SQL error propagates and transaction rolls back DDL; missing or unreviewed migrations fail the inventory gate");
 
   const docs=read("docs/schema.md"), compared=verifySchemaColumns(docs,catalog.columns), drift=compared.filter(c=>c.classification!=="MATCH");
@@ -127,7 +133,7 @@ export async function verifyCurrentContracts(h) {
   assert.ok(verifySchemaColumns(docs,catalog.columns.map(c=>c.table==="businesses" && c.column==="id" ? {...c,default:null}:c)).some(c=>c.name==="businesses.id" && c.classification==="MISMATCH"));
   pass("strict comparator matches all columns and detects EXTRA/MISSING/type/nullability/default mismatches");
   const summary={runId:h.runId,container:h.container,layer1:"PASS",layer2:"NOT EXECUTED",groups,comparator:"PASS",docs:"MATCH",drift,
-    migrations:inventory,checkpoint:{through:"20261104092000",assertions:100,assertion65:"PASS",memoryLegacyGroups:7},durationMs:Date.now()-h.started};
+    migrations:inventory,types,campaignPayment,checkpoint:{through:"20261104092000",assertions:100,assertion65:"PASS",memoryLegacyGroups:7},durationMs:Date.now()-h.started};
   writeFileSync(resolve(directory,"summary.json"),JSON.stringify(summary,null,2));
   writeFileSync(resolve(root,"node_modules/.cache/database-v21/latest.json"),JSON.stringify({directory},null,2));
   console.log(`ARTIFACT ${directory}`);

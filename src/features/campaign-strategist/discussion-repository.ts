@@ -1,10 +1,12 @@
-import type { DiscussionMessage, StrategyProposal, StrategyErrorCode } from "./contracts";
+import type { DiscussionMessage, PreviousProposal, StrategyProposal, StrategyErrorCode } from "./contracts";
 
 /** Trusted auth service supplies ownerUserId; it is never evidence of auth by itself. */
 export type DiscussionScope = { ownerUserId: string; businessId: string; preorderId: string; sessionId: string };
 export type DiscussionSession = {
   id: string; businessId: string; preorderId: string; version: number;
   contextHash: string; status: "active" | "closed"; messages: DiscussionMessage[];
+  /** Optional so repositories without stored proposals still satisfy the contract. */
+  previousProposals?: PreviousProposal[];
 };
 export type RepositoryError = "FORBIDDEN" | "NOT_FOUND" | "VERSION_CONFLICT" | "STALE_CONTEXT"
   | "IDEMPOTENCY_CONFLICT" | "TURN_IN_PROGRESS" | "PERSISTENCE_UNAVAILABLE";

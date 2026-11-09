@@ -33,7 +33,7 @@ export function configuredEvaluationProvider(scenario: "valid" | "failure" | "in
     recordEvaluationTiming("prompt", metadata?.requestId ?? null, performance.now() - preparedAt);
     const provider = createGeminiJsonProvider(config, schema, createGeminiDebugTrace(metadata?.requestId));
     const result = await provider.generate(prompt);
-    if (!result.success) throw new EvaluationError(result.code, result.code === "PROVIDER_TIMEOUT" ? 504 : result.code === "INVALID_RESPONSE" ? 502 : 503);
+    if (!result.success) throw new EvaluationError(result.code, result.code === "PROVIDER_TIMEOUT" ? 504 : result.code === "INVALID_RESPONSE" || result.code === "OUTPUT_TRUNCATED" ? 502 : 503);
     let narrative: unknown;
     try { narrative = JSON.parse(result.text); } catch { throw new EvaluationError("INVALID_AI_EVALUATION", 502); }
     return { narrative, providerRequestId: result.requestId };

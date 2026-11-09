@@ -36,7 +36,7 @@ export function configuredMemoryProvider(scenario: "valid" | "failure" | "invali
       financialState: z.literal(states.financialState), executionState: z.literal(states.executionState), evidenceReferences: z.array(z.enum(evidenceReferences)).min(1).max(5) });
     const provider = createGeminiJsonProvider(config, schema);
     const result = await provider.generate({ systemInstruction, input: JSON.stringify({ source, expectedAssessments: states, allowedEvidenceReferences: evidenceReferences }) });
-    if (!result.success) throw new MemoryError(result.code, result.code === "PROVIDER_TIMEOUT" ? 504 : result.code === "INVALID_RESPONSE" ? 502 : 503);
+    if (!result.success) throw new MemoryError(result.code, result.code === "PROVIDER_TIMEOUT" ? 504 : result.code === "INVALID_RESPONSE" || result.code === "OUTPUT_TRUNCATED" ? 502 : 503);
     let interpretation: unknown;
     try { interpretation = JSON.parse(result.text); } catch { throw new MemoryError("INVALID_MEMORY_OUTPUT", 502); }
     return { interpretation, providerRequestId: result.requestId };

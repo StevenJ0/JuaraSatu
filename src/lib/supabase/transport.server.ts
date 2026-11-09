@@ -21,18 +21,21 @@ export class SupabaseError extends Error {
   constructor(readonly code: string, readonly detail: string, readonly status: number) { super("Supabase request failed"); }
 }
 const ErrorSchema = z.object({ code: z.string().optional(), message: z.string().optional() });
-export function localSupabaseConfig() {
+/** HTTPS untuk Supabase Cloud; HTTP polos hanya untuk Supabase lokal di loopback agar token tidak lewat jaringan tanpa enkripsi. */
+export function supabaseRestConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_PUBLISHABLE_KEY;
   const target = url && URL.canParse(url) ? new URL(url) : null;
-  if (!key || !target || target.protocol !== "http:" || target.hostname !== "127.0.0.1" ||
+  const secureOrLoopback = target !== null && (target.protocol === "https:" ||
+    target.protocol === "http:" && (target.hostname === "127.0.0.1" || target.hostname === "localhost"));
+  if (!key || !target || !secureOrLoopback ||
     target.username || target.password || target.pathname !== "/" || target.search || target.hash) {
-    throw new SupabaseError("CONFIGURATION_ERROR", "LOCAL_ONLY", 503);
+    throw new SupabaseError("CONFIGURATION_ERROR", "INVALID_SUPABASE_URL", 503);
   }
   return { url: target.origin, key };
 }
 export async function supabaseRequest(path: string, token?: string, method = "GET", body?: unknown): Promise<unknown> {
-  const { url, key } = localSupabaseConfig();
+  const { url, key } = supabaseRestConfig();
   let response: Response;
   try {
     response = await fetch(`${url}${path}`, { method, cache: "no-store", signal: AbortSignal.timeout(12_000),

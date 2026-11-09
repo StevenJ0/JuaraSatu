@@ -28,7 +28,7 @@ describe("remaining modules: installed SDK, mocked HTTP, no paid generation", ()
     expect(result).toMatchObject({ provider: "gemini", model: env.GEMINI_MODEL, providerRequestId: id ?? null, generatedAt: f.now, synthetic: true, status: "available" });
     expect(transport).toHaveBeenCalledTimes(1);
     const request = new Request(transport.mock.calls[0][0], transport.mock.calls[0][1]);
-    expect(await request.json()).toMatchObject({ model: env.GEMINI_MODEL, store: false, stream: false, generation_config: { max_output_tokens: 4096 } });
+    expect(await request.json()).toMatchObject({ model: env.GEMINI_MODEL, store: false, stream: false, generation_config: { max_output_tokens: 8192 } });
   });
   it.each(["synthetic-provider-id", undefined])("grounds memory with nullable provider id %s", async id => {
     const f = await memoryFixture(); transport.mockResolvedValue(wire(f.row.lessons_json.interpretation, id));

@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
+import { MODEL_ID_PATTERN } from "./model-id";
 
 export type GeminiDebugStage = "API_REQUEST" | "INPUT_VALIDATION" | "PROVIDER_CONFIGURATION" | "PROVIDER_INITIALIZATION"
   | "REQUEST_PREPARATION" | "SDK_REQUEST" | "TRANSPORT" | "UPSTREAM_HTTP" | "INTERACTION_RESPONSE"
@@ -24,7 +25,7 @@ const safeNetworkCodes = new Set(["EACCES", "EPERM", "ENOTFOUND", "EAI_AGAIN", "
   "ERR_INVALID_ARG_VALUE", "ERR_INVALID_URL", "ERR_INVALID_CHAR", "ERR_HTTP_INVALID_HEADER_VALUE", "CERT_HAS_EXPIRED", "SELF_SIGNED_CERT_IN_CHAIN",
   "DEPTH_ZERO_SELF_SIGNED_CERT", "UNABLE_TO_VERIFY_LEAF_SIGNATURE", "UNABLE_TO_GET_ISSUER_CERT_LOCALLY", "ERR_TLS_CERT_ALTNAME_INVALID", "ERR_TLS_CERT_SIGNATURE_ALGORITHM_UNSUPPORTED"]);
 const safeCodes = new Set(["COMPLETED", "RUNNING", "UNCLASSIFIED", "CONFIGURATION_ERROR", "PROVIDER_REFUSED", "PROVIDER_TIMEOUT", "PROVIDER_RATE_LIMITED",
-  "MODEL_UNAVAILABLE", "PROVIDER_UNAVAILABLE", "INVALID_RESPONSE", "INVALID_INPUT", "CONTEXT_UNAVAILABLE", "STALE_CONTEXT", "UNSAFE_TEXT", "NO_FEASIBLE_OPTIONS",
+  "MODEL_UNAVAILABLE", "PROVIDER_UNAVAILABLE", "INVALID_RESPONSE", "OUTPUT_TRUNCATED", "INVALID_INPUT", "CONTEXT_UNAVAILABLE", "STALE_CONTEXT", "UNSAFE_TEXT", "NO_FEASIBLE_OPTIONS",
   "PERSISTENCE_UNAVAILABLE", "VERSION_CONFLICT", "IDEMPOTENCY_CONFLICT", "TURN_IN_PROGRESS", "NOT_FOUND", "FORBIDDEN", "UNAUTHENTICATED",
   "INVALID_OPTION", "SOURCE_MISMATCH", "INVALID_DATES", "PREFERENCE_CONFLICT", "FINANCIAL_OR_CAPACITY_BLOCKER", "FAKE_SCENARIO_DISABLED"]);
 const providerStatuses = new Set(["INVALID_ARGUMENT", "UNAUTHENTICATED", "PERMISSION_DENIED", "NOT_FOUND", "RESOURCE_EXHAUSTED", "FAILED_PRECONDITION",
@@ -161,7 +162,7 @@ function safeDetails(details: Record<string, unknown>) {
     if (typeof details[key] === "boolean") safe[key] = details[key];
   }
   if (typeof details.code === "string") safe.code = safeCodes.has(details.code) ? details.code : "UNCLASSIFIED";
-  if (typeof details.model === "string" && /^gemini-[a-zA-Z0-9.-]{1,100}$/.test(details.model)) safe.model = details.model;
+  if (typeof details.model === "string" && MODEL_ID_PATTERN.test(details.model)) safe.model = details.model;
   if (typeof details.sessionId === "string" && z.uuid().safeParse(details.sessionId).success) safe.sessionId = details.sessionId;
   if (typeof details.action === "string" && ["send", "create", "refresh", "recover"].includes(details.action)) safe.action = details.action;
   if (typeof details.claimStatus === "string" && ["claimed", "running", "completed", "failed"].includes(details.claimStatus)) safe.claimStatus = details.claimStatus;

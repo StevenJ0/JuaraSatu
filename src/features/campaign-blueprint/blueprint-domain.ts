@@ -5,7 +5,10 @@ import { simulateCampaign, SimulationResultSchema } from "../campaign-simulator"
 import { BlueprintError, BlueprintEditsSchema, BlueprintPlanSchema, CampaignBlueprintSchema,
   type BlueprintEdits, type CampaignBlueprint, type PersistedSelection, type SourceVersionsSchema } from "./contracts";
 import type { z } from "zod";
-import { narrativeRejection, normalizeNarrative } from "@/lib/ai/narrative-safety";
+import { keepSafeSentences, narrativeRejection, normalizeNarrative, ownerNarrativeRejection, type NarrativeFacts } from "@/lib/ai/narrative-safety";
+
+// Offers the app cannot fulfil; blocked in every caption regardless of who wrote it.
+const UNSUPPORTED_OFFER = /gratis|bundl|voucher|ongkir/iu;
 
 export function fingerprint(value: unknown): string {
   function sorted(input: unknown): unknown {
@@ -59,6 +62,37 @@ export function validateBlueprintOffer(rawEdits: unknown, contextInput: BuildBus
   if (!result.success || !result.data.feasible) throw new BlueprintError("FINANCIAL_OR_CAPACITY_BLOCKER", 400);
   return { edits, context, offer, calculation: result.data };
 }
+type OfferFacts = ReturnType<typeof validateBlueprintOffer>;
+function blueprintNarrativeFacts(plan: { targetAdditionalUnits: number; budgetCapIdr: number }, facts: OfferFacts): NarrativeFacts {
+  const { preorder, capacity } = facts.context;
+  return { targetUnits: [plan.targetAdditionalUnits, preorder.targetUnits, preorder.paidTargetGapUnits], promotionBudgetIdr: [plan.budgetCapIdr],
+    unitPriceIdr: [preorder.baseUnitPriceIdr, facts.calculation.hypotheticalFinalUnitPriceIdr], discountBps: [facts.offer.discountBps],
+    capacityUnits: [preorder.quotaUnits, preorder.orderableUnits, ...(capacity ? [capacity.totalUnits, capacity.availableUnits] : [])] };
+}
+const FALLBACK = {
+  text: "Tinjau dan sesuaikan bagian ini sebelum rencana disetujui.",
+  task: "Tinjau tugas promosi", taskDescription: "Periksa isi dan jadwal tugas ini sebelum dijalankan.",
+  content: "Preorder sudah dibuka. Cek harga dan jadwal pengambilan di tautan preorder.",
+} as const;
+/**
+ * Gemini prose is filtered sentence by sentence before the strict validation below, so one unsupported number or
+ * promise removes that sentence instead of failing the whole plan. Structure, keys, channels and dates are untouched.
+ */
+export function sanitizeGeneratedPlan(plan: z.infer<typeof BlueprintPlanSchema>, edits: { targetAdditionalUnits: number; budgetCapIdr: number }, facts: OfferFacts) {
+  const narrativeFacts = blueprintNarrativeFacts(edits, facts);
+  const unsafe = (sentence: string) => narrativeRejection(sentence, narrativeFacts, true) !== null || UNSUPPORTED_OFFER.test(normalizeNarrative(sentence));
+  const text = (value: string, fallback: string) => keepSafeSentences(value, unsafe) ?? fallback;
+  const items = (values: string[]) => { const kept = values.flatMap(value => keepSafeSentences(value, unsafe) ?? []); return kept.length > 0 ? kept : [FALLBACK.text]; };
+  return BlueprintPlanSchema.parse({ ...plan,
+    // The goal fallback is built from the server's own target, so the plan still states what it aims for.
+    goal: text(plan.goal, `Target ${edits.targetAdditionalUnits} unit tambahan terbayar selama periode kampanye.`),
+    hypothesis: text(plan.hypothesis, "Promosi ini mungkin membantu calon pembeli memesan sebelum preorder ditutup."),
+    audienceHypothesis: text(plan.audienceHypothesis, "Calon pembeli yang sudah mengenal usaha Anda."),
+    rationale: text(plan.rationale, "Rencana mengikuti usulan yang Anda pilih dan data preorder terbaru."),
+    risks: items(plan.risks), dependencies: items(plan.dependencies), ownerChecklist: items(plan.ownerChecklist),
+    tasks: plan.tasks.map(task => ({ ...task, title: text(task.title, FALLBACK.task), description: text(task.description, FALLBACK.taskDescription) })),
+    contents: plan.contents.map(content => ({ ...content, body: text(content.body, FALLBACK.content) })) });
+}
 export function validateBlueprint(blueprintInput: unknown, contextInput: BuildBusinessContextInput, now: string): CampaignBlueprint {
   const blueprint = CampaignBlueprintSchema.parse(blueprintInput);
   const edits: BlueprintEdits = { title: blueprint.campaignTitle, marketingApproach: blueprint.marketingApproach,
@@ -76,14 +110,16 @@ export function validateBlueprint(blueprintInput: unknown, contextInput: BuildBu
   }
   if (blueprint.offer.type !== facts.offer.offerType || blueprint.kpiPlan.target !== blueprint.targetAdditionalUnits) throw new BlueprintError("INVALID_BLUEPRINT", 400);
   const plan = BlueprintPlanSchema.strip().parse(blueprint);
+  const narrativeFacts = blueprintNarrativeFacts(blueprint, facts);
+  // Manual revisions are the owner's own words: dates, prices and product details are allowed, promises are not.
+  const rejection = blueprint.provider === "manual" ? ownerNarrativeRejection : (text: string) => narrativeRejection(text, narrativeFacts, true);
   const narrative = [blueprint.campaignTitle, plan.goal, plan.hypothesis, plan.audienceHypothesis, plan.rationale,
     ...plan.risks, ...plan.dependencies, ...plan.ownerChecklist, ...blueprint.assumptions, blueprint.evaluationPlan,
-    blueprint.kpiPlan.definition, blueprint.kpiPlan.baselineNote, blueprint.revision.notes,
+    blueprint.kpiPlan.definition, blueprint.kpiPlan.baselineNote,
     ...plan.tasks.flatMap(task => [task.title, task.description]), ...plan.contents.map(content => content.body)];
-  if (narrative.some(text => narrativeRejection(text, { targetUnits: [blueprint.targetAdditionalUnits, facts.context.preorder.targetUnits],
-    promotionBudgetIdr: [blueprint.budgetCapIdr], unitPriceIdr: [facts.context.preorder.baseUnitPriceIdr, facts.calculation.hypotheticalFinalUnitPriceIdr], discountBps: [facts.offer.discountBps] }, true))) throw new BlueprintError("INVALID_CONTENT", 400);
-  for (const task of plan.tasks) if (!edits.channels.includes(task.channel) || Date.parse(task.dueAt) < Date.parse(facts.context.preorder.startsAt) || Date.parse(task.dueAt) >= Date.parse(edits.endsAt)) throw new BlueprintError("INVALID_SCHEDULE", 400);
-  for (const content of plan.contents) if (!edits.channels.includes(content.channel) || /gratis|bundl|voucher|ongkir/iu.test(normalizeNarrative(content.body))) throw new BlueprintError("INVALID_CONTENT", 400);
+  if (narrative.some(text => rejection(text) !== null) || ownerNarrativeRejection(blueprint.revision.notes) !== null) throw new BlueprintError("INVALID_CONTENT", 400);
+  for (const task of plan.tasks) if ((task.channel !== null && !edits.channels.includes(task.channel)) || Date.parse(task.dueAt) < Date.parse(facts.context.preorder.startsAt) || Date.parse(task.dueAt) >= Date.parse(edits.endsAt)) throw new BlueprintError("INVALID_SCHEDULE", 400);
+  for (const content of plan.contents) if (!edits.channels.includes(content.channel) || UNSUPPORTED_OFFER.test(normalizeNarrative(content.body))) throw new BlueprintError("INVALID_CONTENT", 400);
   return { ...blueprint, financial: { frozenBasePriceIdr: facts.context.preorder.baseUnitPriceIdr, variableCostIdr: facts.context.product.variableCostIdr,
     costQuality: facts.context.product.costQuality, calculation: facts.calculation } };
 }

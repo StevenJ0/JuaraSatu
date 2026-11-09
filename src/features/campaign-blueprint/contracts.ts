@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MODEL_ID_PATTERN } from "@/lib/ai/model-id";
 import { StrategyAlternativeSchema, StrategyProposalSchema, StrategyChannelSchema } from "../campaign-strategist/contracts";
 import { SimulationResultSchema } from "../campaign-simulator";
 
@@ -14,18 +15,23 @@ export const PersistedSelectionSchema = z.object({ source: SourceSchema, proposa
 export type PersistedSelection = z.infer<typeof PersistedSelectionSchema>;
 export const SourceVersionsSchema = z.strictObject({ preorderVersion: z.number().int().positive(), preorderItemVersion: z.number().int().positive(),
   productVersion: z.number().int().positive(), capacityVersion: z.number().int().positive() });
-export const BlueprintTaskSchema = z.strictObject({ key: KeySchema, title: planText(160), description: TextSchema,
-  channel: StrategyChannelSchema, dueAt: z.iso.datetime() });
+const taskFields = { key: KeySchema, title: planText(160), description: TextSchema, dueAt: z.iso.datetime() };
+/** A null channel is a task on a platform without its own tracked channel (TikTok, X, community); the title names it. */
+export const BlueprintTaskSchema = z.strictObject({ ...taskFields, channel: StrategyChannelSchema.nullable() });
 export const BlueprintContentSchema = z.strictObject({ key: KeySchema, channel: StrategyChannelSchema,
   type: z.enum(["headline", "caption", "cta"]), body: planText(2200) });
-export const BlueprintPlanSchema = z.strictObject({ goal: TextSchema, hypothesis: TextSchema, audienceHypothesis: TextSchema,
-  rationale: TextSchema, tasks: z.array(BlueprintTaskSchema).min(1).max(12), contents: z.array(BlueprintContentSchema).min(1).max(8),
-  risks: z.array(TextSchema).min(1).max(8), dependencies: z.array(TextSchema).min(1).max(8), ownerChecklist: z.array(TextSchema).min(1).max(8),
-}).superRefine((plan, ctx) => {
+const planFields = { goal: TextSchema, hypothesis: TextSchema, audienceHypothesis: TextSchema, rationale: TextSchema,
+  contents: z.array(BlueprintContentSchema).min(1).max(8), risks: z.array(TextSchema).min(1).max(8),
+  dependencies: z.array(TextSchema).min(1).max(8), ownerChecklist: z.array(TextSchema).min(1).max(8) };
+function uniqueKeys(plan: { tasks: { key: string }[]; contents: { key: string }[] }, ctx: z.RefinementCtx) {
   for (const key of ["tasks", "contents"] as const) {
     if (new Set(plan[key].map((entry) => entry.key)).size !== plan[key].length) ctx.addIssue({ code: "custom", path: [key], message: "Duplicate identifiers" });
   }
-});
+}
+export const BlueprintPlanSchema = z.strictObject({ ...planFields, tasks: z.array(BlueprintTaskSchema).min(1).max(12) }).superRefine(uniqueKeys);
+/** Gemini's response schema avoids a nullable enum: the provider adapter maps "other" to a null channel. */
+export const GeminiBlueprintPlanSchema = z.strictObject({ ...planFields,
+  tasks: z.array(z.strictObject({ ...taskFields, channel: z.enum([...StrategyChannelSchema.options, "other"]) })).min(1).max(12) }).superRefine(uniqueKeys);
 export type BlueprintPlan = z.infer<typeof BlueprintPlanSchema>;
 export const BlueprintEditsSchema = z.strictObject({ title: z.string().trim().min(1).max(160),
   marketingApproach: StrategyAlternativeSchema.shape.marketingApproach,
@@ -51,7 +57,7 @@ export const CampaignBlueprintSchema = BlueprintPlanSchema.safeExtend({
   revision: z.strictObject({ requestId: z.uuid(), requestHash: HashSchema, expectedCampaignVersion: z.number().int().positive(),
     parentBlueprintId: z.uuid().nullable(), parentVersion: z.number().int().positive().nullable(), notes: z.string().max(500) }),
   provider: z.enum(["development-fake-blueprint", "gemini", "manual"]), synthetic: z.boolean(),
-  model: z.string().regex(/^gemini-[a-zA-Z0-9.-]{1,100}$/).optional(), providerRequestId: z.string().min(1).max(256).nullable().optional(),
+  model: z.string().regex(MODEL_ID_PATTERN).optional(), providerRequestId: z.string().min(1).max(256).nullable().optional(),
 }).refine(body => body.provider === "gemini" ? body.model !== undefined && body.providerRequestId !== undefined
   : body.model === undefined && body.providerRequestId === undefined && (body.provider !== "manual" ||
     body.revision.parentBlueprintId !== null && body.revision.parentVersion !== null), "Provider metadata must match its source");

@@ -91,7 +91,7 @@ describe("campaign strategist", () => {
     expect(result).toMatchObject({ success: true, data: { options: [{ computedScenario: {
       frozenBaseUnitPriceIdr: 120_000, currentOffer: { unitPriceIdr: 108_000 }, hypotheticalFinalUnitPriceIdr: 114_000,
     } }], rejectedOptions: [{ code: "FINANCIAL_OR_CAPACITY_BLOCKER" }],
-    limitations: expect.arrayContaining([expect.stringContaining("Campaign saat ini masih aktif")]) } });
+    limitations: expect.arrayContaining([expect.stringContaining("Kampanye saat ini masih berjalan")]) } });
   });
 
   it.each([
@@ -107,13 +107,20 @@ describe("campaign strategist", () => {
   });
 
   it.each([
-    { startsAt: "2026-10-31T00:00:00Z" }, { endsAt: "2026-11-07T00:00:00Z" },
-    { startsAt: "2026-11-06T00:00:00Z", endsAt: "2026-11-05T00:00:00Z" },
-    { endsAt: "2026-11-02T02:00:00Z" },
-  ])("rejects dates outside the current preorder window", async (patch) => {
+    { startsAt: "2026-10-31T00:00:00Z" }, { endsAt: "2026-11-02T02:00:00Z" },
+  ])("rejects a start before the preorder or an end that already passed", async (patch) => {
     expect(await generateCampaignStrategies(discussionFixture, withReply({ ...replyFixture,
       options: [{ ...replyFixture.options[0], ...patch }],
     }))).toMatchObject({ success: true, data: { options: [], rejectedOptions: [{ code: "INVALID_DATES" }] } });
+  });
+
+  it.each([
+    [{ endsAt: "2026-11-07T00:00:00Z" }, { startsAt: "2026-11-02T03:00:00Z", endsAt: "2026-11-06T11:00:00.000Z" }],
+    [{ startsAt: "2026-11-06T00:00:00Z", endsAt: "2026-11-05T00:00:00Z" }, { startsAt: "2026-11-02T03:00:00.000Z", endsAt: "2026-11-05T00:00:00Z" }],
+  ])("starts a campaign at publication and caps it at the preorder close, as SQL publish_campaign requires", async (patch, window) => {
+    expect(await generateCampaignStrategies(discussionFixture, withReply({ ...replyFixture,
+      options: [{ ...replyFixture.options[0], ...patch }],
+    }))).toMatchObject({ success: true, data: { options: [window], rejectedOptions: [] } });
   });
 
   it("enforces budget/channel/discount preferences, including during revalidation", async () => {
@@ -134,11 +141,32 @@ describe("campaign strategist", () => {
 
   it.each(["Penjualan pasti meningkat.", "Guaranteed sales.", "Campaign sudah dipublikasikan.", "Kontribusi Rp999999.",
     "Berdasarkan memori kampanye sebelumnya, strategi ini berhasil.", "Hubungi private@example.test."])(
-    "rejects guarantees, operational claims and model-calculated amounts in prose", async (reply) => {
-      expect(await generateCampaignStrategies(discussionFixture, withReply({ ...replyFixture, reply })))
-        .toMatchObject({ success: false, error: { code: "UNSAFE_TEXT" } });
+    "removes guarantees, operational claims and model-calculated amounts from prose without discarding valid alternatives", async (reply) => {
+      const result = await generateCampaignStrategies(discussionFixture, withReply({ ...replyFixture, reply }));
+      expect(result).toMatchObject({ success: true, data: { reply: expect.stringContaining("lolos pemeriksaan server"), status: "alternatives_available" } });
+      expect(JSON.stringify(result)).not.toContain(reply.slice(0, 20));
     },
   );
+
+  it("keeps the safe sentences of a mixed reply and drops only the unsafe one", async () => {
+    const reply = "Pengingat dapat membantu calon pembeli. Penjualan pasti meningkat. Tinjau alternatif sebelum memilih.";
+    const result = await generateCampaignStrategies(discussionFixture, withReply({ ...replyFixture, reply,
+      limitations: ["Hasil bergantung pada asumsi dan perlu review pemilik.", "Keuntungan dijamin naik."] }));
+    expect(result).toMatchObject({ success: true, data: { reply: "Pengingat dapat membantu calon pembeli. Tinjau alternatif sebelum memilih." } });
+    if (!result.success) throw new Error(result.error.code);
+    expect(result.data.limitations).toContain("Hasil bergantung pada asumsi dan perlu review pemilik.");
+    expect(result.data.limitations.join(" ")).not.toContain("dijamin");
+  });
+
+  it.each([
+    "Berikut adalah 2 opsi rencana promosi untuk preorder ini.",
+    "Estimasi penjualan adalah asumsi pemilik dan bukan perkiraan yang dijamin.",
+    "Jumlah penjualan adalah asumsi perencanaan pemilik usaha, bukan prediksi permintaan pasti.",
+    "Kirim pengingat 3 hari sebelum preorder ditutup, misalnya pada 20 November pukul 10.00 WIB.",
+  ])("keeps wording real Gemini answers use: %s", async (reply) => {
+    expect(await generateCampaignStrategies(discussionFixture, withReply({ ...replyFixture, reply })))
+      .toMatchObject({ success: true, data: { reply } });
+  });
 
   it("separates untrusted text/history/preferences from system rules and redacts obvious contacts", async () => {
     const provider = { generate: vi.fn(async (prompt: { systemInstruction: string; input: string }): Promise<StrategyProviderResult> => {

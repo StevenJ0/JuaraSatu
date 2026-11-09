@@ -29,7 +29,7 @@ describe("installed Gemini SDK with fully mocked HTTP (no network or inference)"
     expect(request.method).toBe("POST");
     expect(await request.clone().json()).toMatchObject({ model: config.model, input: prompt.input,
       system_instruction: prompt.systemInstruction, store: false, stream: false, tools: [],
-      generation_config: { max_output_tokens: 4096 }, response_format: { type: "text", mime_type: "application/json", schema: { type: "object" } } });
+      generation_config: { max_output_tokens: 8192 }, response_format: { type: "text", mime_type: "application/json", schema: { type: "object" } } });
     expect(await request.clone().json()).not.toHaveProperty("automatic_continuation");
     expect(typeof transport.mock.calls[0][0]).toBe("string");
   });

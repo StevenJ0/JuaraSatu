@@ -5,7 +5,7 @@ import { GenerationClaimError } from "@/lib/ai/generation-claims.server";
 import { generationQuotaPolicy } from "@/lib/ai/generation-quota-policy.server";
 import type { DiscussionSession as SessionType } from "./discussion-repository";
 import type { DiscussionRepository, DiscussionScope, RepositoryError, RepositoryResult } from "./discussion-repository";
-import { StrategyProposalSchema, type StrategyErrorCode } from "./contracts";
+import { StrategyProposalSchema, summarizeProposals, type StrategyErrorCode } from "./contracts";
 import { GenerationSchema, type DiscussionView } from "./persistence-contracts";
 
 const SessionSchema = z.object({ id: z.uuid(), business_id: z.uuid(), preorder_id: z.uuid(), version: z.number().int().positive(),
@@ -21,7 +21,7 @@ const ClaimSchema = z.discriminatedUnion("status", [
 const FinalizedSchema = z.object({ status: z.literal("success"), generationId: z.uuid(), sessionVersion: z.number().int().positive() });
 const FailedSchema = z.object({ status: z.literal("failed"), sessionVersion: z.number().int().positive() });
 const failureCodes = new Set<StrategyErrorCode>(["CONFIGURATION_ERROR", "PROVIDER_REFUSED", "PROVIDER_TIMEOUT", "PROVIDER_RATE_LIMITED",
-  "MODEL_UNAVAILABLE", "PROVIDER_UNAVAILABLE", "INVALID_RESPONSE", "INVALID_INPUT", "CONTEXT_UNAVAILABLE", "STALE_CONTEXT", "UNSAFE_TEXT", "NO_FEASIBLE_OPTIONS"]);
+  "MODEL_UNAVAILABLE", "PROVIDER_UNAVAILABLE", "INVALID_RESPONSE", "OUTPUT_TRUNCATED", "INVALID_INPUT", "CONTEXT_UNAVAILABLE", "STALE_CONTEXT", "UNSAFE_TEXT", "NO_FEASIBLE_OPTIONS"]);
 function failureCode(code: string | null): StrategyErrorCode {
   for (const known of failureCodes) if (known === code) return known;
   return "PROVIDER_UNAVAILABLE";
@@ -79,7 +79,8 @@ export function createSupabaseDiscussionRepository(user: SupabaseTransport, priv
     async load(scope) {
       const loaded = await view(scope);
       if (!loaded.success) return loaded;
-      const data: SessionType = { ...loaded.data, messages: loaded.data.messages.map(({ sequence, role, content, contextHash }) => ({ sequence, role, content, contextHash })) };
+      const data: SessionType = { ...loaded.data, messages: loaded.data.messages.map(({ sequence, role, content, contextHash }) => ({ sequence, role, content, contextHash })),
+        previousProposals: summarizeProposals(loaded.data.messages.flatMap((message) => message.proposal ? [message.proposal] : [])) };
       return { success: true, data };
     },
     beginTurn: (command) => result(async () => {

@@ -21,7 +21,7 @@ describe("server Gemini adapter with mocked SDK transport", () => {
       model: config.model, system_instruction: prompt.systemInstruction, input: prompt.input,
       store: false, stream: false, tools: [], automatic_continuation: false,
       response_format: { type: "text", mime_type: "application/json", schema: { type: "object" } },
-      generation_config: { max_output_tokens: 4_096 },
+      generation_config: { max_output_tokens: 8_192 },
     });
     expect(create.mock.calls[0][1]).toMatchObject({ retries: { strategy: "none" } });
   });
@@ -48,6 +48,21 @@ describe("server Gemini adapter with mocked SDK transport", () => {
     await vi.runAllTimersAsync();
     expect(await result).toMatchObject({ success: true });
     expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it("never retries a timeout, because the provider may already have produced an answer", async () => {
+    const error = new Error("synthetic timeout"); error.name = "APIConnectionTimeoutError";
+    create.mockRejectedValue(error);
+    expect(await createGeminiStrategyProvider({ ...config, maxAttempts: 2 }).generate(prompt)).toEqual({ success: false, code: "PROVIDER_TIMEOUT" });
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps one attempt by default and lets owner Campaign AI opt into the explicit-rejection retry", async () => {
+    const { geminiConfiguration } = await import("../../src/lib/ai/gemini-json.server");
+    const env = { GEMINI_API_KEY: "fake-private-key", GEMINI_MODEL: "gemini-3.6-flash" };
+    expect(geminiConfiguration(env)).toMatchObject({ maxAttempts: 1, timeoutMs: 60_000 });
+    expect(geminiConfiguration(env, 2)).toMatchObject({ maxAttempts: 2 });
+    expect(geminiConfiguration({ ...env, GEMINI_TIMEOUT_MS: "30000" })).toMatchObject({ timeoutMs: 30_000 });
   });
 
   it.each([[400, "CONFIGURATION_ERROR"], [401, "CONFIGURATION_ERROR"], [402, "CONFIGURATION_ERROR"],
@@ -82,6 +97,13 @@ describe("server Gemini adapter with mocked SDK transport", () => {
     create.mockRejectedValue(error);
     expect(await createGeminiStrategyProvider({ ...config, maxAttempts: 1 }).generate(prompt))
       .toEqual({ success: false, code: "PROVIDER_TIMEOUT" });
+  });
+
+  it("reports an answer cut off at the output limit as truncated, not busy, and does not retry it", async () => {
+    create.mockResolvedValue({ id: "cut", status: "incomplete", output_text: "{\"options\":[" });
+    const provider = createGeminiStrategyProvider({ ...config, maxAttempts: 2 });
+    expect(await provider.generate(prompt)).toEqual({ success: false, code: "OUTPUT_TRUNCATED" });
+    expect(create).toHaveBeenCalledTimes(1);
   });
 
   it.each([{}, { id: "bad", status: "completed" }, { id: "bad", status: "incomplete", output_text: "partial" },

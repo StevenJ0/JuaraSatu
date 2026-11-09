@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MODEL_ID_PATTERN } from "@/lib/ai/model-id";
 import { ExecutionSnapshotSchema, LifecycleCampaignSchema, PublicationBaselineSchema } from "../campaign-execution/contracts";
 const Time = z.iso.datetime({ offset: true });
 const Version = z.number().int().positive().max(2_147_483_647);
@@ -47,7 +48,7 @@ export const EvaluationNarrativeSchema = z.strictObject({ outcome: z.enum(["abov
   evidenceReferences: z.array(z.enum(["campaign", "blueprint", "baseline", "execution", "costs", "c6"])).min(1).max(6), warnings: z.array(Text).min(1).max(8) });
 export type EvaluationNarrative = z.infer<typeof EvaluationNarrativeSchema>;
 export type EvaluationProvider = ({ kind?: undefined } | { kind: "gemini"; model: string }) & { generate(input: { summary: EvaluationSummary; references: EvaluationContext["references"] }, metadata?: { requestId: string | null }): Promise<unknown> };
-export const AnalysisSchema = z.object({ schemaVersion: z.literal(1), provider: z.enum(["development-fake-evaluation", "gemini"]), model: z.string().regex(/^gemini-[a-zA-Z0-9.-]{1,100}$/).optional(),
+export const AnalysisSchema = z.object({ schemaVersion: z.literal(1), provider: z.enum(["development-fake-evaluation", "gemini"]), model: z.string().regex(MODEL_ID_PATTERN).optional(),
   providerRequestId: z.string().min(1).max(256).nullable().optional(), generatedAt: Time.optional(), synthetic: z.literal(true),
   status: z.enum(["available", "failed", "invalid"]), narrative: EvaluationNarrativeSchema.nullable(),
   review: z.object({ status: z.enum(["unreviewed", "reviewed"]), reviewedByUserId: z.uuid().nullable(), reviewedAt: Time.nullable() }) })

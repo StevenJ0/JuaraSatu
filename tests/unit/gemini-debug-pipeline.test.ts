@@ -93,7 +93,8 @@ describe("Bruno request checkpoints with real SDK and mocked HTTP/auth/repositor
 
   it("distinguishes an incomplete interaction from a network failure", async () => {
     transport.mockImplementation(async () => wire("{}", "incomplete"));
-    const response = await send(); expect(response.status).toBe(503);
+    // A cut-off answer is a bad response (502), not an unavailable provider (503).
+    const response = await send(); expect(response.status).toBe(502);
     expect(events()).toContainEqual(expect.objectContaining({ stage: "INTERACTION_RESPONSE", result: "FAILED", response: expect.objectContaining({ interactionStatus: "incomplete" }) }));
     expect(events()).toContainEqual(expect.objectContaining({ stage: "END", failureStage: "INTERACTION_RESPONSE" }));
   });
@@ -101,7 +102,8 @@ describe("Bruno request checkpoints with real SDK and mocked HTTP/auth/repositor
   it.each([
     ["{", "JSON_PARSE", "INVALID_RESPONSE"],
     [JSON.stringify({ ...replyFixture, reply: 42 }), "ZOD_VALIDATION", "INVALID_RESPONSE"],
-    [JSON.stringify({ ...replyFixture, reply: "Pasti untung 99 persen" }), "DOMAIN_VALIDATION", "UNSAFE_TEXT"],
+    // Unsafe prose is now filtered sentence by sentence; an invented source reference still fails the whole answer.
+    [JSON.stringify({ ...replyFixture, sourceReferences: ["memory:00000000-0000-4000-8000-000000000000"] }), "DOMAIN_VALIDATION", "INVALID_RESPONSE"],
   ])("distinguishes rejected AI output at %s", async (output, stage, code) => {
     transport.mockImplementation(async () => wire(output));
     const response = await send(); expect(response.status).toBe(502); expect(await response.json()).toEqual({ success: false, code });

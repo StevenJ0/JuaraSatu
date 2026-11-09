@@ -15,6 +15,7 @@ import { configuredBlueprintProvider } from "../../src/features/campaign-bluepri
 import { developmentBlueprintProvider } from "../../src/features/campaign-blueprint/development-provider";
 import { generateBlueprint } from "../../src/features/campaign-blueprint/blueprint-service";
 import { CreateBlueprintCommandSchema } from "../../src/features/campaign-blueprint/workflow.server";
+import { BlueprintPlanSchema } from "../../src/features/campaign-blueprint/contracts";
 import { blueprintFixture } from "../fixtures/blueprint";
 
 const env = { NODE_ENV: "test", CAMPAIGN_DISCUSSION_PROVIDER: "gemini", CAMPAIGN_DISCUSSION_CONTEXT: "seeded",
@@ -80,6 +81,18 @@ describe("explicit development Gemini wiring (SDK mocked; no paid calls)", () =>
     expect(request.response_format.schema.properties.tasks).toBeDefined();
   });
 
+  it("moves a closing task placed exactly at the campaign end one minute earlier and sends the explicit schedule window", async () => {
+    const f = await blueprintFixture();
+    const plan = BlueprintPlanSchema.parse(await f.dependencies.provider.generate({ alternative: f.input.selected.alternative, edits: f.input.command.edits, now: f.dependencies.now() }));
+    const { endsAt } = f.input.command.edits;
+    create.mockResolvedValue(completed({ ...plan, tasks: plan.tasks.map((task, index) => index === 0 ? { ...task, dueAt: endsAt } : task) }));
+    const output = z.object({ plan: BlueprintPlanSchema }).parse(await configuredBlueprintProvider("valid", env)
+      .generate({ alternative: f.input.selected.alternative, edits: f.input.command.edits, now: f.dependencies.now() }));
+    expect(output.plan.tasks[0].dueAt).toBe(new Date(Date.parse(endsAt) - 60_000).toISOString());
+    const request = z.object({ input: z.string() }).parse(create.mock.calls[0][0]);
+    expect(JSON.parse(request.input)).toMatchObject({ scheduleWindow: { latestDueAt: new Date(Date.parse(endsAt) - 60_000).toISOString() } });
+  });
+
   it("accepts a completed stateless Blueprint without id and preserves explicit null provenance", async () => {
     const f = await blueprintFixture();
     const plan = await f.dependencies.provider.generate({ alternative: f.input.selected.alternative, edits: f.input.command.edits, now: f.dependencies.now() });
@@ -98,7 +111,7 @@ describe("explicit development Gemini wiring (SDK mocked; no paid calls)", () =>
     expect(create).toHaveBeenCalledTimes(1);
   });
 
-  it.each([{ response: { status: "incomplete", output_text: "{}" }, code: "PROVIDER_UNAVAILABLE" },
+  it.each([{ response: { status: "incomplete", output_text: "{}" }, code: "OUTPUT_TRUNCATED" },
     { response: { status: "failed", errors: [{ code: "SAFETY_BLOCKED" }] }, code: "PROVIDER_REFUSED" }])
     ("rejects unfinished or refused Blueprint interactions without inventing an id", async ({ response, code }) => {
       const f = await blueprintFixture(); create.mockResolvedValue(response);
@@ -112,14 +125,15 @@ describe("explicit development Gemini wiring (SDK mocked; no paid calls)", () =>
       .rejects.toMatchObject({ code: "INVALID_BLUEPRINT", status: 502 }); expect(create).toHaveBeenCalledTimes(1);
   });
 
-  it("rejects invalid Gemini caption content through unchanged domain validation", async () => {
+  it("removes invalid Gemini caption sentences before the unchanged strict domain validation", async () => {
     const f = await blueprintFixture();
     const plan = await f.dependencies.provider.generate({ alternative: f.input.selected.alternative, edits: f.input.command.edits, now: f.dependencies.now() });
     const complete = z.record(z.string(), z.unknown()).parse(plan);
     const contents = z.array(z.record(z.string(), z.unknown())).parse(complete.contents);
     create.mockResolvedValue(completed({ ...complete, contents: contents.map(content => ({ ...content, body: "Diskon 99%" })) }));
-    await expect(generateBlueprint(f.input, { ...f.dependencies, provider: configuredBlueprintProvider("valid", env) }))
-      .rejects.toMatchObject({ code: "INVALID_CONTENT" });
+    const body = await generateBlueprint(f.input, { ...f.dependencies, provider: configuredBlueprintProvider("valid", env) });
+    expect(body.contents.map(content => content.body)).not.toContain("Diskon 99%");
+    expect(body.contents[0].body).toBe("Preorder sudah dibuka. Cek harga dan jadwal pengambilan di tautan preorder.");
   });
 
   it("does not retry/fallback on a real failure and logs only safe classification/status", async () => {

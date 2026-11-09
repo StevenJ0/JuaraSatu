@@ -39,24 +39,32 @@ function sourceRow(reservations: ReturnType<typeof reservation>[] = [], cost: nu
         fulfillment_window_end_at: "2026-11-07T10:00:00+00:00", version: 6, capacity_reservations: reservations } }],
   };
 }
-function setup(row = sourceRow(), options: { unauthenticated?: boolean; foreign?: boolean; readFailed?: boolean; campaign?: boolean } = {}) {
+const campaignId = "22222222-2222-4222-8222-222222222227";
+const campaignRow = { id: campaignId, version: 2, status: "published", starts_at: "2026-11-01T12:00:00+00:00",
+  ends_at: "2026-11-05T11:00:00+00:00", published_at: "2026-11-01T12:00:00+00:00" };
+function setup(row = sourceRow(), options: { unauthenticated?: boolean; foreign?: boolean; readFailed?: boolean; campaign?: boolean; campaignHidden?: boolean } = {}) {
   const calls: string[] = [];
+  const offer = { discountBps: options.campaign ? 1000 : 0 };
+  // Same shape as the SQL resolver read_preorder_offer; the price follows the row so price changes stay observable.
+  const readOffer = async () => { const base = row.preorder_items[0].base_price_snapshot_idr;
+    return { discount_bps: offer.discountBps, pricing_campaign_id: options.campaign ? campaignId : null,
+      final_unit_price_idr: base - Math.floor(base * offer.discountBps / 10000) }; };
   const client = createClient("http://127.0.0.1:1", "test-only", { auth: { persistSession: false }, global: { fetch: async (input) => {
     const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
     calls.push(url.pathname);
     if (options.readFailed) return new Response(JSON.stringify({ message: "read failed", code: "TEST" }), { status: 400 });
     const data = url.pathname.endsWith("/business_members") ? [{ business_id: options.foreign ? ids.capacity : ids.business }]
-      : url.pathname.endsWith("/campaigns") ? options.campaign ? [{ id: ids.capacity }] : []
+      : url.pathname.endsWith("/campaigns") ? options.campaign && !options.campaignHidden ? [campaignRow] : []
         : url.pathname.endsWith("/preorders") && url.searchParams.get("id") === `eq.${ids.preorder}` ? [row] : [];
     return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json" } });
   } } });
   vi.spyOn(client.auth, "getUser").mockResolvedValue(options.unauthenticated
     ? { data: { user: null }, error: new AuthSessionMissingError() }
     : { data: { user: { id: ids.owner, app_metadata: {}, user_metadata: {}, aud: "authenticated", created_at: now() } }, error: null });
-  return { client, calls, row };
+  return { client, calls, row, readOffer };
 }
 async function built(test: ReturnType<typeof setup>) {
-  const input = await loadOwnedPreorderContext(test.client, scope, now);
+  const input = await loadOwnedPreorderContext(test.client, scope, now, test.readOffer);
   const context = buildBusinessContext(input);
   if (!context.success) throw new Error(context.errors[0].code);
   return { input, context: context.data };
@@ -107,25 +115,36 @@ describe("owned real C1 projection and downstream seam", () => {
 
   it.each([{ unauthenticated: true }, { foreign: true }, { readFailed: true }])("rejects unauthorized or failed reads without demo fallback %j", async (options) => {
     const t = setup(sourceRow(), options);
-    await expect(loadOwnedPreorderContext(t.client, scope, now)).rejects.toThrow();
+    await expect(loadOwnedPreorderContext(t.client, scope, now, t.readOffer)).rejects.toThrow();
     expect(t.calls.filter(c => c.endsWith("/preorders"))).toHaveLength(0);
   });
 
   it("rejects an unknown/foreign preorder after owner membership verification", async () => {
     const t = setup();
-    await expect(loadOwnedPreorderContext(t.client, { ...scope, preorderId: ids.capacity }, now)).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(loadOwnedPreorderContext(t.client, { ...scope, preorderId: ids.capacity }, now, t.readOffer)).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
-  it("refuses to invent a normal offer while a published campaign exists", async () => {
+  it("uses the SQL offer of the active published campaign instead of blocking new discussions", async () => {
     const t = setup(sourceRow(), { campaign: true });
-    const input = await loadOwnedPreorderContext(t.client, scope, now);
-    expect(input.c8.status).toBe("unavailable");
-    expect(buildBusinessContext(input)).toMatchObject({ success: false, errors: [{ code: "SOURCE_UNAVAILABLE", source: "c8" }] });
+    const { context } = await built(t);
+    expect(context.effectiveOffer).toMatchObject({ state: "active", offer: { offerType: "percent_discount", discountBps: 1000 }, unitPriceIdr: 22500,
+      campaign: { campaignId, version: 2, status: "published" } });
+    expect(context.metadata.sources.c8.offerVersion).toBe(`campaign:${campaignId}:v2`);
+  });
+
+  it("rejects a pricing campaign the owner session cannot read", async () => {
+    const t = setup(sourceRow(), { campaign: true, campaignHidden: true });
+    await expect(loadOwnedPreorderContext(t.client, scope, now, t.readOffer)).rejects.toMatchObject({ code: "INVALID_SOURCE" });
+  });
+
+  it("rejects a malformed SQL offer instead of inventing a normal price", async () => {
+    const t = setup();
+    await expect(loadOwnedPreorderContext(t.client, scope, now, async () => ({ discount_bps: 0 }))).rejects.toMatchObject({ code: "READ_FAILED" });
   });
 
   it("stable hashes ignore read time; changed price/cost/category/capacity/commitments invalidate proposals", async () => {
     const t = setup(); const before = await built(t);
-    const later = await loadOwnedPreorderContext(t.client, scope, () => "2026-11-02T03:00:01.000Z");
+    const later = await loadOwnedPreorderContext(t.client, scope, () => "2026-11-02T03:00:01.000Z", t.readOffer);
     expect(buildBusinessContext(later)).toMatchObject({ success: true, data: { contextHash: before.context.contextHash } });
     t.row.preorder_items[0].production_capacity.capacity_reservations.push(reservation(1, "allocated", { external: "unpaid" }));
     expect((await built(t)).context.contextHash).not.toBe(before.context.contextHash);
@@ -143,7 +162,7 @@ describe("owned real C1 projection and downstream seam", () => {
   it("real producer reaches actual prompt/simulator and Blueprint-compatible source revalidation", async () => {
     const t = setup(); const initial = await built(t); let promptText = "";
     const provider = { generate: vi.fn(async (prompt: StrategyPrompt) => { promptText = prompt.input; return fake(prompt); }) };
-    const result = await generateOwnedCampaignStrategies(t.client, { ...discussionFixture, ...scope, expectedContextHash: initial.context.contextHash }, provider, now);
+    const result = await generateOwnedCampaignStrategies(t.client, { ...discussionFixture, ...scope, expectedContextHash: initial.context.contextHash }, provider, now, t.readOffer);
     expect(result.success).toBe(true);
     expect(promptText).toContain('"totalUnits":60');
     expect(promptText).toContain('"baseUnitPriceIdr":25000');
@@ -157,7 +176,7 @@ describe("owned real C1 projection and downstream seam", () => {
   it("changed source during generation rejects the result and never calls a live provider", async () => {
     const t = setup(); const initial = await built(t);
     const result = await generateOwnedCampaignStrategies(t.client, { ...discussionFixture, ...scope, expectedContextHash: initial.context.contextHash },
-      { generate: async prompt => { t.row.preorder_items[0].products.version++; return fake(prompt); } }, now);
+      { generate: async prompt => { t.row.preorder_items[0].products.version++; return fake(prompt); } }, now, t.readOffer);
     expect(result).toMatchObject({ success: false, error: { code: "STALE_CONTEXT" } });
   });
 
@@ -166,7 +185,7 @@ describe("owned real C1 projection and downstream seam", () => {
     t.row.preorder_items[0].products.cost_quality = cost === null ? "unknown" : "estimated";
     const initial = await built(t);
     const result = await generateOwnedCampaignStrategies(t.client, { ...discussionFixture, ...scope, expectedContextHash: initial.context.contextHash },
-      { generate: async prompt => fake(prompt) }, now);
+      { generate: async prompt => fake(prompt) }, now, t.readOffer);
     expect(result.success).toBe(true);
     if (!result.success) throw new Error(result.error.code);
     expect(result.data.options[0].computedScenario.scenarioContributionIdr).toBe(cost === null ? null : (25000 - cost) * 4 - 10000);
@@ -180,7 +199,7 @@ describe("owned real C1 projection and downstream seam", () => {
         return { success: true, model: "test-only", requestId: null, text: JSON.stringify({ ...replyFixture,
           contextHash: reply.contextBinding.contextHash, options: [{ ...replyFixture.options[0],
             computedScenario: { hypotheticalFinalUnitPriceIdr: 1 } }] }) };
-      } }, now);
+      } }, now, t.readOffer);
     expect(result.success).toBe(true);
     if (!result.success) throw new Error(result.error.code);
     expect(result.data.options).toHaveLength(0);

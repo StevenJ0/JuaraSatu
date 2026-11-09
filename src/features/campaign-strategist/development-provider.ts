@@ -39,7 +39,9 @@ export function developmentProvider(scenario: DevelopmentScenario, environment: 
         assumedAdditionalUnits: units, assumedPromotionCostIdr: cost, channels: data.ownerPreferences.channels,
         startsAt: data.authoritativeFacts.preorder.startsAt, endsAt: data.authoritativeFacts.preorder.endsAt,
         hypothesis: memoryId?historicalRationale:"Pengingat atau penawaran mungkin membantu calon pembeli meninjau preorder.",
-        assumptions: ["Asumsi dapat direvisi pemilik; tidak ada prediksi permintaan."], risks: ["Respons calon pembeli belum diketahui."], sourceReferences: ["c1.preorder",...historicalReferences] }],
+        assumptions: ["Asumsi dapat direvisi pemilik; tidak ada prediksi permintaan."], risks: ["Respons calon pembeli belum diketahui."], sourceReferences: ["c1.preorder",...historicalReferences],
+        lever: bps ? "price" : "urgency", targetAudience: "Calon pembeli sintetis dari kontak pemilik",
+        tactics: data.ownerPreferences.channels.map((platform) => ({ platform, action: "Bagikan tautan preorder secara manual sebelum tanggal tutup." })), hashtags: [] }],
     };
     return { success: true, text: JSON.stringify(reply), model: "development-fake", requestId: null };
   } };

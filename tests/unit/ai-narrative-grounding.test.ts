@@ -12,18 +12,25 @@ async function strategy(text: string) {
   return generateCampaignStrategies(discussionFixture, strategistDependencies(fakeProvider({ success: true,
     text: JSON.stringify({ ...replyFixture, reply: text }), model: "test-only", requestId: null })));
 }
+// Unsafe prose is dropped sentence by sentence; the owner gets the neutral server reply instead of the claim.
+async function expectRemoved(text: string) {
+  const result = await strategy(text);
+  expect(result).toMatchObject({ success: true, data: { reply: expect.stringContaining("lolos pemeriksaan server") } });
+  if (!result.success) throw new Error(result.error.code);
+  expect(result.data.reply).not.toContain(text);
+}
 
 describe("F04 narrative boundaries", () => {
-  it.each(["９９", "٩٩", "९९", "9\u200b9", "𝟡𝟡", "99"]) ("rejects unsupported numeric claim %s", async digits => {
-    expect(await strategy(`Penjualan ${digits} unit tercapai.`)).toMatchObject({ success: false, error: { code: "UNSAFE_TEXT" } });
+  it.each(["９９", "٩٩", "९९", "9\u200b9", "𝟡𝟡", "99"]) ("removes unsupported numeric claim %s", async digits => {
+    await expectRemoved(`Penjualan ${digits} unit tercapai.`);
   });
   it.each([
     "Laba bersih terjamin berkat promosi.", "ROI dipastikan meningkat.",
     "Pengingat meningkatkan konversi pelanggan.", "Penjualan meningkat karena promosi.",
     "Tidak ada bukti; kampanye ini meningkatkan penjualan.", "Strategi bukan tidak menjamin penjualan.", "Penjualan akan meningkat.",
     "Stok mungkin terbatas dan promosi meningkatkan penjualan.",
-  ])("rejects unsupported outcome: %s", async text => {
-    expect(await strategy(text)).toMatchObject({ success: false, error: { code: "UNSAFE_TEXT" } });
+  ])("removes unsupported outcome: %s", async text => {
+    await expectRemoved(text);
   });
   it.each([
     "Penjualan berpotensi meningkat.", "Strategi ini belum menjamin peningkatan penjualan.",
@@ -39,8 +46,8 @@ describe("F04 narrative boundaries", () => {
     const result = await generateCampaignStrategies({ ...discussionFixture, preferences: { ...discussionFixture.preferences, budgetCapIdr: 100000 } },
       strategistDependencies(fakeProvider({ success: true, text: JSON.stringify(reply), model: "test-only", requestId: null })));
     expect(result).toMatchObject({ success: true, data: { options: [{ computedScenario: { scenarioRevenueIdr: 480000, scenarioContributionIdr: 80000 } }, {}] } });
-    expect(await strategy("Penjualan 40 unit tercapai.")).toMatchObject({ success: false });
-    expect(await strategy("Estimasi biaya promosi Rp999.999.")).toMatchObject({ success: false });
+    await expectRemoved("Penjualan 40 unit tercapai.");
+    await expectRemoved("Estimasi biaya promosi Rp999.999.");
   });
   it.each(["goal", "hypothesis", "audienceHypothesis", "rationale", "risks", "dependencies", "ownerChecklist", "task-title", "task-description", "caption", "assumptions", "kpi", "notes"])("rejects unsafe Blueprint %s", async field => {
     const f = await blueprintFixture(), body = await generateBlueprint(f.input, f.dependencies);

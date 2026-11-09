@@ -49,7 +49,7 @@ function errorStatus(code: string) {
   if (code === "INVALID_INPUT") return 400;
   if (code === "PROVIDER_TIMEOUT") return 504;
   if (code === "PROVIDER_RATE_LIMITED") return 429;
-  if (["INVALID_RESPONSE", "UNSAFE_TEXT"].includes(code)) return 502;
+  if (["INVALID_RESPONSE", "UNSAFE_TEXT", "OUTPUT_TRUNCATED"].includes(code)) return 502;
   return 503;
 }
 const ActionSchema = z.discriminatedUnion("action", [

@@ -32,7 +32,7 @@ function logRejection(error: unknown, stage: string, requestId: string | null) {
   // Schema paths can contain untrusted object keys; log only known contract fields and indexes.
   const fieldPath = issue?.path.filter(part => typeof part === "number" || typeof part === "string" &&
     (part === "narrative" || part === "providerRequestId" || Object.hasOwn(EvaluationNarrativeSchema.shape, part))).join(".") || "$";
-  const providerCodes = ["INVALID_AI_EVALUATION", "INVALID_RESPONSE", "CONFIGURATION_ERROR", "PROVIDER_REFUSED", "PROVIDER_TIMEOUT", "PROVIDER_RATE_LIMITED", "MODEL_UNAVAILABLE", "PROVIDER_UNAVAILABLE"];
+  const providerCodes = ["INVALID_AI_EVALUATION", "INVALID_RESPONSE", "CONFIGURATION_ERROR", "PROVIDER_REFUSED", "PROVIDER_TIMEOUT", "PROVIDER_RATE_LIMITED", "MODEL_UNAVAILABLE", "PROVIDER_UNAVAILABLE", "OUTPUT_TRUNCATED"];
   const invalidJson = stage === "provider_response" && error instanceof EvaluationError && error.code === "INVALID_AI_EVALUATION";
   console.warn("Evaluation output rejected", JSON.stringify({
     stage: invalidJson ? "provider_json" : stage, category: invalidJson ? "json_invalid" : error instanceof NarrativeValidationError ? error.category : error instanceof z.ZodError ? "schema_invalid" : "provider_failure",

@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { loadOwnedPreorderContext } from "../ai-context/owned-preorder-context.server";
+import { loadOwnedPreorderContext, type PreorderOfferReader } from "../ai-context/owned-preorder-context.server";
 import type { StrategyProvider, StrategyResult } from "./contracts";
 import { generateCampaignStrategies } from "./strategy-service";
 
@@ -10,7 +10,8 @@ export function generateOwnedCampaignStrategies(
   input: unknown,
   provider: StrategyProvider,
   now: () => string = () => new Date().toISOString(),
+  readOffer?: PreorderOfferReader,
 ): Promise<StrategyResult> {
   return generateCampaignStrategies(input, { provider, now,
-    loadContext: (scope) => loadOwnedPreorderContext(client, scope, now) });
+    loadContext: (scope) => loadOwnedPreorderContext(client, scope, now, readOffer) });
 }

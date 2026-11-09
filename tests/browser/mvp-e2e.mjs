@@ -350,7 +350,8 @@ async function aiStrategist(business, preorder) {
     await input("#discussion-budget", "50000");
     await input("#discussion-message", "Buat opsi diskon preorder untuk WhatsApp dengan asumsi dua unit tambahan dan biaya promosi Rp1000.");
     await click("#discussion-send");
-    await waitFor(() => evaluate("document.querySelector('#discussion-send')?.textContent.includes('Kirim pesan')"), "Strategy request did not settle", 60_000);
+    // A new session opens with the one-time intake form ("Susun strategi"); later turns use the chat form ("Kirim pesan").
+    await waitFor(() => evaluate("/Kirim pesan|Susun strategi/.test(document.querySelector('#discussion-send')?.textContent ?? '')"), "Strategy request did not settle", 60_000);
   }
   const proposed = sql(`select count(*) from public.campaign_ai_messages where session_id='${sessionId}' and role='assistant' and jsonb_array_length(proposal_json->'options') > 0`);
   assert.equal(proposed, "1", "No validated AI proposal persisted");
@@ -383,7 +384,7 @@ async function blueprintApproval(business, ai) {
     await input("#blueprint-goal", "Tinjau kesiapan preorder dan pesan campaign secara manual.");
     await input("#blueprint-notes", "Revisi manual oleh pemilik untuk pengujian lokal.");
     await click("#blueprint-save");
-    await waitFor(() => evaluate("document.querySelector('[data-blueprint-status]')?.textContent.includes('blueprint v2')"), "Manual Blueprint revision did not persist", 60_000);
+    await waitFor(() => evaluate("document.querySelector('[data-blueprint-status]')?.dataset.version === '2'"), "Manual Blueprint revision did not persist", 60_000);
     assert.equal(readFileSync(auditPath, "utf8").split("gemini_blueprint_mock").length - 1, before, "Manual edit unexpectedly called Gemini");
     state = sql(`select version,approval_status,id from public.campaign_blueprints where campaign_id='${campaignId}' order by version desc limit 1`);
   }
@@ -392,7 +393,7 @@ async function blueprintApproval(business, ai) {
   if (approval !== "approved") {
     await click("#blueprint-confirm");
     await click("#blueprint-approve");
-    await waitFor(() => evaluate("document.querySelector('[data-blueprint-status]')?.textContent.includes('approved')"), "Blueprint approval did not settle", 60_000);
+    await waitFor(() => evaluate("document.querySelector('[data-blueprint-status]')?.dataset.approval === 'approved'"), "Blueprint approval did not settle", 60_000);
   }
   const confirmed = sql(`select approval_status,blueprint_json->>'goal',approved_by_user_id is not null from public.campaign_blueprints where id='${blueprintId}' and business_id='${business.businessId}'`);
   assert.equal(confirmed, "approved|Tinjau kesiapan preorder dan pesan campaign secara manual.|t");
@@ -411,14 +412,14 @@ async function campaignPublication(business, blueprint) {
   if (row.startsWith("draft|")) {
     await click("#campaign-publish-confirm");
     await click("#campaign-publish");
-    await waitFor(() => evaluate("document.querySelector('[data-campaign-state]')?.textContent.includes('published')"), "Campaign publication did not settle", 60_000);
+    await waitFor(() => evaluate("document.querySelector('[data-campaign-state]')?.dataset.status === 'published'"), "Campaign publication did not settle", 60_000);
     row = sql(`select status,slug,discount_bps,budget_cap_idr,target_additional_units from public.campaigns where id='${blueprint.campaignId}'`);
   }
   const [status, slug, discount, budget, target] = row.split("|");
   assert.equal(status, "published");
   assert(slug && discount === "1000" && Number(budget) >= 0 && target === "2");
   await page(`/dashboard/campaigns/execution?campaignId=${blueprint.campaignId}`);
-  await waitFor(() => evaluate("document.querySelector('[data-campaign-state]')?.textContent.includes('published')"), "Published campaign missing on reload");
+  await waitFor(() => evaluate("document.querySelector('[data-campaign-state]')?.dataset.status === 'published'"), "Published campaign missing on reload");
   record("E07", { evidence: "Approved task materialization, execution UI and two-step owner publication; published 10% campaign persisted with slug, budget, target and reload" });
   return { slug };
 }

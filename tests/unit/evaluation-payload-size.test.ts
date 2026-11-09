@@ -50,5 +50,5 @@ it("measures installed SDK payloads locally without sending provider requests", 
     writeFileSync("node_modules/.cache/evaluation-timeout/payload-" + label + ".json", JSON.stringify({ measuredAt: new Date().toISOString(), liveProviderCalls: 0, tokenEstimate: "UTF-8 bytes /4; not model tokenization", rows }, null, 2) + "\n");
   }
   expect(transport).toHaveBeenCalledTimes(process.env.EVALUATION_PERF_REPORT ? 4 : 3);
-  expect(rows).toEqual(expect.arrayContaining([expect.objectContaining({ module: "Evaluation fixture", requiredOutputFields: 13, generationConfig: { max_output_tokens: 4096 }, store: false, stream: false })]));
+  expect(rows).toEqual(expect.arrayContaining([expect.objectContaining({ module: "Evaluation fixture", requiredOutputFields: 13, generationConfig: { max_output_tokens: 8192 }, store: false, stream: false })]));
 });

@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { BuildBusinessContextInput } from "../ai-context";
 import { BlueprintError, BlueprintEditsSchema, BlueprintPlanSchema, CampaignBlueprintSchema, GeminiBlueprintResultSchema,
   type BlueprintProvider, type CampaignBlueprint, type CampaignRow, type PersistedSelection } from "./contracts";
-import { fingerprint, sourceVersions, validateBlueprint, validateBlueprintOffer, validateSelectedProposal } from "./blueprint-domain";
+import { fingerprint, sanitizeGeneratedPlan, sourceVersions, validateBlueprint, validateBlueprintOffer, validateSelectedProposal } from "./blueprint-domain";
 
 export const RevisionCommandSchema = z.strictObject({ campaignId: z.uuid(), requestId: z.uuid(),
   expectedCampaignVersion: z.number().int().positive(), expectedBlueprintId: z.uuid().nullable(), expectedBlueprintVersion: z.number().int().positive().nullable(),
@@ -42,6 +42,7 @@ export async function generateBlueprint(input: BlueprintInput, dependencies: Blu
     } else plan = BlueprintPlanSchema.parse(output);
   }
   catch (error) { if (error instanceof BlueprintError) throw error; throw new BlueprintError("INVALID_BLUEPRINT", 502); }
+  if (!manual) plan = sanitizeGeneratedPlan(plan, facts.edits, facts);
   const requestHash = fingerprint({ ...command, source: selected.source });
   const blueprint = CampaignBlueprintSchema.parse({ ...plan, schemaVersion: 1, businessId: campaign.business_id,
     campaignId: campaign.id, preorderId: campaign.preorder_id, blueprintVersion: input.nextVersion, proposalVersion: selected.source.proposalVersion,
@@ -51,10 +52,10 @@ export async function generateBlueprint(input: BlueprintInput, dependencies: Blu
     targetAdditionalUnits: facts.edits.targetAdditionalUnits, channels: facts.edits.channels, primaryKpi: "paid_units_in_window",
     financial: { frozenBasePriceIdr: facts.context.preorder.baseUnitPriceIdr, variableCostIdr: facts.context.product.variableCostIdr,
       costQuality: facts.context.product.costQuality, calculation: facts.calculation },
-    kpiPlan: { target: facts.edits.targetAdditionalUnits, definition: "Paid units pada actual activation window setelah campaign dipublikasikan; bukan uplift kausal.",
-      baselineNote: "Baseline aktual baru dihitung saat publikasi; KPI produksi belum tersedia.", actualMetrics: null },
-    evaluationPlan: "Bandingkan window paid units, attributed units, biaya tercatat dan keterbatasannya; tidak mengklaim sebab-akibat.",
-    assumptions: ["Unit tambahan dan budget promosi adalah asumsi pemilik, bukan prediksi atau penjualan aktual.", "Capacity adalah snapshot, bukan reservasi."],
+    kpiPlan: { target: facts.edits.targetAdditionalUnits, definition: "Unit yang sudah dibayar selama periode kampanye setelah diterbitkan, tanpa klaim sebab-akibat.",
+      baselineNote: "Angka awal dihitung saat kampanye diterbitkan.", actualMetrics: null },
+    evaluationPlan: "Bandingkan unit yang dibayar selama kampanye, unit dari tautan kampanye, dan biaya yang tercatat, tanpa klaim sebab-akibat.",
+    assumptions: ["Unit tambahan dan anggaran promosi adalah asumsi pemilik, bukan prediksi atau penjualan aktual.", "Kapasitas adalah kondisi saat ini, bukan slot yang sudah dipesan."],
     revision: { requestId: command.requestId, requestHash, expectedCampaignVersion: command.expectedCampaignVersion,
       parentBlueprintId: command.expectedBlueprintId, parentVersion: command.expectedBlueprintVersion, notes: command.edits.notes },
     provider: manual ? "manual" : provenance ? "gemini" : "development-fake-blueprint", ...provenance,

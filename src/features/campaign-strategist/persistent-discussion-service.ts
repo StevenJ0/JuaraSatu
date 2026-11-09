@@ -29,7 +29,8 @@ export async function sendPersistentDiscussion(scope: DiscussionScope, input: un
     while (history.length && history.reduce((size, message) => size + message.content.length, command.message.length) > 12000) history = history.slice(1);
     const engineInputValue = { businessId: scope.businessId, preorderId: scope.preorderId,
       sessionId: scope.sessionId, requestKey: command.requestKey, expectedVersion: command.expectedVersion,
-      expectedContextHash: command.expectedContextHash, message: command.message, preferences: command.preferences, history };
+      expectedContextHash: command.expectedContextHash, message: command.message, preferences: command.preferences, history,
+      ...(loaded.data.previousProposals ? { previousProposals: loaded.data.previousProposals } : {}) };
     const engineInput = DiscussionInputSchema.safeParse(engineInputValue);
     if (!engineInput.success) { debug?.issues("INPUT_VALIDATION", engineInput.error, engineInputValue); return { success: false, code: "INVALID_INPUT" }; }
     stage = "IDEMPOTENCY";

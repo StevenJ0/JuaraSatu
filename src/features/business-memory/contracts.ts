@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MODEL_ID_PATTERN } from "@/lib/ai/model-id";
 import { EvaluationSummarySchema } from "../campaign-evaluation/contracts";
 const Id = z.uuid(); const Time = z.iso.datetime({ offset: true });
 export const Hash = z.string().regex(/^[a-f0-9]{64}$/);
@@ -22,7 +23,7 @@ export type MemoryProvider = ({ kind?: undefined } | { kind: "gemini"; model: st
 export const MemoryReviewSchema = z.object({ decision: z.enum(["unreviewed", "reviewed", "rejected"]), ownerUserId: Id.nullable(), reviewedAt: Time.nullable(), requestId: Id.nullable(), expectedContentHash: Hash.nullable() })
   .refine((r) => r.decision === "unreviewed" ? r.ownerUserId === null && r.reviewedAt === null && r.requestId === null && r.expectedContentHash===null : r.ownerUserId !== null && r.reviewedAt !== null && r.requestId !== null && r.expectedContentHash!==null);
 export const MemoryPayloadSchema = z.object({ schemaVersion: z.literal(1), provider: z.enum(["development-fake-memory", "gemini"]),
-  model: z.string().regex(/^gemini-[a-zA-Z0-9.-]{1,100}$/).optional(), providerRequestId: z.string().min(1).max(256).nullable().optional(), generatedAt: Time.optional(),
+  model: z.string().regex(MODEL_ID_PATTERN).optional(), providerRequestId: z.string().min(1).max(256).nullable().optional(), generatedAt: Time.optional(),
   generation: z.object({ requestId: Id, scenario: z.enum(["valid", "failure", "invalid", "missing_evidence"]) }), source: MemorySourceSchema,
   interpretation: MemoryInterpretationSchema, ownerReview: MemoryReviewSchema })
   .refine(p => p.provider === "gemini" ? p.model !== undefined && p.providerRequestId !== undefined && p.generatedAt !== undefined

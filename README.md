@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/logo%20full.png" alt="Logo juarasatu" width="220" />
+<img src="public/brand/logo-transparent.png" alt="Logo juarasatu" width="260" />
 
 # juarasatu
 

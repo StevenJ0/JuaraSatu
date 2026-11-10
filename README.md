@@ -237,7 +237,6 @@ Daftar lengkap beserta keterangannya ada di [`.env.example`](.env.example). Isi 
 | [PRD v2.1](docs/requirements/PRD.md) | Kebutuhan produk |
 | [Schema database](docs/schema.md) | Kontrak database |
 | [Aturan database](docs/requirements/database-rules.md) | Aturan kerja dengan database |
-| [Instruksi agent](AGENTS.md) | Aturan untuk AI coding agent di repo ini |
 
 ---
 

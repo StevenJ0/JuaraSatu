@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# instruksi AI coding agent lokal; dibuat ulang otomatis oleh `next dev`
+AGENTS.md

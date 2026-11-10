@@ -3,9 +3,11 @@
 import { useState, type ReactNode } from "react";
 import { TextAreaField, TextField } from "@/components/form-field";
 import { PRIMARY_BUTTON_CLASS } from "@/components/form-message";
+import { BusyLabel } from "@/components/owner/busy-label";
 import { PromotionPlatformSchema, type OwnerIntake } from "../contracts";
 import { diagnoseTarget, type TargetDiagnosis } from "../target-diagnosis";
-import { BUDGET_PRESETS, causeLabel, dailyTimeLabel, intakeMessage, platformLabel } from "./intake";
+import { formatIdrInput } from "@/lib/format-idr";
+import { BUDGET_PRESETS, budgetDigits, causeLabel, dailyTimeLabel, intakeMessage, platformLabel } from "./intake";
 import type { DiscussionState } from "./use-discussion";
 
 /** Facts read on the server from the owner's preorders; the hub only displays them. */
@@ -55,6 +57,8 @@ export function IntakeQuestions({ d, first = 2 }: { d: DiscussionState; first?: 
     <Question legend={`${first + 3}. Menurut Anda, kenapa belum banyak yang pesan?`}>
       <div className="flex flex-wrap gap-2">{(Object.keys(causeLabel) as Array<keyof typeof causeLabel>).map((cause) =>
         <Choice key={cause} type="radio" name="intake-cause" checked={intake.suspectedCause === cause} onChange={() => update({ suspectedCause: cause })}>{causeLabel[cause]}</Choice>)}</div>
+      <TextField name="intake-cause-notes" label="Ceritakan singkat (opsional)" value={intake.causeNotes ?? ""} maxLength={300}
+        placeholder="Misalnya banyak yang tanya tapi tidak jadi pesan, atau baru dibagikan di satu grup" onChange={(event) => update({ causeNotes: event.target.value })} />
     </Question>
     <Question legend={`${first + 4}. Berapa waktu yang bisa Anda pakai untuk promosi per hari?`} hint="Supaya jumlah tugas sesuai tenaga Anda.">
       <div className="flex flex-wrap gap-2">{(Object.keys(dailyTimeLabel) as Array<keyof typeof dailyTimeLabel>).map((time) =>
@@ -81,7 +85,8 @@ export function IntakeCard({ d, preorderName, fact }: { d: DiscussionState; preo
     <Question legend="1. Berapa anggaran promosi yang siap Anda keluarkan?" hint="Isi Rp0 bila hanya ingin promosi tanpa biaya.">
       <div className="flex flex-wrap gap-2">{BUDGET_PRESETS.map((preset) =>
         <Choice key={preset} type="radio" name="intake-budget" checked={d.budget !== "" && budgetValue === preset} onChange={() => d.setBudget(String(preset))}>{shortMoney(preset)}</Choice>)}</div>
-      <TextField name="discussion-budget" label="Atau isi sendiri (Rp)" type="number" min="0" max="1000000000" step="1" value={d.budget} required onChange={(event) => d.setBudget(event.target.value)} />
+      <TextField name="discussion-budget" label="Atau isi sendiri" inputMode="numeric" autoComplete="off" placeholder="Rp0" value={formatIdrInput(d.budget)} required
+        onChange={(event) => d.setBudget(budgetDigits(event.target.value))} />
     </Question>
     <IntakeQuestions d={d} />
     <Question legend="7. Boleh memberi diskon?" hint="Diskon dihitung server dan tidak boleh membuat Anda rugi per unit.">
@@ -92,7 +97,7 @@ export function IntakeCard({ d, preorderName, fact }: { d: DiscussionState; preo
     </Question>
     <TextAreaField name="discussion-message" label="Catatan tambahan (opsional)" rows={3} value={d.message} maxLength={2000}
       hint="Hal lain yang perlu AI tahu. Jumlah unit di usulan adalah asumsi, bukan prediksi." onChange={(event) => d.setMessage(event.target.value)} />
-    <button id="discussion-send" type="submit" className={`w-full sm:w-fit ${PRIMARY_BUTTON_CLASS}`} disabled={d.busy || !!d.running || d.stale || session.status !== "active"}>
-      {d.busy ? "Menyusun strategi…" : "Susun strategi"}</button>
+    <button id="discussion-send" type="submit" className={`w-full sm:w-fit ${PRIMARY_BUTTON_CLASS}`} disabled={d.busy || !!d.running || d.stale || session.status !== "active"}
+      aria-busy={d.activeAction === "send"}><BusyLabel busy={d.activeAction === "send"} label="Susun strategi" busyLabel="Menyusun strategi…" /></button>
   </form>;
 }

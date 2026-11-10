@@ -32,7 +32,8 @@ export type PublicPreorder = {
   /** Usaha contoh, sehingga halaman pembeli wajib memberi label. */
   isDemo: boolean;
   /** `sku` dari snapshot saat terbit, bukan katalog terbaru. */
-  product: { name: string; sku: string; description: string | null; photoUrl: string | null; thumbnailUrl: string | null };
+  /** `photos` berurutan, foto utama lebih dulu; kosong bila produk belum punya foto. */
+  product: { name: string; sku: string; description: string | null; photos: { url: string; thumbnailUrl: string }[] };
   /** Ketentuan yang dibekukan saat terbit, sehingga tidak berubah walau profil usaha diubah. */
   pickup: { instructions: string; publicContact: string | null };
   version: number;
@@ -81,8 +82,7 @@ export function toPublicPreorder(
       name: facts.product.name,
       sku: facts.product.sku,
       description: facts.product.description,
-      photoUrl: facts.product.photoUrl,
-      thumbnailUrl: facts.product.thumbnailUrl,
+      photos: facts.product.photos.map((photo) => ({ url: photo.url, thumbnailUrl: photo.thumbnailUrl })),
     },
     pickup: { instructions: facts.pickup.instructions, publicContact: facts.pickup.publicContact },
     version: facts.version,

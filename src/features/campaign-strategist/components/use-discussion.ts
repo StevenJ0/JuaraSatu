@@ -80,6 +80,7 @@ export function useDiscussion(owner: boolean) {
   const [budget, setBudget] = useState("50000"); const [allowDiscount, setAllowDiscount] = useState(true);
   const [hasLastRequest, setHasLastRequest] = useState(false);
   const [intake, setIntake] = useState<OwnerIntake>(EMPTY_INTAKE); const [intakeRemembered, setIntakeRemembered] = useState(false);
+  const [activeAction, setActiveAction] = useState<string | null>(null);
   const lock = useRef(false); const lastRequest = useRef<SendDiscussion | null>(null);
   const sessionsRef = useRef<DiscussionList["sessions"]>([]);
   const selection = useRef<DiscussionSelection>({ id: null, epoch: 0, version: 0 });
@@ -113,17 +114,21 @@ export function useDiscussion(owner: boolean) {
     setError(owner ? ownerMessages[code] ?? OWNER_FALLBACK : messages[code] ?? "Proses gagal. Muat ulang sebelum mencoba lagi.");
     if (code === "UNAUTHENTICATED") { setSignedIn(false); setSession(null); }
   }, [owner]);
-  const run = useCallback(async (work: () => Promise<void>) => {
-    if (lock.current) return; lock.current = true; setBusy(true); setError(""); setNotice("");
+  /** `action` names the running command so its button can show progress while every other button stays locked. */
+  const run = useCallback(async (work: () => Promise<void>, action = "other") => {
+    if (lock.current) return; lock.current = true; setBusy(true); setActiveAction(action); setError(""); setNotice("");
     try { await work(); } catch (failure) { handleError(failure); }
-    finally { lock.current = false; setBusy(false); }
+    finally { lock.current = false; setBusy(false); setActiveAction(null); }
   }, [handleError]);
   useEffect(() => {
     let active = true;
     void call().then(async (raw) => {
       if (!active) return;
-      const data = ListSchema.parse(raw); setList(data); sessionsRef.current = data.sessions; setSignedIn(true); setPreorderId(data.preorders[0]?.id ?? "");
-      const id = new URL(window.location.href).searchParams.get("sessionId"); if (id) await loadSession(id);
+      const data = ListSchema.parse(raw); const params = new URL(window.location.href).searchParams;
+      // `?preorder=` dari tautan Ringkasan hanya dipakai bila preorder itu memang ada di daftar milik usaha ini.
+      const requested = data.preorders.find((row) => row.id === params.get("preorder"));
+      setList(data); sessionsRef.current = data.sessions; setSignedIn(true); setPreorderId(requested?.id ?? data.preorders[0]?.id ?? "");
+      const id = params.get("sessionId"); if (id) await loadSession(id);
     }).catch((failure: unknown) => { if (active) handleError(failure); });
     return () => { active = false; };
   }, [loadSession, handleError, call]);
@@ -136,10 +141,10 @@ export function useDiscussion(owner: boolean) {
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const form = new FormData(event.currentTarget);
     await run(async () => { await call("/auth", { email: form.get("email"), password: form.get("password") }); await loadList();
-      const id = new URL(window.location.href).searchParams.get("sessionId"); if (id) await loadSession(id); });
+      const id = new URL(window.location.href).searchParams.get("sessionId"); if (id) await loadSession(id); }, "login");
   }
   /** `text` overrides the typed message, e.g. the readable summary of the owner's first answers. */
-  async function send(replay = false, text?: string) {
+  async function send(replay = false, text?: string, action?: string) {
     if (!session) return;
     await run(async () => {
       // Owners get both caption channels and the AI picks per audience; /dev keeps its deterministic WhatsApp-only fixture.
@@ -156,7 +161,7 @@ export function useDiscussion(owner: boolean) {
           : result.status === "running" ? "Request yang sama masih berjalan." : result.replayed ? "Hasil tersimpan diputar ulang; provider tidak dipanggil lagi." : "Pesan dan proposal tersimpan di PostgreSQL.");
         if (result.status === "completed") setMessage("");
       } finally { await loadSession(session.id); }
-    });
+    }, action ?? (replay ? "replay" : "send"));
   }
   function selectPreorder(id: string) {
     setPreorderId(id); setSession(null); setCurrentHash(null); setIntake(EMPTY_INTAKE); setIntakeRemembered(false);
@@ -167,21 +172,21 @@ export function useDiscussion(owner: boolean) {
   const createSession = () => run(async () => {
     const data = z.object({ session: DiscussionViewSchema }).parse(await call("", { action: "create", preorderId }));
     lastRequest.current = null; setHasLastRequest(false); await loadSession(data.session.id); await loadList();
-  });
-  const openSession = (id: string) => run(async () => { lastRequest.current = null; setHasLastRequest(false); await loadSession(id); });
-  const reloadSession = () => run(async () => { if (session) await loadSession(session.id); });
+  }, "create-session");
+  const openSession = (id: string) => run(async () => { lastRequest.current = null; setHasLastRequest(false); await loadSession(id); }, `open:${id}`);
+  const reloadSession = () => run(async () => { if (session) await loadSession(session.id); }, "reload");
   const refreshContext = () => run(async () => {
     if (!session) return; await call("", { action: "refresh", sessionId: session.id, expectedVersion: session.version }); await loadSession(session.id);
-  });
+  }, "refresh");
   const recover = () => run(async () => {
     if (!session || !running) return;
     await call("", { action: "recover", sessionId: session.id, generationId: running.id, expectedVersion: session.version }); await loadSession(session.id);
-  });
-  const signOut = () => run(async () => { await call("/auth", undefined, "DELETE"); setSignedIn(false); setSession(null); });
+  }, "recover");
+  const signOut = () => run(async () => { await call("/auth", undefined, "DELETE"); setSignedIn(false); setSession(null); }, "sign-out");
   /** Background refresh (no busy lock) so the saved-campaign list follows changes made in the plan or publish tabs. */
   const refreshList = useCallback(() => { void loadList().catch(handleError); }, [loadList, handleError]);
   const stale = !!session && (!currentHash || session.contextHash !== currentHash);
-  return { signedIn, busy, error, notice, list, preorderId, session, historicalMemory, scenario, setScenario, message, setMessage,
+  return { signedIn, busy, activeAction, error, notice, list, preorderId, session, historicalMemory, scenario, setScenario, message, setMessage,
     budget, setBudget, allowDiscount, setAllowDiscount, hasLastRequest, running, stale, intake, setIntake, intakeRemembered,
     login, send, selectPreorder, createSession, openSession, reloadSession, refreshContext, recover, signOut, refreshList };
 }

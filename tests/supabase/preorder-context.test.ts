@@ -154,7 +154,7 @@ describe("findPublicPreorder di database sungguhan", () => {
     const result = await findPublicPreorder(service, slugs.main);
     expect(result).toMatchObject({ availability: "open", orderableUnits: 8, unitPriceIdr: 120000, businessName: `Usaha a ${stamp}` });
     expect(result?.product).toMatchObject({ name: "Kaos beku", description: "Kaos katun" });
-    expect(result?.product.photoUrl).toContain("/product-photos/");
+    expect(result?.product.photos[0]?.url).toContain("/product-photos/");
     expect(result?.pickup).toEqual({ instructions: "Ambil beku main", publicContact: "0812-beku" });
   });
 

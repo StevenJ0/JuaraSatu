@@ -44,6 +44,8 @@ export function CapacityForm({ action, submitLabel, totalUnitsHint, initialValue
   }
 
   const summary = describeCapacitySchedule(date, cutoff, endTime);
+  // Pemilik bisa tidak sadar dua kolom jadwal terisi otomatis, jadi diberi tahu selama saran itu belum diubah.
+  const showsSuggestion = !existing && date !== "" && ((!hasEditedCutoff && cutoff !== "") || (!hasEditedEndTime && endTime !== ""));
 
   return (
     <form action={formAction} onSubmit={submitWithoutReset(formAction)} className="flex flex-col gap-4" noValidate>
@@ -77,7 +79,7 @@ export function CapacityForm({ action, submitLabel, totalUnitsHint, initialValue
             type="date"
             required
             min={minDate}
-            hint="Hari pembeli mengambil pesanan. Batas pesan dan jam pengambilan terisi otomatis dan bisa diubah."
+            hint="Hari pembeli mengambil pesanan. Batas melakukan pemesanan dan jam terakhir pengambilan terisi otomatis dan bisa diubah."
             value={date}
             onChange={(event) => handleDateChange(event.target.value)}
             errors={state.fieldErrors?.fulfillmentDate}
@@ -92,13 +94,19 @@ export function CapacityForm({ action, submitLabel, totalUnitsHint, initialValue
         defaultValue={values?.totalUnits}
         errors={state.fieldErrors?.totalUnits}
       />
+      {showsSuggestion && (
+        <p role="status" className="rounded-[10px] bg-[var(--ui-brand-soft)] px-3 py-2 text-base text-ink">
+          Batas melakukan pemesanan dan jam terakhir pengambilan sudah diisi otomatis. Periksa dan ubah bila jadwal Anda berbeda.
+        </p>
+      )}
       <TextField
         name="intakeCutoff"
-        label="Batas pesan (WIB)"
+        label="Batas melakukan pemesanan (WIB)"
         type="datetime-local"
         required
         max={date ? `${date}T23:59` : undefined}
-        hint="Setelah waktu ini, pesanan baru tidak diterima."
+        hint={existing ? "Setelah waktu ini, pembeli tidak bisa memesan lagi."
+          : "Terisi otomatis pukul 20.00 WIB sehari sebelum pengambilan dan bisa Anda ubah. Setelah waktu ini, pembeli tidak bisa memesan lagi."}
         value={cutoff}
         onChange={(event) => {
           setHasEditedCutoff(true);
@@ -111,7 +119,7 @@ export function CapacityForm({ action, submitLabel, totalUnitsHint, initialValue
         label="Jam terakhir pengambilan (WIB)"
         type="time"
         required
-        hint="Berlaku pada tanggal pengambilan."
+        hint={existing ? "Berlaku pada tanggal pengambilan." : "Terisi otomatis pukul 17.00 WIB dan bisa Anda ubah. Berlaku pada tanggal pengambilan."}
         value={endTime}
         onChange={(event) => {
           setHasEditedEndTime(true);

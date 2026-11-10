@@ -7,10 +7,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { LOGIN_PATH } from "@/lib/supabase/proxy";
 import type { AuthError } from "@supabase/supabase-js";
 import { readTextFields, type FormState } from "@/lib/form-state";
-import { emailRequestSchema, newPasswordSchema, signInSchema, signUpSchema } from "@/features/auth/schemas";
+import { emailRequestSchema, signInSchema, signUpSchema } from "@/features/auth/schemas";
 import { toAuthErrorMessage } from "@/features/auth/errors";
-import { hasRecoverySession } from "@/features/auth/session";
-import { RECOVERY_FAILED_URL } from "@/features/auth/confirm-redirect";
 
 const INVALID_REQUEST_MESSAGE = "Permintaan tidak valid. Muat ulang halaman lalu coba lagi.";
 
@@ -110,49 +108,6 @@ export async function resendConfirmationAction(_previous: FormState, formData: F
     parsed.data.email,
     "Jika akun ini belum terverifikasi, link baru sudah dikirim. Periksa folder spam. Bila belum ada, coba lagi beberapa menit lagi.",
   );
-}
-
-export async function requestPasswordResetAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  const fields = readTextFields(formData, ["email"]);
-  const parsed = emailRequestSchema.safeParse(fields);
-  if (!parsed.success) {
-    return {
-      status: "error",
-      fieldErrors: z.flattenError(parsed.error).fieldErrors,
-      values: { email: fields.email },
-    };
-  }
-
-  const confirmUrl = await getConfirmUrl();
-  if (!confirmUrl) return { status: "error", message: INVALID_REQUEST_MESSAGE };
-
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: `${confirmUrl}?type=recovery`,
-  });
-  return toEmailRequestState(
-    error,
-    parsed.data.email,
-    "Jika email ini terdaftar, link untuk membuat password baru sudah dikirim. Periksa folder spam. Bila belum ada, coba lagi beberapa menit lagi.",
-  );
-}
-
-export async function updatePasswordAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  const parsed = newPasswordSchema.safeParse(readTextFields(formData, ["password", "confirmPassword"]));
-  if (!parsed.success) {
-    return { status: "error", fieldErrors: z.flattenError(parsed.error).fieldErrors };
-  }
-
-  // Link reset bisa kedaluwarsa selagi form terbuka.
-  if (!(await hasRecoverySession())) redirect(RECOVERY_FAILED_URL);
-
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
-  if (error) return { status: "error", message: toAuthErrorMessage(error.code) };
-
-  // Semua session diakhiri agar pihak lain yang masih masuk ikut keluar, dan password baru langsung terbukti saat login.
-  await supabase.auth.signOut();
-  redirect(`${LOGIN_PATH}?notice=password_updated`);
 }
 
 export async function signOutAction(): Promise<void> {

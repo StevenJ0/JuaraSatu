@@ -15,8 +15,8 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
         </p>
       )}
       <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2 lg:py-3">
-          <Brand href="/dashboard" />
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2 sm:px-6 lg:py-3">
+          <Brand href="/dashboard" size="sm" />
           <OwnerNav className="order-last w-full lg:order-none lg:w-auto" />
           <div className="ml-auto flex min-w-0 items-center gap-2">
             {/* Di layar lebar menu satu baris dengan logo, jadi nama usaha disembunyikan agar tetap muat. Nama tetap ada di Ringkasan. */}
@@ -25,7 +25,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:py-8">{children}</main>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8">{children}</main>
     </OwnerTheme>
   );
 }

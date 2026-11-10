@@ -29,7 +29,7 @@ export default async function EditPreorderPage({ params }: PageProps<"/dashboard
   const capacityOptions = await listPreorderCapacityOptions(supabase, businessId, preorder.capacityId);
 
   return (
-    <div className="flex max-w-lg flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
       <BackLink href={detailPath} label={preorder.name} />
       <h1 className="text-2xl font-bold text-ink">Ubah draf</h1>
       <Card>

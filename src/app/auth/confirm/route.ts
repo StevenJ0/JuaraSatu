@@ -3,14 +3,15 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveConfirmRedirect } from "@/features/auth/confirm-redirect";
 
-const EMAIL_OTP_TYPES: readonly EmailOtpType[] = ["signup", "invite", "magiclink", "recovery", "email_change", "email"];
+// Tanpa "recovery": fitur lupa password tidak ada, jadi link reset tidak diterima di sini.
+const EMAIL_OTP_TYPES: readonly EmailOtpType[] = ["signup", "invite", "magiclink", "email_change", "email"];
 
 function isEmailOtpType(value: string | null): value is EmailOtpType {
   return value !== null && EMAIL_OTP_TYPES.includes(value);
 }
 
 /**
- * Tujuan link verifikasi email dan reset password Supabase. Mendukung dua format:
+ * Tujuan link verifikasi email Supabase. Mendukung dua format:
  * - `?code=` (PKCE, template email bawaan Supabase; hanya berhasil di browser yang memulai permintaan)
  * - `?token_hash=&type=` (template di `supabase/templates`; bisa dibuka di browser/perangkat lain)
  */
@@ -31,5 +32,5 @@ export async function GET(request: NextRequest) {
     confirmed = !error;
   }
 
-  return NextResponse.redirect(new URL(resolveConfirmRedirect(type, confirmed), request.nextUrl));
+  return NextResponse.redirect(new URL(resolveConfirmRedirect(confirmed), request.nextUrl));
 }

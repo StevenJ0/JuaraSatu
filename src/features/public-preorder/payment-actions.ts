@@ -1,7 +1,9 @@
 "use server";
 
 import { privateOrderTokenSchema } from "@/features/orders/schemas";
-import { schedulePaidEmails } from "@/features/paid-email/schedule.server";
+import { findOrderIdByTokenHash } from "@/features/paid-email/repository";
+import { privateOrderUrl, schedulePaidEmails } from "@/features/paid-email/schedule.server";
+import { hashPrivateOrderToken } from "@/features/orders/service";
 import { continueQrisPayment, loadMidtransSandbox, type QrisView } from "@/features/payments/qris-checkout.server";
 import { takeLimit } from "@/features/public-preorder/rate-limit.server";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
@@ -22,7 +24,12 @@ export async function continuePaymentAction(token: string, checkStatus: boolean)
     if (checkStatus === true && (await takeLimit(client, "paymentCheck", token)) === "limited") return { kind: "rate_limited" };
     const view = await continueQrisPayment(client, midtrans.gateway, token, { checkStatus: checkStatus === true });
     // Status final baru diterapkan, mungkin lunas. Bila bukan, worker tidak menemukan job dan tidak mengirim apa pun.
-    if (view.kind === "updated") schedulePaidEmails();
+    // Pembayaran baru saja diterapkan oleh request ini, yang memegang token pembeli: email lunas ikut membawa tautan pesanannya.
+    if (view.kind === "updated") {
+      const orderId = await findOrderIdByTokenHash(client, hashPrivateOrderToken(token));
+      const orderUrl = privateOrderUrl(token);
+      schedulePaidEmails(orderId && orderUrl ? new Map([[orderId, orderUrl]]) : undefined);
+    }
     return view;
   } catch (error) {
     // Hanya nama galat. Token dan data pembeli tidak boleh masuk log.

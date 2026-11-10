@@ -28,7 +28,7 @@ function CapacityRow({ capacity, now }: { capacity: Capacity; now: Date }) {
         <div className="min-w-0">
           <p className="flex flex-wrap items-center gap-2 text-base font-semibold break-words text-ink">
             {capacity.productName}
-            {isClosed && <Badge tone="neutral">Batas pesan lewat</Badge>}
+            {isClosed && <Badge tone="neutral">Batas pemesanan lewat</Badge>}
           </p>
           <p className="text-base text-ink">{formatDateOnly(capacity.fulfillmentDate)}</p>
         </div>
@@ -38,7 +38,7 @@ function CapacityRow({ capacity, now }: { capacity: Capacity; now: Date }) {
       </div>
       <CapacityUsage totalUnits={capacity.totalUnits} availability={capacity.availability} />
       <div className="text-sm text-muted">
-        <p>Batas pesan: {formatWibDateTime(capacity.intakeCutoffAt)}</p>
+        <p>Batas melakukan pemesanan: {formatWibDateTime(capacity.intakeCutoffAt)}</p>
         <p>Batas pengambilan: {formatWibDateTime(capacity.fulfillmentWindowEndAt)}</p>
       </div>
     </li>

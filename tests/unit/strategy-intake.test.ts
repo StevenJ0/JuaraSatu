@@ -5,7 +5,10 @@ import { buildBusinessContext } from "../../src/features/ai-context";
 import { generateCampaignStrategies } from "../../src/features/campaign-strategist";
 import { buildStrategyPrompt } from "../../src/features/campaign-strategist/prompt";
 import { diagnoseTarget } from "../../src/features/campaign-strategist/target-diagnosis";
-import { GeminiReplySchema, summarizeProposals, type DiscussionInput, type GeminiReply, type OwnerIntake, type PreviousProposal, type StrategyProposal } from "../../src/features/campaign-strategist/contracts";
+import { narrativeRejection } from "../../src/lib/ai/narrative-safety";
+import { anotherProposalMessage, budgetDigits, intakeMessage } from "../../src/features/campaign-strategist/components/intake";
+import { formatIdrInput } from "../../src/lib/format-idr";
+import { DiscussionInputSchema, GeminiReplySchema, summarizeProposals, type DiscussionInput, type GeminiReply, type OwnerIntake, type PreviousProposal, type StrategyProposal } from "../../src/features/campaign-strategist/contracts";
 import { sendPersistentDiscussion } from "../../src/features/campaign-strategist/persistent-discussion-service";
 import { fakeDiscussionRepository } from "../fixtures/fake-discussion-repository";
 import { validateBlueprint } from "../../src/features/campaign-blueprint/blueprint-domain";
@@ -20,6 +23,17 @@ const withIntake = { ...discussionFixture, preferences: { ...discussionFixture.p
 function withReply(reply: GeminiReply) {
   return strategistDependencies(fakeProvider({ success: true, text: JSON.stringify(reply), model: "fake-gemini", requestId: null }));
 }
+
+describe("promotion budget field", () => {
+  it("keeps digits only, drops leading zeros and caps at the server limit", () => {
+    expect(budgetDigits("0777")).toBe("777");
+    expect(budgetDigits("Rp50.000")).toBe("50000");
+    expect(budgetDigits("0")).toBe("0");
+    expect(budgetDigits("")).toBe("");
+    expect(budgetDigits("99999999999")).toBe("1000000000");
+    expect(formatIdrInput(budgetDigits("50000"))).toBe("Rp50.000");
+  });
+});
 
 describe("target diagnosis", () => {
   const base = { targetUnits: 30, startsAt: "2026-11-01T00:00:00Z", endsAt: "2026-11-10T00:00:00Z", now: "2026-11-05T00:00:00Z" };
@@ -47,6 +61,40 @@ describe("strategist intake and tactics", () => {
     });
     expect(JSON.stringify((input as { ownerPreferences: unknown }).ownerPreferences)).not.toContain("Mahasiswa");
     expect(prompt.systemInstruction).toContain("Do not default to WhatsApp");
+  });
+
+  it("sends the owner's own explanation of the cause as redacted untrusted text, and still accepts answers saved without it", () => {
+    const context = buildBusinessContext(contextFixture);
+    if (!context.success) throw new Error("Expected context fixture");
+    const explained = { ...withIntake, preferences: { ...withIntake.preferences, intake: { ...intake, causeNotes: "Banyak yang tanya via 0812-3456-7890 tapi tidak jadi pesan" } } };
+    expect(JSON.parse(buildStrategyPrompt(context.data, explained).input)).toMatchObject({
+      untrustedText: { ownerIntake: { causeNotes: expect.stringContaining("[contact removed]") } } });
+    expect(intakeMessage(explained.preferences.intake, 50_000, true, "")).toContain("Penjelasan saya: Banyak yang tanya");
+    expect(DiscussionInputSchema.safeParse(withIntake).success).toBe(true);
+  });
+
+  it("flattens markdown the model writes into readable plain text", async () => {
+    const reply = structuredClone(replyFixture);
+    reply.reply = "**Rekomendasi:** pakai konten nilai.\n- Story Instagram\n- Pesan WhatsApp";
+    reply.options[1].hypothesis = "**Konten nilai** mungkin membantu calon pembeli meninjau preorder.";
+    reply.options[1].tactics = [{ platform: "instagram", action: "Unggah *story* foto produk sebelum preorder ditutup." }];
+    const result = await generateCampaignStrategies(withIntake, withReply(reply));
+    if (!result.success) throw new Error(result.error.code);
+    expect(result.data.reply).toBe("Rekomendasi: pakai konten nilai.\n• Story Instagram\n• Pesan WhatsApp");
+    expect(result.data.options[1]).toMatchObject({ hypothesis: "Konten nilai mungkin membantu calon pembeli meninjau preorder.",
+      tactics: [{ action: "Unggah story foto produk sebelum preorder ditutup." }] });
+  });
+
+  it("accepts urgency copy with real remaining slots and a deadline time, but not invented counts or sales", () => {
+    expect(narrativeRejection("Sisa 8 slot, tutup 6 Nov 11.00.", { capacityUnits: [8] })).toBeNull();
+    expect(narrativeRejection("Preorder ditutup 6 Nov, pukul 20.00.", {})).toBeNull();
+    expect(narrativeRejection("Sisa 8 slot, tutup 6 Nov 11.00.", { capacityUnits: [5] })).toBe("numeric_claim");
+    expect(narrativeRejection("Sudah terjual 8 unit minggu ini.", { capacityUnits: [8] })).toBe("numeric_claim");
+  });
+
+  it("puts the owner's wish into the request for another proposal", () => {
+    expect(anotherProposalMessage("  fokus ke TikTok tanpa diskon ")).toBe("Usulan sebelumnya kurang cocok. Beri satu usulan lain.\nYang saya inginkan: fokus ke TikTok tanpa diskon");
+    expect(anotherProposalMessage("")).toContain("pendekatan atau platform yang berbeda");
   });
 
   it("keeps validated audience, tactics and hashtags on the proposal", async () => {

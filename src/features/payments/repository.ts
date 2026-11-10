@@ -157,3 +157,22 @@ export async function listOrderPayments(client: SupabaseClient, businessId: stri
       reviewReason: row.review_reason,
     }));
 }
+
+export type SandboxPaymentTotals = { totalIdr: number; paymentCount: number };
+
+/**
+ * Pembayaran Midtrans Sandbox yang sudah terverifikasi dan diterapkan ke pesanan milik usaha ini. Satu akun Sandbox dipakai semua
+ * usaha, jadi angkanya dihitung dari baris `payments` per `business_id`, bukan dari laporan Midtrans. Simulasi, bukan uang sungguhan.
+ */
+export async function sumAppliedSandboxPayments(client: SupabaseClient, businessId: string): Promise<SandboxPaymentTotals> {
+  const { data, error } = await client
+    .from("payments")
+    .select("amount_idr")
+    .eq("business_id", businessId)
+    .eq("status", "paid_sandbox")
+    .not("verified_at", "is", null)
+    .not("applied_at", "is", null);
+  if (error) fail("sumAppliedSandboxPayments", error);
+  const rows = z.array(z.object({ amount_idr: z.number() })).parse(data);
+  return { totalIdr: rows.reduce((total, row) => total + row.amount_idr, 0), paymentCount: rows.length };
+}

@@ -46,6 +46,7 @@ export function useExecution(owner: boolean, campaignId?: string) {
   const [campaigns, setCampaigns] = useState<ExecutionCampaign[]>([]);
   const [view, setView] = useState<ExecutionView | null>(null); const [busy, setBusy] = useState(false);
   const [error, setError] = useState(""); const [notice, setNotice] = useState(""); const [publishConfirm, setPublishConfirm] = useState(false); const [closeConfirm, setCloseConfirm] = useState(false);
+  const [activeAction, setActiveAction] = useState<string | null>(null);
   const lock = useRef(false);
   const failed = useCallback((value: unknown) => { const code = value instanceof Error ? value.message : "PERSISTENCE_UNAVAILABLE";
     setError(executionErrors[code] ?? "Hasil penyimpanan belum bisa dipastikan. Muat ulang untuk melihat status terakhir."); }, []);
@@ -61,33 +62,34 @@ export function useExecution(owner: boolean, campaignId?: string) {
     }).catch((error: unknown) => { if (mounted) failed(error); });
     return () => { mounted = false; };
   }, [load, failed, call, campaignId]);
-  async function run(work: () => Promise<void>) {
-    if (lock.current) return; lock.current = true; setBusy(true); setError(""); setNotice("");
-    try { await work(); } catch (error) { failed(error); } finally { lock.current = false; setBusy(false); }
+  /** `action` names the running command so its button can show progress while every other button stays locked. */
+  async function run(work: () => Promise<void>, action = "other") {
+    if (lock.current) return; lock.current = true; setBusy(true); setActiveAction(action); setError(""); setNotice("");
+    try { await work(); } catch (error) { failed(error); } finally { lock.current = false; setBusy(false); setActiveAction(null); }
   }
   async function mutate(body: unknown, message: string) {
     const saved = ExecutionViewSchema.parse(await call("", body)); await load(saved.campaign.id); await list(); setNotice(saved.replayed ? "Aksi ini sudah tersimpan sebelumnya. Tidak ada perubahan ganda." : message);
   }
   const c = view?.campaign; const bp = view?.blueprint;
-  const refresh = () => run(async () => { await list(); if (c) await load(c.id); });
-  const select = (id: string) => run(() => load(id));
+  const refresh = () => run(async () => { await list(); if (c) await load(c.id); }, "refresh");
+  const select = (id: string) => run(() => load(id), `select:${id}`);
   const publish = () => run(async () => {
     if (!c || !bp) return; await mutate({ action: "publish", campaignId: c.id, blueprintId: bp.id, expectedBlueprintVersion: bp.version,
       expectedCampaignVersion: c.version, expectedContextHash: bp.context_hash, confirm: true },
       owner ? "Kampanye terbit. Diskon berlaku untuk pembeli selama periode kampanye." : "Campaign published dan baseline tersimpan atomik. Diskon berlaku di checkout selama periode campaign.");
-  });
+  }, "publish");
   const close = () => run(async () => {
     if (!c) return; await mutate({ action: "close", campaignId: c.id, expectedCampaignVersion: c.version, confirm: true },
       owner ? "Kampanye ditutup. Riwayat dan checklist tetap tersimpan." : "Campaign closed. Riwayat dan checklist tetap tersimpan.");
-  });
+  }, "close");
   const toggleTask = (task: ExecutionView["calendar"]["days"][number]["tasks"][number], completed: boolean) => run(async () => {
     if (!c) return; await mutate({ action: "task", campaignId: c.id, blueprintId: task.blueprint_id, taskId: task.id, expectedTaskVersion: task.version, completed },
       completed ? "Checklist selesai tersimpan." : "Checklist dibuka kembali.");
-  });
-  const copy = (text: string) => run(async () => {
+  }, `task:${task.id}`);
+  const copy = (text: string, id = "") => run(async () => {
     try { await navigator.clipboard.writeText(text); setNotice("Caption disalin. Menyalin tidak menandakan konten sudah diposting."); }
     catch { throw new Error("CLIPBOARD_UNAVAILABLE"); }
-  });
-  return { campaigns, view, busy, error, notice, publishConfirm, setPublishConfirm, closeConfirm, setCloseConfirm, refresh, select, publish, close, toggleTask, copy };
+  }, `copy:${id}`);
+  return { campaigns, view, busy, activeAction, error, notice, publishConfirm, setPublishConfirm, closeConfirm, setCloseConfirm, refresh, select, publish, close, toggleTask, copy };
 }
 export type ExecutionState = ReturnType<typeof useExecution>;

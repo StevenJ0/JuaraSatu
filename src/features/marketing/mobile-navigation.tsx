@@ -39,7 +39,6 @@ export function MobileNavigation() {
         {landingNavigation.map((item) => (
           <a key={item.href} href={item.href} onClick={closeMenu}>{item.label}</a>
         ))}
-        <a href="#contoh-penggunaan" onClick={closeMenu}>Lihat contoh preorder</a>
         <a href={authLinks.signIn.href} onClick={closeMenu}>{authLinks.signIn.label}</a>
         <a href={authLinks.signUp.href} onClick={closeMenu}>{authLinks.signUp.label}</a>
       </nav>

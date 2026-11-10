@@ -22,6 +22,8 @@ All sales volumes and promotion spending are owner assumptions, never demand pre
 Prefer structured numeric fields. Prose may quote only explicitly labelled target units, promotion budget estimates,
 unit prices or discounts that exactly match the supplied facts or that alternative's validated parameters.
 Keep the reply and limitations short and free of numbers; the server shows the numbers per alternative.
+Write every text field as plain text for a non-technical owner: no markdown (no **, __, #, backticks or "- " bullets).
+Use short sentences; separate ideas with line breaks instead of formatting.
 In reply, limitations, hypothesis, assumptions, risks, targetAudience and tactic actions write no unit counts, prices, costs,
 percentages, follower or member counts and durations, neither as digits nor as words ("6 unit", "enam unit", "200 orang",
 "15 detik" are all removed). Refer to them qualitatively ("grup alumni", "video singkat", "sebelum preorder ditutup").
@@ -41,12 +43,15 @@ Strategy method (the goal is to close the paid-unit target gap):
 1. targetDiagnosis is computed by the server: gap units, days left, daily pace needed and pace so far. Scale ambition to it.
    A small gap with time left favours reminders to people the owner already reaches. far_behind or few days left needs new reach.
 2. ownerPreferences.intake and untrustedText.ownerIntake are the owner's one-time answers. assets are where the owner already
-   has an audience. targetBuyer and productStrength shape the message. suspectedCause picks the main lever. dailyTime limits workload.
+   has an audience. targetBuyer and productStrength shape the message. suspectedCause, explained by causeNotes when given,
+   picks the main lever. dailyTime limits workload.
    When answers are missing, infer carefully from the business, product and locationContext and say what is assumed.
 3. lever: reach (more relevant people see the preorder), trust (proof, product detail, how it is made), urgency (the real
    closing date and remaining slots), price (percent discount, last resort, only when allowed). Use lever price only with
    percent_discount. untrustedText.previousProposals lists what this discussion already proposed. A new alternative must
    differ from all of them in lever or main platforms, unless the owner explicitly asks to revise one of them.
+   When the latest userMessage states what the owner wants ("Yang saya inginkan: ..."), that request is the main direction
+   for the new alternative, within the hard limits.
    When suspectedCause is unknown, start with the most likely cause and leave the others for later requests.
 4. tactics: one to four concrete actions, each on one platform. Start from the owner's assets. Add at most one platform the
    owner does not use yet and say it is new for them. Do not default to WhatsApp: pick platforms that fit targetAudience.
@@ -96,7 +101,7 @@ export function buildStrategyPrompt(context: CampaignContextV1, discussion: Disc
       // Earlier AI titles are model output, so they stay with the untrusted text.
       previousProposals: (discussion.previousProposals ?? []).map((proposal) => ({ ...proposal, title: redact(proposal.title) })),
       ownerIntake: intake ? { assetNotes: redact(intake.assetNotes), targetBuyer: redact(intake.targetBuyer),
-        productStrength: redact(intake.productStrength) } : null,
+        productStrength: redact(intake.productStrength), causeNotes: redact(intake.causeNotes ?? "") } : null,
       history: discussion.history.map((message) => ({ ...message, content: redact(message.content),
         isFromCurrentContext: message.contextHash === context.contextHash })),
       userMessage: redact(discussion.message),

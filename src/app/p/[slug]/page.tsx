@@ -5,7 +5,7 @@ import { PublicPreorderView } from "@/features/public-preorder/page-view";
 import { CheckoutForm } from "@/features/public-preorder/checkout-form";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Preorder | Juara Satu", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Preorder | juarasatu", robots: { index: false, follow: false } };
 
 export default async function PublicPreorderPage({ params, searchParams }: PageProps<"/p/[slug]">) {
   const { slug } = await params;

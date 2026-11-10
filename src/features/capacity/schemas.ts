@@ -25,8 +25,8 @@ const scheduleShape = {
     .regex(/^\d+$/, "Isi jumlah unit dengan angka bulat")
     .transform(Number)
     .refine((value) => value <= MAX_UNITS, `Maksimal ${MAX_UNITS} unit`),
-  intakeCutoff: wibDateTime("Isi batas pesan"),
-  fulfillmentWindowEnd: wibDateTime("Isi batas pengambilan"),
+  intakeCutoff: wibDateTime("Isi batas melakukan pemesanan"),
+  fulfillmentWindowEnd: wibDateTime("Isi jam terakhir pengambilan"),
 };
 
 function isCutoffBeforeWindowEnd(value: { intakeCutoff: string; fulfillmentWindowEnd: string }): boolean {
@@ -35,7 +35,7 @@ function isCutoffBeforeWindowEnd(value: { intakeCutoff: string; fulfillmentWindo
 
 const CUTOFF_ORDER_ERROR = {
   path: ["fulfillmentWindowEnd"],
-  message: "Batas pengambilan harus setelah batas pesan",
+  message: "Jam terakhir pengambilan harus setelah batas melakukan pemesanan",
 };
 
 /** Field yang boleh diubah setelah kapasitas dibuat; produk dan tanggal tetap (schema v2.1 §5.2). */

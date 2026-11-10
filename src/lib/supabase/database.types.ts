@@ -1739,6 +1739,7 @@ export type Database = {
           cost_quality: string
           created_at: string
           description: string | null
+          gallery_photo_paths: string[]
           id: string
           is_active: boolean
           name: string
@@ -1755,6 +1756,7 @@ export type Database = {
           cost_quality: string
           created_at?: string
           description?: string | null
+          gallery_photo_paths?: string[]
           id?: string
           is_active?: boolean
           name: string
@@ -1770,6 +1772,7 @@ export type Database = {
           cost_quality?: string
           created_at?: string
           description?: string | null
+          gallery_photo_paths?: string[]
           id?: string
           is_active?: boolean
           name?: string

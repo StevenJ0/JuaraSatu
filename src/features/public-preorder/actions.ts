@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { OrderRepositoryError, type OrderViolation } from "@/features/orders/repository";
 import { placePublicOrder } from "@/features/orders/service";
+import { schedulePendingPaymentEmail } from "@/features/paid-email/schedule.server";
 import { clientAddress, takeLimit } from "@/features/public-preorder/rate-limit.server";
 import { CHECKOUT_FIELDS, checkoutFormSchema, type CheckoutField } from "@/features/public-preorder/schemas";
 import { readTextFields } from "@/lib/form-state";
@@ -47,6 +48,8 @@ export async function placeBuyerOrderAction(formData: FormData): Promise<Checkou
     }
     const outcome = await placePublicOrder(client, parsed.data);
     if (outcome.kind === "rejected") return { status: "rejected", code: outcome.violation, message: VIOLATION_MESSAGES[outcome.violation] };
+    // Kiriman ulang dari form yang sama mendapat pesanan yang sama, jadi email hanya dikirim untuk pesanan yang baru dibuat.
+    if (!outcome.value.replayed) schedulePendingPaymentEmail(outcome.value.orderId, parsed.data.privateToken);
     return { status: "ok" };
   } catch (error) {
     // Hanya kode galat. Nama, email, kontak, dan token pembeli tidak boleh masuk log.

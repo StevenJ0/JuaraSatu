@@ -27,12 +27,5 @@ export const signUpSchema = z
 
 export const emailRequestSchema = z.object({ email: emailSchema });
 
-export const newPasswordSchema = z
-  .object({
-    password: passwordSchema,
-    confirmPassword: z.string(),
-  })
-  .refine(passwordsMatch, PASSWORD_MISMATCH);
-
 export type SignInInput = z.infer<typeof signInSchema>;
 export type SignUpInput = z.infer<typeof signUpSchema>;

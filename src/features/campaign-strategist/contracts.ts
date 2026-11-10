@@ -17,6 +17,8 @@ export const OwnerIntakeSchema = z.strictObject({
   assets: z.array(PromotionPlatformSchema).max(8).refine((assets) => new Set(assets).size === assets.length),
   assetNotes: z.string().trim().max(300), targetBuyer: z.string().trim().max(200), productStrength: z.string().trim().max(200),
   suspectedCause: z.enum(["unaware", "hesitant", "price", "unknown"]).nullable(),
+  // Optional: answers stored before this field existed must still parse.
+  causeNotes: z.string().trim().max(300).optional(),
   dailyTime: z.enum(["under_30m", "30_60m", "over_1h"]).nullable(),
 });
 /** What this discussion already proposed, so a one-at-a-time answer does not repeat itself. */

@@ -18,7 +18,7 @@ export default async function NewStandaloneOrderPage() {
   const options = await listManualOrderCapacityOptions(supabase, businessId);
 
   return (
-    <div className="flex max-w-lg flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
       <BackLink href="/dashboard/orders" label="Pesanan" />
       <div>
         <h1 className="text-2xl font-bold text-ink">Catat pesanan manual</h1>

@@ -4,7 +4,8 @@ export const PHOTO_ACCEPT = "image/jpeg,image/png,image/webp";
 export const PHOTO_TOO_LARGE_MESSAGE = "Ukuran foto maksimal 10MB";
 
 const PHOTO_INVALID_MESSAGE = "Foto harus berformat JPG, PNG, atau WebP";
-const PHOTO_REQUIRED_MESSAGE = "Foto produk wajib diisi";
+/** Minimal satu foto, supaya setiap produk punya tampilan untuk pembeli. */
+export const PHOTO_REQUIRED_MESSAGE ="Foto produk wajib diisi";
 export const PHOTO_UNREADABLE_MESSAGE = "Foto rusak atau resolusinya terlalu besar. Coba foto lain.";
 
 const FULL_PHOTO_SUFFIX = "-full.webp";
@@ -52,7 +53,23 @@ export async function readPhotoUpload(value: FormDataEntryValue | null): Promise
   return { kind: "ok", photo: { bytes, ...type } };
 }
 
-/** Foto wajib saat produk dibuat, supaya setiap produk baru punya tampilan untuk pembeli. */
-export function requirePhoto(result: PhotoReadResult): PhotoReadResult {
-  return result.kind === "none" ? { kind: "invalid", message: PHOTO_REQUIRED_MESSAGE } : result;
+/** Satu produk punya paling banyak 5 foto: satu foto utama dan 4 tambahan (CHECK `products_gallery_photo_paths_max`). */
+export const MAX_PRODUCT_PHOTOS = 5;
+export const PHOTO_LIMIT_MESSAGE = `Maksimal ${MAX_PRODUCT_PHOTOS} foto per produk`;
+export type PhotoListResult = { kind: "invalid"; message: string } | { kind: "ok"; photos: PhotoUpload[] };
+
+/**
+ * Semua file dari input foto (`multiple`). File kosong diabaikan. `limit` adalah sisa slot foto; satu file yang tidak valid
+ * membatalkan semuanya dengan pesannya, agar pemilik tahu foto mana yang perlu diganti.
+ */
+export async function readPhotoUploads(values: FormDataEntryValue[], limit: number = MAX_PRODUCT_PHOTOS): Promise<PhotoListResult> {
+  const files = values.filter((value): value is File => value instanceof File && value.size > 0);
+  if (files.length > limit) return { kind: "invalid", message: PHOTO_LIMIT_MESSAGE };
+  const photos: PhotoUpload[] = [];
+  for (const file of files) {
+    const result = await readPhotoUpload(file);
+    if (result.kind === "invalid") return result;
+    if (result.kind === "ok") photos.push(result.photo);
+  }
+  return { kind: "ok", photos };
 }

@@ -247,12 +247,8 @@ otp_expiry = 3600
 # Link memakai token_hash agar tetap bisa dibuka di browser/perangkat lain. Di Cloud, isi template ini
 # ditempel manual lewat Dashboard → Authentication → Email Templates.
 [auth.email.template.confirmation]
-subject = "Verifikasi email akun Juara Satu"
+subject = "Satu langkah lagi: verifikasi akun juarasatu kamu"
 content_path = "./supabase/templates/confirmation.html"
-
-[auth.email.template.recovery]
-subject = "Atur ulang password Juara Satu"
-content_path = "./supabase/templates/recovery.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]

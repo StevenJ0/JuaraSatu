@@ -81,6 +81,18 @@ describe("explicit development Gemini wiring (SDK mocked; no paid calls)", () =>
     expect(request.response_format.schema.properties.tasks).toBeDefined();
   });
 
+  it("gives the caption writer the product facts and keeps a markdown caption readable with its line breaks", async () => {
+    const f = await blueprintFixture();
+    const plan = BlueprintPlanSchema.parse(await f.dependencies.provider.generate({ alternative: f.input.selected.alternative, edits: f.input.command.edits, now: f.dependencies.now() }));
+    create.mockResolvedValue(completed({ ...plan, contents: plan.contents.map((content, index) => index === 0
+      ? { ...content, body: "**Lapar habis kelas?**\nPaket Makan Contoh siap menemani.\n\n#PreorderNovember" } : content) }));
+    const result = await generateBlueprint(f.input, { ...f.dependencies, provider: configuredBlueprintProvider("valid", env) });
+    expect(result.contents[0].body).toBe("Lapar habis kelas?\nPaket Makan Contoh siap menemani.\n\n#PreorderNovember");
+    const request = z.object({ input: z.string() }).parse(create.mock.calls[0][0]);
+    expect(JSON.parse(request.input)).toMatchObject({ untrustedProduct: { businessName: "Dapur Contoh", productName: "Paket Makan Contoh",
+      preorderClosesLabel: expect.stringMatching(/WIB$/), promoEndsLabel: expect.stringMatching(/WIB$/), pickupDateLabel: expect.any(String) } });
+  });
+
   it("moves a closing task placed exactly at the campaign end one minute earlier and sends the explicit schedule window", async () => {
     const f = await blueprintFixture();
     const plan = BlueprintPlanSchema.parse(await f.dependencies.provider.generate({ alternative: f.input.selected.alternative, edits: f.input.command.edits, now: f.dependencies.now() }));

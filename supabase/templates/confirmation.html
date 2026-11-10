@@ -1,4 +1,26 @@
-<h2>Verifikasi email Anda</h2>
-<p>Terima kasih sudah mendaftar di Juara Satu. Buka link di bawah untuk mengaktifkan akun.</p>
-<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email">Verifikasi email</a></p>
-<p>Link berlaku 1 jam. Jika Anda tidak merasa mendaftar, abaikan email ini.</p>
+<!doctype html>
+<html lang="id">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>Verifikasi email akun juarasatu</title></head>
+<body style="margin:0;padding:0;background:#f0f3ed">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">Satu klik lagi untuk mulai membuka preorder pertamamu.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f0f3ed"><tr><td align="center" style="padding:28px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+<tr><td style="padding:0 4px 16px"><img src="{{ .SiteURL }}/logo%20full.png" alt="juarasatu" height="56" style="display:block;height:56px;width:auto;border:0"></td></tr>
+<tr><td style="background:#ffffff;border:1px solid #dce2d9;border-radius:16px;overflow:hidden">
+<div style="height:6px;background:#285b43;line-height:6px;font-size:0">&nbsp;</div>
+<div style="padding:28px 28px 30px">
+<span style="display:inline-block;padding:5px 12px;border-radius:999px;background:#e6eee5;color:#285b43;font-size:12px;font-weight:700;letter-spacing:0.4px">Verifikasi akun</span>
+<h1 style="margin:14px 0 10px;font-size:23px;line-height:1.3;color:#24392f;font-weight:800">Selamat datang di juarasatu!</h1>
+<p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#24392f">Tinggal satu langkah lagi. Verifikasi email ini untuk mengaktifkan akunmu, lalu mulai buka preorder, atur kapasitas produksi, dan rencanakan promosi bersama Campaign AI.</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0 8px"><tr>
+<td style="background:#285b43;border-radius:10px"><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email" style="display:inline-block;padding:14px 26px;font-size:16px;font-weight:700;color:#ffffff;text-decoration:none">Verifikasi email saya</a></td>
+</tr></table>
+<p style="margin:16px 0 0;font-size:13px;line-height:1.6;color:#59665d">Tombol tidak bisa diklik? Salin tautan ini ke browser:<br><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email" style="color:#285b43;word-break:break-all">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email</a></p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:#fcf1e3;border-radius:10px"><tr><td style="padding:12px 16px">
+<p style="margin:4px 0;font-size:13px;line-height:1.5;color:#654526">Tautan berlaku 1 jam. Jika kamu tidak merasa mendaftar, abaikan email ini. Akun tidak akan aktif tanpa verifikasi.</p>
+</td></tr></table>
+</div></td></tr>
+<tr><td style="padding:18px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#59665d">Email ini dikirim otomatis oleh juarasatu.</td></tr>
+</table></td></tr></table>
+</body>
+</html>

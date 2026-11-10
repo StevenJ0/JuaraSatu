@@ -92,7 +92,7 @@ export default async function OrderDetailPage({ params, searchParams }: PageProp
     : "Produksi sudah dimulai. Slot tidak kembali dan biaya produksi tetap tercatat.";
 
   return (
-    <div className="flex max-w-2xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       {savedMessage && <SavedToast key={String(saved)} message={savedMessage} />}
       <div className="flex flex-col gap-2">
         <BackLink href={order.preorderId ? `/dashboard/preorders/${order.preorderId}/orders` : "/dashboard/orders"} label="Pesanan" />

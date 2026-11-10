@@ -273,6 +273,7 @@ Menyimpan katalog produk UMKM.
 | sku | varchar(80) | NOT NULL |
 | description | text | NULLABLE |
 | photo_path | text | NULLABLE |
+| gallery_photo_paths | text[] | NOT NULL, DEFAULT '{}', maksimal 4 |
 | base_price_idr | bigint | NOT NULL, > 0 |
 | variable_cost_idr | bigint | NULLABLE, >= 0 |
 | cost_quality | text | NOT NULL |
@@ -286,6 +287,9 @@ Constraints:
 ```text
 UNIQUE(business_id, sku)
 
+cardinality(gallery_photo_paths) <= 4
+cardinality(gallery_photo_paths) = 0 OR photo_path IS NOT NULL
+
 cost_quality:
   unknown
   estimated
@@ -295,6 +299,9 @@ cost_quality:
 Business Rules:
 
 - Produk merupakan satu SKU standar.
+- Satu produk punya paling banyak 5 foto: `photo_path` adalah foto utama, `gallery_photo_paths` berisi foto tambahan secara berurutan
+  (migration `20261110090000_product_gallery_photos`). Pemilik (`authenticated`) mendapat hak INSERT dan UPDATE kolom
+  `gallery_photo_paths`, sama seperti `photo_path`; RLS products tidak berubah.
 - Varian size dan warna kompleks tidak termasuk MVP.
 - Produk tidak dihapus permanen setelah memiliki transaksi.
 - Edit harga produk tidak mengubah harga preorder yang sudah dipublikasikan.

@@ -5,7 +5,7 @@ import { summarizeCapacity, type ReservationFact } from "@/features/capacity/ava
 import { toPreorderContext, toPublicPreorder, type PreorderContext, type PublicPreorder } from "@/features/preorders/context";
 import { computeOrderableUnits, summarizePreorder, type PreorderMetrics, type PreorderReservationFact } from "@/features/preorders/metrics";
 import type { PreorderInput } from "@/features/preorders/schemas";
-import { productPhotoUrls } from "@/features/products/repository";
+import { productPhotoList } from "@/features/products/repository";
 import { COST_QUALITIES } from "@/features/products/schemas";
 
 const UNIQUE_VIOLATION = "23505";
@@ -228,7 +228,7 @@ const publicPreorderRowSchema = z.object({
       base_price_snapshot_idr: z.number(),
       product_name_snapshot: z.string(),
       sku_snapshot: z.string(),
-      products: z.object({ description: z.string().nullable(), photo_path: z.string().nullable() }),
+      products: z.object({ description: z.string().nullable(), photo_path: z.string().nullable(), gallery_photo_paths: z.array(z.string()) }),
       production_capacity: z.object({
         total_units: z.number(),
         capacity_reservations: z.array(reservationRowSchema.omit({ orders: true })),
@@ -241,7 +241,7 @@ const publicPreorderRowSchema = z.object({
 const PUBLIC_PREORDER_COLUMNS = `id, slug, name, status, fulfillment_date, starts_at, ends_at, version, pickup_terms_snapshot,
   businesses(name, is_demo),
   preorder_items(id, quota_units, base_price_snapshot_idr, product_name_snapshot, sku_snapshot,
-    products(description, photo_path),
+    products(description, photo_path, gallery_photo_paths),
     production_capacity(total_units, capacity_reservations(quantity, state, expires_at, preorder_item_id)))`;
 
 /** Kontrak C1 untuk halaman pembeli. `client` wajib service role, karena tamu tidak punya akses ke tabel preorder. */
@@ -294,7 +294,7 @@ export async function findPublicPreorder(client: SupabaseClient, slug: string, n
         name: item.product_name_snapshot,
         sku: item.sku_snapshot,
         description: item.products.description,
-        ...productPhotoUrls(client, item.products.photo_path),
+        photos: productPhotoList(client, item.products.photo_path, item.products.gallery_photo_paths),
       },
       pickup: { instructions: terms.pickup_instructions, publicContact: terms.public_contact },
       version: row.version,

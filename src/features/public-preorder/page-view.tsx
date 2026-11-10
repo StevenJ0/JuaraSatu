@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight, CalendarDays, Package, Store } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Store } from "lucide-react";
 import { Brand } from "@/components/brand";
 import type { PublicPreorder, PublicPreorderAvailability } from "@/features/preorders/context";
 import { formatIdr } from "@/lib/format-idr";
 import { formatDateOnly, formatWibDateTime } from "@/lib/wib-time";
+import { ProductGallery } from "./product-gallery";
 import styles from "./public-preorder.module.css";
 
 const stateCopy: Record<PublicPreorderAvailability, readonly [string, string]> = {
@@ -20,7 +20,7 @@ export function BuyerShell({ children }: { children: ReactNode }) {
     <a href="#konten-preorder" className="skip-link">Langsung ke preorder</a>
     <header className={styles.header}><Brand href="/" /><span>Preorder langsung dari usahanya</span></header>
     {children}
-    <footer className={styles.footer}><span>Didukung Juara Satu</span><Link href="/">Kenali platform <ArrowUpRight size={15} aria-hidden="true" /></Link></footer>
+    <footer className={styles.footer}><span>Didukung juarasatu</span><Link href="/">Kenali platform <ArrowUpRight size={15} aria-hidden="true" /></Link></footer>
   </div>;
 }
 
@@ -36,12 +36,7 @@ export function PublicPreorderView({ preorder, children }: { preorder: PublicPre
     <main id="konten-preorder" className={styles.main}>
       <div className={styles.business}><Store size={17} aria-hidden="true" /><span>{preorder.businessName}</span>{preorder.isDemo && <span className={styles.demo}>Usaha demo</span>}</div>
       <div className={styles.layout}>
-        <div className={styles.photo}>
-          {preorder.product.photoUrl
-            ? <Image src={preorder.product.photoUrl} alt={preorder.product.name} width={1000} height={1100} priority unoptimized className={styles.productImage} />
-            : <div className={styles.noPhoto}><Package size={48} strokeWidth={1} aria-hidden="true" /><span>Foto produk belum tersedia</span></div>}
-          <span className={styles.photoCaption}>Satu produk. Satu jadwal pengambilan.</span>
-        </div>
+        <ProductGallery name={preorder.product.name} photos={preorder.product.photos} />
         <section className={styles.detail} aria-labelledby="nama-produk">
           <div className={styles.eyebrow}>{preorder.name}</div>
           <h1 id="nama-produk">{preorder.product.name}</h1>

@@ -11,7 +11,12 @@ export default async function OwnerCampaignPage() {
   const { businessId } = await requireBusinessOwner();
   const supabase = await createSupabaseServerClient();
   // Display-only facts for the hub header; the AI itself always re-reads the authoritative context on the server.
-  const facts: Record<string, PreorderFacts> = Object.fromEntries((await listPreorders(supabase, businessId)).map((preorder) => [preorder.id, {
+  // A preorder row the list cannot read (e.g. legacy data without pickup terms) hides the header numbers instead of the whole hub.
+  const preorders = await listPreorders(supabase, businessId).catch((error: unknown) => {
+    console.error("[campaigns] ringkasan preorder gagal dibaca", { name: error instanceof Error ? error.name : "unknown" });
+    return [];
+  });
+  const facts: Record<string, PreorderFacts> = Object.fromEntries(preorders.map((preorder) => [preorder.id, {
     productName: preorder.productName, basePriceIdr: preorder.basePriceIdr, targetUnits: preorder.targetUnits,
     paidUnits: preorder.metrics.paidUnits, orderableUnits: preorder.metrics.orderableUnits, startsAt: preorder.startsAt, endsAt: preorder.endsAt,
   }]));

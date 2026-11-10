@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { Badge, type BadgeTone } from "@/components/owner/badge";
+import { BusyLabel } from "@/components/owner/busy-label";
+import { plainText } from "@/lib/ai/plain-text";
 import { Card } from "@/components/owner/card";
 import { DANGER_BUTTON_CLASS, PRIMARY_BUTTON_CLASS, ROW_ACTION_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/form-message";
 import { campaignStatusLabel, executionChannelLabel, executionContentLabel, executionErrors, executionMoney, executionTime, offerLabel, taskLabels,
@@ -56,14 +58,16 @@ export function ExecutionDetail({ e }: { e: ExecutionState }) {
         <label className="flex items-start gap-3 text-base text-ink"><input id="campaign-publish-confirm" type="checkbox" className={CHECKBOX_CLASS} checked={e.publishConfirm} disabled={busy}
           onChange={(event) => e.setPublishConfirm(event.target.checked)} />Saya sudah meninjau rencana ini dan ingin menerbitkan kampanye sekarang.</label>
         <button id="campaign-publish" type="button" className={`w-full sm:w-fit ${PRIMARY_BUTTON_CLASS}`} disabled={busy || !e.publishConfirm || !view.eligibility.eligible || !bp}
-          onClick={() => void e.publish()}>Terbitkan kampanye</button>
+          aria-busy={e.activeAction === "publish"}
+          onClick={() => void e.publish()}><BusyLabel busy={e.activeAction === "publish"} label="Terbitkan kampanye" busyLabel="Menerbitkan…" /></button>
       </div>}
       {c.status === "published" && <div className="flex flex-col gap-3 border-t border-line pt-4">
         <h3 className="text-base font-semibold text-ink">Tutup kampanye</h3>
         <p className="text-base text-muted">Menutup kampanye menghentikan diskon untuk pesanan baru. Pesanan lama, riwayat, tugas, dan caption tetap tersimpan.</p>
         <label className="flex items-start gap-3 text-base text-ink"><input id="campaign-close-confirm" type="checkbox" className={CHECKBOX_CLASS} checked={e.closeConfirm} disabled={busy}
           onChange={(event) => e.setCloseConfirm(event.target.checked)} />Saya ingin menutup kampanye ini.</label>
-        <button id="campaign-close" type="button" className={`w-full sm:w-fit ${DANGER_BUTTON_CLASS}`} disabled={busy || !e.closeConfirm} onClick={() => void e.close()}>Tutup kampanye</button>
+        <button id="campaign-close" type="button" className={`w-full sm:w-fit ${DANGER_BUTTON_CLASS}`} disabled={busy || !e.closeConfirm} aria-busy={e.activeAction === "close"}
+          onClick={() => void e.close()}><BusyLabel busy={e.activeAction === "close"} label="Tutup kampanye" busyLabel="Menutup…" /></button>
       </div>}
       {c.status === "closed" && <p className="text-base text-muted">Kampanye sudah ditutup. Checklist masih bisa diselesaikan atau dibuka kembali.</p>}
       {c.status === "completed" && <p className="text-base text-muted">Kampanye selesai. Checklist dan biaya dibekukan.</p>}
@@ -83,12 +87,12 @@ export function ExecutionDetail({ e }: { e: ExecutionState }) {
         <h4 className="text-sm font-semibold text-muted">{new Intl.DateTimeFormat("id-ID", { dateStyle: "full", timeZone: "Asia/Jakarta" }).format(new Date(`${day.date}T12:00:00+07:00`))}</h4>
         <ul className="flex flex-col divide-y divide-line rounded-[12px] border border-line">{day.tasks.map((task) => <li key={task.id} className="flex flex-col gap-1 p-3">
           <label className="flex items-start gap-3 text-base font-semibold text-ink"><input data-execution-task={task.id} type="checkbox" className={CHECKBOX_CLASS} checked={task.completed_at !== null}
-            disabled={busy || !["published", "closed"].includes(c.status)} onChange={(event) => void e.toggleTask(task, event.target.checked)} />{task.title}</label>
+            disabled={busy || !["published", "closed"].includes(c.status)} onChange={(event) => void e.toggleTask(task, event.target.checked)} />{plainText(task.title)}</label>
           <div className="flex flex-wrap items-center gap-2 pl-8 text-sm text-muted">
             <span>{executionTime(task.due_at)} WIB · {task.channel ? executionChannelLabel[task.channel] ?? task.channel : "Platform lain"}</span>
             <Badge tone={taskTone[task.executionStatus] ?? "neutral"}>{taskLabels[task.executionStatus]}</Badge>
           </div>
-          {task.description && <p className="pl-8 text-base text-ink">{task.description}</p>}
+          {task.description && <p className="pl-8 text-base whitespace-pre-wrap text-ink">{plainText(task.description)}</p>}
           {task.completed_at && <p className="pl-8 text-sm text-muted">Selesai dikonfirmasi {executionTime(task.completed_at)} WIB</p>}
         </li>)}</ul>
       </li>)}</ol>
@@ -100,8 +104,9 @@ export function ExecutionDetail({ e }: { e: ExecutionState }) {
         <p className="text-sm text-muted">Salin lalu tempel ke WhatsApp atau Instagram. Aplikasi tidak memposting otomatis.</p></div>
       <ul className="grid gap-3 lg:grid-cols-2">{view.contents.map((content) => <li key={content.id} className="flex flex-col gap-3 rounded-[12px] border border-line p-4">
         <p className="text-sm font-semibold text-muted">{executionChannelLabel[content.channel] ?? content.channel} · {executionContentLabel[content.content_type] ?? content.content_type}</p>
-        <p className="text-base whitespace-pre-wrap break-words text-ink">{content.body}</p>
-        <button data-caption-copy={content.id} type="button" disabled={busy} className={`mt-auto w-full sm:w-fit ${ROW_ACTION_CLASS}`} onClick={() => void e.copy(content.body)}>Salin caption</button>
+        <p className="text-base whitespace-pre-wrap break-words text-ink">{plainText(content.body)}</p>
+        <button data-caption-copy={content.id} type="button" disabled={busy} className={`mt-auto w-full sm:w-fit ${ROW_ACTION_CLASS}`} aria-busy={e.activeAction === `copy:${content.id}`}
+          onClick={() => void e.copy(plainText(content.body), content.id)}><BusyLabel busy={e.activeAction === `copy:${content.id}`} label="Salin caption" busyLabel="Menyalin…" /></button>
       </li>)}</ul>
     </Card>
   </div>;

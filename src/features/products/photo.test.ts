@@ -4,7 +4,7 @@ import {
   detectPhotoType,
   fullPhotoPath,
   readPhotoUpload,
-  requirePhoto,
+  readPhotoUploads,
   thumbnailPathOf,
 } from "@/features/products/photo";
 
@@ -16,19 +16,6 @@ describe("thumbnailPathOf", () => {
   it("foto lama tidak punya versi kecil", () => {
     expect(thumbnailPathOf("bisnis/abc.jpg")).toBeNull();
     expect(thumbnailPathOf("bisnis/abc.webp")).toBeNull();
-  });
-});
-
-describe("requirePhoto", () => {
-  it("menolak bila foto tidak ada", () => {
-    expect(requirePhoto({ kind: "none" })).toEqual({ kind: "invalid", message: "Foto produk wajib diisi" });
-  });
-
-  it("tidak mengubah hasil yang lain", () => {
-    const invalid = { kind: "invalid", message: "Ukuran foto maksimal 5MB" } as const;
-    expect(requirePhoto(invalid)).toBe(invalid);
-    const ok = { kind: "ok", photo: { bytes: new Uint8Array(), contentType: "image/png", extension: "png" } } as const;
-    expect(requirePhoto(ok)).toBe(ok);
   });
 });
 
@@ -74,5 +61,28 @@ describe("readPhotoUpload", () => {
       kind: "ok",
       photo: { contentType: "image/png", extension: "png" },
     });
+  });
+});
+
+describe("readPhotoUploads", () => {
+  const png = (name: string) => new File([new Uint8Array(PNG)], name, { type: "image/png" });
+
+  it("membaca semua foto berurutan dan mengabaikan input kosong", async () => {
+    const result = await readPhotoUploads([png("a.png"), new File([], ""), new File([new Uint8Array(JPEG)], "b.jpg")]);
+    expect(result.kind === "ok" ? result.photos.map((photo) => photo.extension) : result).toEqual(["png", "jpg"]);
+  });
+
+  it("menolak lebih dari 5 foto", async () => {
+    const files = Array.from({ length: 6 }, (_, index) => png(`${index}.png`));
+    await expect(readPhotoUploads(files)).resolves.toEqual({ kind: "invalid", message: "Maksimal 5 foto per produk" });
+  });
+
+  it("memakai sisa slot sebagai batas", async () => {
+    await expect(readPhotoUploads([png("a.png"), png("b.png")], 1)).resolves.toMatchObject({ kind: "invalid" });
+  });
+
+  it("satu file tidak valid membatalkan semuanya", async () => {
+    const html = new File(["<html>"], "c.jpg", { type: "image/jpeg" });
+    await expect(readPhotoUploads([png("a.png"), html])).resolves.toMatchObject({ kind: "invalid" });
   });
 });

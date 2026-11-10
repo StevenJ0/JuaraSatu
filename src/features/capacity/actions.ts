@@ -29,7 +29,7 @@ const WINDOW_OUTSIDE_DATE_ERRORS = { fulfillmentWindowEnd: ["Batas pengambilan h
 const CREATE_FAILURES: Record<Exclude<CreateCapacityResult, "created">, Pick<FormState, "fieldErrors">> = {
   duplicate: { fieldErrors: { fulfillmentDate: ["Kapasitas produk ini pada tanggal tersebut sudah ada"] } },
   product_unavailable: { fieldErrors: { productId: ["Produk tidak tersedia atau sudah nonaktif"] } },
-  cutoff_passed: { fieldErrors: { intakeCutoff: ["Batas pesan sudah lewat"] } },
+  cutoff_passed: { fieldErrors: { intakeCutoff: ["Batas melakukan pemesanan sudah lewat"] } },
   window_outside_date: { fieldErrors: WINDOW_OUTSIDE_DATE_ERRORS },
 };
 

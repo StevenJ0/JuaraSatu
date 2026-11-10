@@ -26,7 +26,7 @@ export default async function EditCapacityPage({ params }: PageProps<"/dashboard
   const committedUnits = capacity.availability.allocated + capacity.availability.effectiveHeld;
 
   return (
-    <div className="flex max-w-lg flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
       <BackLink href="/dashboard/capacity" label="Kapasitas" />
       <div>
         <h1 className="text-2xl font-bold text-ink">Ubah kapasitas</h1>

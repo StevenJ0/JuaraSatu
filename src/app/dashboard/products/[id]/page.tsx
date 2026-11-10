@@ -23,14 +23,18 @@ export default async function EditProductPage({ params }: PageProps<"/dashboard/
   if (!product) notFound();
 
   return (
-    <div className="flex max-w-lg flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
       <BackLink href="/dashboard/products" label="Produk" />
       <h1 className="text-2xl font-bold text-ink">Ubah produk</h1>
       <Card>
         <ProductForm
           action={updateProductAction}
           submitLabel="Simpan perubahan"
-          existing={{ productId: product.id, version: product.version, photoUrl: product.thumbnailUrl }}
+          existing={{
+            productId: product.id,
+            version: product.version,
+            photos: product.photos.map((photo) => ({ path: photo.path, thumbnailUrl: photo.thumbnailUrl })),
+          }}
           initialValues={{
             name: product.name,
             description: product.description ?? "",

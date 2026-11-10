@@ -11,7 +11,7 @@ export default async function BusinessProfilePage() {
   const business = await getCurrentBusinessProfile();
 
   return (
-    <div className="flex max-w-lg flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-6">
       <div>
         <h1 className="text-2xl font-bold text-ink">Profil usaha</h1>
         <p className="mt-1 text-base text-muted">

@@ -12,7 +12,7 @@ export default async function NewProductPage() {
   await requireBusinessOwner();
 
   return (
-    <div className="flex max-w-lg flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
       <BackLink href="/dashboard/products" label="Produk" />
       <h1 className="text-2xl font-bold text-ink">Tambah produk</h1>
       <Card>

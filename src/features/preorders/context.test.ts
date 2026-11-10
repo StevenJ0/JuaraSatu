@@ -20,7 +20,7 @@ const publicFacts = {
   quotaUnits: 30,
   businessName: "Toko Contoh",
   isDemo: false,
-  product: { name: "Kaos", sku: "KAOS-1", description: null, photoUrl: null, thumbnailUrl: null },
+  product: { name: "Kaos", sku: "KAOS-1", description: null, photos: [] },
   pickup: { instructions: "Ambil di toko", publicContact: null },
   version: 2,
 };
@@ -92,7 +92,7 @@ describe("toPublicPreorder", () => {
     );
     const text = JSON.stringify(result);
     for (const forbidden of ["75000", "bisnis-lain", "pembeli@example.com", "rahasia", "status"]) expect(text).not.toContain(forbidden);
-    expect(Object.keys(result.product).sort()).toEqual(["description", "name", "photoUrl", "sku", "thumbnailUrl"]);
+    expect(Object.keys(result.product).sort()).toEqual(["description", "name", "photos", "sku"]);
   });
 
   it("sisa ditampilkan saat buka dan nol saat tidak bisa dipesan", () => {

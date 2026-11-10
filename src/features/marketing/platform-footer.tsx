@@ -12,11 +12,11 @@ export function PlatformFooter() {
           <Brand />
           <p>© 2026 {site.name} · GTNIC 2026</p>
           <nav aria-label="Navigasi footer">
-            <a href="#pertanyaan-umum">Pertanyaan umum</a>
+            <a href="#cara-pakai">Cara pakai</a>
             <a href="#beranda">Kembali ke atas<Icon name="arrow-up-right" /></a>
           </nav>
         </div>
-        <p className={styles.footerStatus} id="status-produk" tabIndex={-1}>Tahap prototipe. Seluruh angka adalah data sintetis. Pemesanan, AI, pembayaran, dan email belum terhubung. Simulasi pembayaran direncanakan melalui Midtrans Sandbox, tanpa uang nyata.</p>
+        <p className={styles.footerStatus} id="status-produk" tabIndex={-1}>Angka pada halaman ini adalah contoh tampilan. Pembayaran memakai Midtrans Sandbox: simulasi, tanpa uang sungguhan.</p>
       </div>
     </footer>
   );

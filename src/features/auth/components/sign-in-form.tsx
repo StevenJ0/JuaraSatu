@@ -27,19 +27,14 @@ export function SignInForm({ notice }: { notice?: FormState }) {
           defaultValue={state.values?.email}
           errors={state.fieldErrors?.email}
         />
-        <div className="flex flex-col gap-1.5">
-          <TextField
-            name="password"
-            label="Password"
-            type="password"
-            autoComplete="current-password"
-            required
-            errors={state.fieldErrors?.password}
-          />
-          <Link href="/forgot-password" className={`self-end text-sm ${TEXT_LINK_CLASS}`}>
-            Lupa password?
-          </Link>
-        </div>
+        <TextField
+          name="password"
+          label="Password"
+          type="password"
+          autoComplete="current-password"
+          required
+          errors={state.fieldErrors?.password}
+        />
         <button type="submit" className={PRIMARY_BUTTON_CLASS} disabled={isPending}>
           {isPending ? "Memproses…" : "Masuk"}
         </button>

@@ -8,6 +8,8 @@ const ViewSchema = z.object({ campaign: CampaignRowSchema, active: BlueprintRowS
 const ChoicesSchema = z.object({ proposals: z.array(z.object({ selection: SelectionSchema, title: z.string(), eligible: z.boolean() })), currentHash: z.string().nullable() });
 export type BlueprintView = z.infer<typeof ViewSchema>;
 export type BlueprintChoice = z.infer<typeof ChoicesSchema>["proposals"][number];
+/** Stable id of one stored alternative across renders and pages. */
+export const choiceKey = (entry: BlueprintChoice) => `${entry.selection.generationId}:${entry.selection.proposalKey}`;
 export const money = (value: number | null) => value === null ? "Belum diketahui" : new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value);
 export const time = (value: string) => new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" }).format(new Date(value));
 const errorMessages: Record<string, string> = {
@@ -84,6 +86,7 @@ export function useBlueprint({ sessionId, owner, proposalCount }: { sessionId: s
   const [discountText, setDiscountText] = useState("");
   const [error, setError] = useState(""); const [notice, setNotice] = useState(""); const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false); const [scenario, setScenario] = useState<"valid" | "failure" | "invalid">("valid");
+  const [activeAction, setActiveAction] = useState<string | null>(null);
   const locked = useRef(false); const pending = useRef<{ signature: string; payload: unknown } | null>(null);
   const loadView = useCallback(async (id: string) => {
     const loaded = ViewSchema.parse(await call(`?campaignId=${encodeURIComponent(id)}`));
@@ -102,9 +105,11 @@ export function useBlueprint({ sessionId, owner, proposalCount }: { sessionId: s
     }).catch((error: unknown) => { if (active) failure(error); });
     return () => { active = false; };
   }, [sessionId, loadView, failure, call, proposalCount]);
-  async function run(work: () => Promise<void>) {
-    if (locked.current) return; locked.current = true; setBusy(true); setError(""); setNotice("");
-    try { await work(); } catch (error) { if (!keepsRequestId(error)) pending.current = null; failure(error); } finally { locked.current = false; setBusy(false); }
+  /** `action` names the running command so its button can show progress while every other button stays locked. */
+  async function run(work: () => Promise<void>, action = "other") {
+    if (locked.current) return; locked.current = true; setBusy(true); setActiveAction(action); setError(""); setNotice("");
+    try { await work(); } catch (error) { if (!keepsRequestId(error)) pending.current = null; failure(error); }
+    finally { locked.current = false; setBusy(false); setActiveAction(null); }
   }
   function stable(signature: string, make: () => unknown) {
     if (pending.current?.signature === signature) return pending.current.payload;
@@ -113,13 +118,13 @@ export function useBlueprint({ sessionId, owner, proposalCount }: { sessionId: s
   const active = view?.active; const body = active?.blueprint_json;
   const stale = !!body && (view?.currentHash === null || (view?.currentHash !== undefined && view.currentHash !== body.contextHash));
   const discountInvalid = owner && !!edits && percentToBps(discountText) === null;
-  const reload = () => run(async () => { setChoices(ChoicesSchema.parse(await call(`?sessionId=${sessionId}`))); if (view) await loadView(view.campaign.id); });
+  const reload = () => run(async () => { setChoices(ChoicesSchema.parse(await call(`?sessionId=${sessionId}`))); if (view) await loadView(view.campaign.id); }, "reload");
   const create = (entry: BlueprintChoice) => run(async () => {
     const payload = stable(JSON.stringify({ selection: entry.selection, scenario }), () => ({ action: "create", selection: entry.selection, campaignId: crypto.randomUUID(), requestId: crypto.randomUUID(), scenario }));
     const saved = ViewSchema.parse(await call("", payload)); await loadView(saved.campaign.id);
     setNotice(owner ? saved.replayed ? "Rencana yang sama sudah tersimpan sebelumnya." : "Rencana kampanye tersimpan sebagai draf. Belum disetujui dan belum diterbitkan."
       : saved.replayed ? "Draft dan blueprint tersimpan diputar ulang." : "Draft dan blueprint awal tersimpan atomik; belum approved atau published.");
-  });
+  }, `create:${choiceKey(entry)}`);
   const revise = () => run(async () => {
     if (!view || !active) return;
     if (discountInvalid) throw new Error("INVALID_DISCOUNT");
@@ -130,13 +135,13 @@ export function useBlueprint({ sessionId, owner, proposalCount }: { sessionId: s
     const saved = ViewSchema.parse(await call("", payload)); await loadView(saved.campaign.id);
     setNotice(owner ? saved.replayed ? "Revisi yang sama sudah tersimpan sebelumnya." : "Revisi tersimpan sebagai versi baru. Persetujuan versi lama tidak berlaku lagi."
       : saved.replayed ? "Revisi sebelumnya diputar ulang tanpa versi ganda." : "Versi revisi tersimpan; approval lama sudah tidak aktif.");
-  });
+  }, "revise");
   const approve = () => run(async () => {
     if (!view || !active) return;
     const saved = ViewSchema.parse(await call("", { action: "approve", campaignId: view.campaign.id, blueprintId: active.id, expectedBlueprintVersion: active.version,
       expectedCampaignVersion: view.campaign.version, confirm: true })); await loadView(saved.campaign.id);
     setNotice(owner ? "Rencana disetujui. Tugas dan caption siap di tab Terbit dan tugas. Kampanye belum diterbitkan." : "Blueprint approved dan tugas/konten termaterialisasi atomik. Campaign belum dipublikasikan.");
-  });
+  }, "approve");
   function changeDiscount(text: string) {
     setDiscountText(text); const bps = percentToBps(text);
     if (bps !== null && edits) setEdits({ ...edits, discountBps: bps, marketingApproach: bps ? "limited_discount" : "scheduled_reminder", plan: undefined });
@@ -147,7 +152,7 @@ export function useBlueprint({ sessionId, owner, proposalCount }: { sessionId: s
     setEdits({ ...edits, plan: change(edits.plan ?? BlueprintPlanSchema.strip().parse(body)) });
   }
   function setReplan(replan: boolean) { if (edits && body) setEdits({ ...edits, plan: replan ? undefined : BlueprintPlanSchema.strip().parse(body) }); }
-  return { choices, view, active, body, edits, setEdits, discountText, discountInvalid, error, notice, busy, confirm, setConfirm, scenario, setScenario, stale,
+  return { choices, view, active, body, edits, setEdits, discountText, discountInvalid, error, notice, busy, activeAction, confirm, setConfirm, scenario, setScenario, stale,
     reload, create, revise, approve, changeDiscount, editPlan, setReplan };
 }
 export type BlueprintState = ReturnType<typeof useBlueprint>;

@@ -71,6 +71,11 @@ export const BlueprintRowSchema = z.object({ id: z.uuid(), business_id: z.uuid()
   approval_status: z.enum(["proposed", "approved", "discarded"]), blueprint_json: CampaignBlueprintSchema,
   source_ai_generation_id: z.uuid(), context_hash: HashSchema, approved_by_user_id: z.uuid().nullable(), approved_at: z.string().nullable() });
 export type BlueprintRow = z.infer<typeof BlueprintRowSchema>;
-export type BlueprintProvider = { kind?: "gemini"; model?: string; generate(input: { alternative: PersistedSelection["alternative"]; edits: BlueprintEdits; now: string }): Promise<unknown> };
+/** What the captions are about: product facts and owner answers, with dates already formatted in WIB for the copy. */
+export type BlueprintProductFacts = { businessName: string; productName: string; productDescription: string | null; preorderName: string;
+  locationContext: string | null; productStrength: string | null; targetBuyer: string | null;
+  preorderClosesLabel: string; promoEndsLabel: string; pickupDateLabel: string };
+export type BlueprintProvider = { kind?: "gemini"; model?: string;
+  generate(input: { alternative: PersistedSelection["alternative"]; edits: BlueprintEdits; now: string; product?: BlueprintProductFacts }): Promise<unknown> };
 export const GeminiBlueprintResultSchema = z.strictObject({ plan: BlueprintPlanSchema, model: z.string().min(1).max(128), providerRequestId: z.string().min(1).max(256).nullable() });
 export class BlueprintError extends Error { constructor(readonly code: string, readonly status = 409) { super(code); } }

@@ -54,8 +54,14 @@ button, summary { cursor: pointer; }
 :focus-visible { outline: 3px solid var(--ui-brand); outline-offset: 5px; }
 ::selection { background: var(--ui-accent); color: var(--ui-ink); }
 .ui-container { width: min(var(--container-width), calc(100% - 64px)); margin-inline: auto; }
-.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ui-brand); font-size: 24px; font-weight: 700; letter-spacing: -.8px; text-decoration: none; white-space: nowrap; }
+/* Logo juarasatu: gambar transparan dipakai sebagai mask agar warnanya mengikuti `color`. Rasio: maskot 250:192, tulisan 465:96. */
+.brand { --brand-h: 40px; display: inline-flex; align-items: center; gap: 8px; flex: none; color: var(--ui-brand); text-decoration: none; }
+.brand-sm { --brand-h: 32px; gap: 6px; }
 .brand-inverse { color: var(--ui-on-brand); }
+.brand-mascot, .brand-wordmark { display: block; flex: none; background: currentColor; mask-repeat: no-repeat; mask-size: contain; mask-position: center; }
+.brand-mascot { height: var(--brand-h); aspect-ratio: 250 / 192; mask-image: url("/brand/mascot.png"); }
+.brand-wordmark { height: calc(var(--brand-h) * .6); aspect-ratio: 465 / 96; mask-image: url("/brand/wordmark.png"); }
+@media (forced-colors: active) { .brand-mascot, .brand-wordmark { background: CanvasText; } }
 .skip-link { position: fixed; top: 12px; left: 16px; z-index: 20; padding: 12px 20px; border-radius: var(--radius-control); background: var(--ui-brand); color: var(--ui-on-brand); transform: translateY(-160%); }
 .skip-link:focus { transform: translateY(0); outline-color: var(--ui-accent); }
 @media (max-width: 700px) { .ui-container { width: calc(100% - 40px); } html { scroll-padding-top: 96px; } }

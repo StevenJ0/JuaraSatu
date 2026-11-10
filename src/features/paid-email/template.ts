@@ -1,9 +1,11 @@
 import { formatIdr } from "@/lib/format-idr";
 import { formatDateOnly, formatWibDateTime } from "@/lib/wib-time";
+import { oneLine, renderEmailHtml, renderEmailText, type EmailContent, type EmailRow } from "@/features/paid-email/layout";
 
 /**
- * Isi email konfirmasi lunas (FR-EMAIL-01). Semua dari snapshot pesanan dan ketentuan yang dibekukan saat preorder terbit.
- * Tanpa tautan privat atau token (PRD §942): email awal cukup berisi rincian pesanan.
+ * Fakta satu pesanan untuk email, dari snapshot pesanan dan ketentuan yang dibekukan saat preorder terbit.
+ * Tautan halaman pesanan hanya disisipkan bila pengirim memegang token di memori (saat checkout atau cek status);
+ * token mentah tidak pernah disimpan di database maupun antrean email.
  */
 export type PaidEmailFacts = {
   orderId: string;
@@ -26,57 +28,109 @@ export type PaidEmailFacts = {
   pickupInstructions: string;
   publicContact: string | null;
 };
-
+/** Fakta tambahan untuk email menunggu pembayaran dan notifikasi penjual. */
+export type OrderEmailFacts = PaidEmailFacts & { customerContact: string | null; paymentDueAt: string | null };
+export type EmailLinks = { orderUrl?: string | null; logoUrl?: string | null };
 export type EmailMessage = { to: string; subject: string; text: string; html: string };
 
-const ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+const SANDBOX_NOTE = "Ini simulasi pembayaran Midtrans Sandbox untuk demo. Tidak ada uang sungguhan yang berpindah.";
+const PRIVATE_LINK_NOTE = "Tautan di email ini khusus untukmu. Jangan dibagikan, karena siapa pun yang memegangnya bisa melihat pesananmu.";
 
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => ESCAPES[character] ?? character);
+function message(to: string, subject: string, content: EmailContent): EmailMessage {
+  return { to, subject: oneLine(subject), text: renderEmailText(content), html: renderEmailHtml(content) };
 }
-
-// Teks dari pemilik atau pembeli bisa berisi baris baru. Satu baris email tidak boleh berisi pemisah header.
-function oneLine(value: string): string {
-  return value.replace(/[\r\n]+/g, " ").trim();
-}
-
-export function buildPaidEmail(facts: PaidEmailFacts): EmailMessage {
-  const rows: [string, string][] = [
+function itemRows(facts: PaidEmailFacts): EmailRow[] {
+  return [
     ["Nomor pesanan", facts.publicOrderNumber],
-    ["Usaha", facts.businessName],
-    ["Preorder", facts.preorderName],
     ["Produk", `${facts.productName} (SKU ${facts.sku})`],
     ["Jumlah", `${facts.quantity} unit`],
+  ];
+}
+function priceRows(facts: PaidEmailFacts): EmailRow[] {
+  return [
     ["Harga normal per unit", formatIdr(facts.baseUnitPriceIdr)],
     ...(facts.discountPerUnitIdr > 0
-      ? ([["Diskon per unit", formatIdr(facts.discountPerUnitIdr)], ["Harga setelah diskon", formatIdr(facts.finalUnitPriceIdr)]] satisfies [string, string][])
+      ? ([["Diskon per unit", formatIdr(facts.discountPerUnitIdr)], ["Harga setelah diskon", formatIdr(facts.finalUnitPriceIdr)]] satisfies EmailRow[])
       : []),
     ["Subtotal", formatIdr(facts.subtotalIdr)],
-    ...(facts.discountTotalIdr > 0 ? ([["Total diskon", formatIdr(facts.discountTotalIdr)]] satisfies [string, string][]) : []),
-    ["Total dibayar", formatIdr(facts.totalIdr)],
-    ["Tanggal pengambilan", formatDateOnly(facts.fulfillmentDate)],
-    ["Batas pengambilan", formatWibDateTime(facts.fulfillmentWindowEndAt)],
-    ["Petunjuk pengambilan", facts.pickupInstructions],
-    ...(facts.publicContact ? ([["Kontak usaha", facts.publicContact]] satisfies [string, string][]) : []),
+    ...(facts.discountTotalIdr > 0 ? ([["Total diskon", formatIdr(facts.discountTotalIdr)]] satisfies EmailRow[]) : []),
   ];
-  const greeting = `Halo ${oneLine(facts.customerName)},`;
-  const intro = `Pembayaran untuk pesananmu di ${oneLine(facts.businessName)} sudah terverifikasi. Usaha akan mengonfirmasi pesananmu.`;
-  const notice = "Ini simulasi pembayaran Midtrans Sandbox untuk demo. Tidak ada uang sungguhan yang berpindah.";
+}
+function pickupRows(facts: PaidEmailFacts): EmailRow[] {
+  return [
+    ["Tanggal", formatDateOnly(facts.fulfillmentDate)],
+    ["Paling lambat", formatWibDateTime(facts.fulfillmentWindowEndAt)],
+    ["Petunjuk", facts.pickupInstructions],
+    ...(facts.publicContact ? ([["Kontak usaha", facts.publicContact]] satisfies EmailRow[]) : []),
+  ];
+}
+const buyerFooter = (businessName: string) => `Email ini dikirim otomatis oleh juarasatu untuk pesananmu di ${oneLine(businessName)}.`;
 
-  const text = [greeting, "", intro, "", ...rows.map(([label, value]) => `${label}: ${value}`), "", notice].join("\n");
-  const html = `<!doctype html><html lang="id"><body style="font-family:Arial,Helvetica,sans-serif;color:#24392f;line-height:1.5">
-<p>${escapeHtml(greeting)}</p>
-<p>${escapeHtml(intro)}</p>
-<table cellpadding="6" style="border-collapse:collapse">${rows
-    .map(([label, value]) => `<tr><td style="color:#59665d;vertical-align:top">${escapeHtml(label)}</td><td style="white-space:pre-line">${escapeHtml(value)}</td></tr>`)
-    .join("")}</table>
-<p style="color:#654526;background:#fcf1e3;padding:10px;border-radius:6px">${escapeHtml(notice)}</p>
-</body></html>`;
+/** Email pertama ke pembeli: pesanan tercatat, slot ditahan, ajakan membayar lewat halaman pesanannya. */
+export function buildPendingPaymentEmail(facts: OrderEmailFacts, links: EmailLinks = {}): EmailMessage {
+  const name = oneLine(facts.customerName);
+  const due = facts.paymentDueAt ? formatWibDateTime(facts.paymentDueAt) : null;
+  return message(facts.customerEmail, `Satu langkah lagi: bayar pesanan ${facts.publicOrderNumber} di ${facts.businessName}`, {
+    preheader: due ? `Selesaikan pembayaran sebelum ${due} agar slotmu tetap aman.` : "Selesaikan pembayaran agar slotmu tetap aman.",
+    eyebrow: "Menunggu pembayaran",
+    title: `Hai ${name}, pesananmu sudah tercatat!`,
+    paragraphs: [
+      `${oneLine(facts.productName)} dari ${oneLine(facts.businessName)} sudah kami simpan untukmu.`,
+      due ? `Slotmu ditahan sampai ${due}. Lewat dari itu, slot dilepas untuk pembeli lain, jadi bayar sekarang ya.` : "Bayar sekarang agar slotmu tidak dilepas untuk pembeli lain.",
+    ],
+    rows: [...itemRows(facts), ...(due ? ([["Bayar sebelum", due]] satisfies EmailRow[]) : []), ["Tanggal ambil", formatDateOnly(facts.fulfillmentDate)]],
+    total: ["Total bayar", formatIdr(facts.totalIdr)],
+    button: links.orderUrl ? { label: "Bayar sekarang", url: links.orderUrl } : null,
+    notes: [
+      "Pembayaran memakai QRIS Midtrans Sandbox (simulasi). Jangan membayar dengan aplikasi bank atau dompet digital sungguhan.",
+      links.orderUrl ? PRIVATE_LINK_NOTE : "Buka kembali halaman pesanan dari perangkat tempat kamu memesan untuk membayar.",
+    ],
+    footer: buyerFooter(facts.businessName),
+    logoUrl: links.logoUrl ?? null,
+  });
+}
 
-  return {
-    to: facts.customerEmail,
-    subject: oneLine(`Pembayaran pesanan ${facts.publicOrderNumber} terverifikasi (simulasi Sandbox)`),
-    text,
-    html,
-  };
+/** Email kedua ke pembeli setelah pembayaran Sandbox terverifikasi (FR-EMAIL-01). */
+export function buildPaidEmail(facts: PaidEmailFacts, links: EmailLinks = {}): EmailMessage {
+  const name = oneLine(facts.customerName);
+  return message(facts.customerEmail, `Pembayaran diterima! Pesanan ${facts.publicOrderNumber} siap diproses (simulasi Sandbox)`, {
+    preheader: `Terima kasih, ${name}. Sampai jumpa ${formatDateOnly(facts.fulfillmentDate)}.`,
+    eyebrow: "Pembayaran berhasil",
+    title: `Terima kasih, ${name}! Pembayaranmu sudah kami terima`,
+    paragraphs: [
+      `${oneLine(facts.businessName)} akan menyiapkan ${oneLine(facts.productName)} untukmu. Simpan email ini sebagai bukti pesanan.`,
+    ],
+    highlight: { heading: "Ambil pesananmu", rows: pickupRows(facts) },
+    rows: [...itemRows(facts), ["Preorder", facts.preorderName], ...priceRows(facts)],
+    total: ["Total dibayar", formatIdr(facts.totalIdr)],
+    button: links.orderUrl ? { label: "Lihat status pesanan", url: links.orderUrl } : null,
+    notes: [SANDBOX_NOTE, ...(links.orderUrl ? [PRIVATE_LINK_NOTE] : [])],
+    footer: buyerFooter(facts.businessName),
+    logoUrl: links.logoUrl ?? null,
+  });
+}
+
+/** Notifikasi ke penjual saat order lunas: siapa membeli, apa, berapa, dan kapan diambil. */
+export function buildOwnerPaidOrderEmail(facts: OrderEmailFacts, ownerEmail: string, links: { dashboardUrl?: string | null; logoUrl?: string | null } = {}): EmailMessage {
+  const buyer = oneLine(facts.customerName);
+  const pickup = formatDateOnly(facts.fulfillmentDate);
+  return message(ownerEmail, `Order baru lunas: ${facts.publicOrderNumber}, ${facts.productName} x${facts.quantity}`, {
+    preheader: `${buyer} membayar ${formatIdr(facts.totalIdr)}. Siapkan pesanan untuk ${pickup}.`,
+    eyebrow: "Order masuk",
+    title: "Ada order baru yang sudah lunas",
+    paragraphs: [`${buyer} memesan ${facts.quantity} unit ${oneLine(facts.productName)} untuk diambil ${pickup}. Pembayarannya sudah terverifikasi.`],
+    rows: [
+      ...itemRows(facts),
+      ["Pembeli", facts.customerName],
+      ...(facts.customerContact ? ([["Kontak pembeli", facts.customerContact]] satisfies EmailRow[]) : []),
+      ["Email pembeli", facts.customerEmail],
+      ["Preorder", facts.preorderName],
+      ["Tanggal ambil", `${pickup}, paling lambat ${formatWibDateTime(facts.fulfillmentWindowEndAt)}`],
+    ],
+    total: ["Total diterima", formatIdr(facts.totalIdr)],
+    button: links.dashboardUrl ? { label: "Buka pesanan di dashboard", url: links.dashboardUrl } : null,
+    notes: ["Langkah berikutnya: konfirmasi pesanan, lalu tandai produksi dan siap diambil di dashboard.", SANDBOX_NOTE],
+    footer: `Notifikasi otomatis juarasatu untuk ${oneLine(facts.businessName)}.`,
+    logoUrl: links.logoUrl ?? null,
+  });
 }

@@ -18,7 +18,7 @@ export default async function NewPreorderPage() {
   const capacityOptions = await listPreorderCapacityOptions(supabase, businessId);
 
   return (
-    <div className="flex max-w-lg flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
       <BackLink href="/dashboard/preorders" label="Preorder" />
       <h1 className="text-2xl font-bold text-ink">Buat preorder</h1>
       <Card>

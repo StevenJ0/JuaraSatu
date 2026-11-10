@@ -4,9 +4,10 @@ import { BuildBusinessContextInputSchema, buildBusinessContext, type CampaignCon
 import { simulateCampaign } from "../campaign-simulator";
 import {
   DiscussionInputSchema, GeminiReplyEnvelopeSchema, StrategyAlternativeSchema, StrategyProposalSchema,
-  type DiscussionInput, type StrategyDependencies, type StrategyErrorCode, type StrategyProposal, type StrategyResult,
+  type DiscussionInput, type StrategyAlternative, type StrategyDependencies, type StrategyErrorCode, type StrategyProposal, type StrategyResult,
 } from "./contracts";
 import { buildStrategyPrompt } from "./prompt";
+import { plainText } from "@/lib/ai/plain-text";
 import { keepSafeSentences, narrativeRejection, normalizeNarrative, outcomeClaimRejection, type NarrativeFacts } from "@/lib/ai/narrative-safety";
 
 const NEUTRAL_REPLY = "Berikut alternatif promosi yang lolos pemeriksaan server. Tinjau angka di setiap alternatif sebelum memilih.";
@@ -17,6 +18,11 @@ const NEUTRAL_RISK = "Respons pembeli terhadap promosi belum dapat dipastikan.";
 const DiscountedOfferSchema = z.object({ offer: z.object({ offerType: z.literal("percent_discount") }) });
 const NEUTRAL_HYPOTHESIS = "Langkah di bawah mungkin membantu calon pembeli yang relevan mengetahui dan meninjau preorder ini. Hasilnya belum pasti.";
 
+function withPlainText(option: StrategyAlternative): StrategyAlternative {
+  return { ...option, title: plainText(option.title), hypothesis: plainText(option.hypothesis), assumptions: option.assumptions.map(plainText), risks: option.risks.map(plainText),
+    ...(option.targetAudience === undefined ? {} : { targetAudience: plainText(option.targetAudience) }),
+    ...(option.tactics === undefined ? {} : { tactics: option.tactics.map((tactic) => ({ ...tactic, action: plainText(tactic.action) })) }) };
+}
 function failure(code: StrategyErrorCode): StrategyResult {
   const message = code === "STALE_CONTEXT" ? "Fakta atau versi context telah berubah. Muat ulang dan validasi ulang secara eksplisit."
     : code === "NO_FEASIBLE_OPTIONS" ? "Preorder belum terbuka atau tidak memiliki slot yang dapat direncanakan."
@@ -68,8 +74,8 @@ function withOptions(facts: NarrativeFacts, options: StrategyProposal["options"]
     discountBps: [...(facts.discountBps ?? []), ...options.map((option) => option.offer.discountBps)] };
 }
 function safeReply(reply: string, limitations: string[], sources: string[], context: CampaignContextV1, facts: NarrativeFacts, hasOptions: boolean) {
-  return { reply: safeText(reply, sources, context, facts) ?? (hasOptions ? NEUTRAL_REPLY : NO_OPTION_REPLY),
-    limitations: limitations.flatMap((limitation) => safeText(limitation, sources, context, facts) ?? []) };
+  return { reply: safeText(plainText(reply), sources, context, facts) ?? (hasOptions ? NEUTRAL_REPLY : NO_OPTION_REPLY),
+    limitations: limitations.flatMap((limitation) => safeText(plainText(limitation), sources, context, facts) ?? []) };
 }
 /**
  * A campaign takes effect when the owner publishes it, and SQL publish_campaign rejects a future starts_at.
@@ -92,7 +98,8 @@ function validateOptions(rawOptions: unknown[], context: CampaignContextV1, pref
       rejectedOptions.push({ index, code, message: "Alternatif ditolak oleh validasi server; tidak dapat dipilih atau dipublikasikan." });
     }
     if (!parsed.success) { debug?.issues("ZOD_VALIDATION", parsed.error, raw, "REJECTED"); reject("INVALID_OPTION"); continue; }
-    const option = { ...parsed.data, ...campaignWindow(parsed.data, context) };
+    // Models sometimes write markdown; owners read these strings directly, so it is flattened before the safety checks.
+    const option = { ...withPlainText(parsed.data), ...campaignWindow(parsed.data, context) };
     if (keys.has(option.proposalKey)) { reject("INVALID_OPTION"); continue; }
     keys.add(option.proposalKey);
     if (!sourcesValid(option.sourceReferences, context)) { reject("SOURCE_MISMATCH"); continue; }

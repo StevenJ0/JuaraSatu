@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { EmailSendError, createMailpitSender, createResendSender, loadEmailSender } from "@/features/paid-email/sender.server";
-import { buildPaidEmail, type PaidEmailFacts } from "@/features/paid-email/template";
+import { buildOwnerPaidOrderEmail, buildPaidEmail, buildPendingPaymentEmail, type OrderEmailFacts, type PaidEmailFacts } from "@/features/paid-email/template";
 
 const facts: PaidEmailFacts = {
   orderId: "7d6f1b3a-0000-4000-8000-000000000001",
@@ -28,7 +28,7 @@ describe("buildPaidEmail", () => {
   it("memuat rincian wajib FR-EMAIL-01 dan label simulasi", () => {
     const email = buildPaidEmail(facts);
     expect(email.to).toBe("sari@example.com");
-    expect(email.subject).toBe("Pembayaran pesanan CL-ABCDEF1234 terverifikasi (simulasi Sandbox)");
+    expect(email.subject).toBe("Pembayaran diterima! Pesanan CL-ABCDEF1234 siap diproses (simulasi Sandbox)");
     for (const part of ["CL-ABCDEF1234", "Kaos Juara", "Kaos Hitam (SKU KJ-1)", "2 unit", "Rp120.000", "Rp12.000", "Rp108.000", "Rp24.000", "Rp216.000", "WA 0812", "simulasi pembayaran Midtrans Sandbox"]) {
       expect(email.text).toContain(part);
     }
@@ -51,13 +51,51 @@ describe("buildPaidEmail", () => {
   it("subjek dan sapaan tidak bisa disisipi baris baru", () => {
     const email = buildPaidEmail({ ...facts, customerName: "Sari\r\nBcc: lain@example.com", publicOrderNumber: "CL-1\nX" });
     expect(email.subject).not.toMatch(/[\r\n]/);
-    expect(email.text.split("\n")[0]).toBe("Halo Sari Bcc: lain@example.com,");
+    expect(email.text.split("\n")[0]).toBe("Terima kasih, Sari Bcc: lain@example.com! Pembayaranmu sudah kami terima");
   });
 
-  it("tidak membawa token atau tautan privat", () => {
+  it("tanpa token di memori tidak ada tautan pesanan; dengan token tautannya menjadi tombol", () => {
     const email = buildPaidEmail(facts);
     expect(email.html).not.toMatch(/href=|\/o\//);
     expect(email.text).not.toContain("/o/");
+    const linked = buildPaidEmail(facts, { orderUrl: "http://localhost:3001/o/tok-123", logoUrl: "http://localhost:3001/logo%20full.png" });
+    expect(linked.html).toContain('href="http://localhost:3001/o/tok-123"');
+    expect(linked.html).toContain('src="http://localhost:3001/logo%20full.png"');
+    expect(linked.text).toContain("Lihat status pesanan: http://localhost:3001/o/tok-123");
+    expect(linked.text).toContain("Jangan dibagikan");
+  });
+});
+
+const orderFacts: OrderEmailFacts = { ...facts, customerContact: "WA 0813", paymentDueAt: "2026-11-20T08:15:00.000Z" };
+
+describe("buildPendingPaymentEmail", () => {
+  it("mengajak membayar sebelum tenggat dengan tombol ke halaman pesanan", () => {
+    const email = buildPendingPaymentEmail(orderFacts, { orderUrl: "http://localhost:3001/o/tok-123" });
+    expect(email.to).toBe("sari@example.com");
+    expect(email.subject).toBe("Satu langkah lagi: bayar pesanan CL-ABCDEF1234 di Kaos Juara");
+    for (const part of ["CL-ABCDEF1234", "Kaos Hitam (SKU KJ-1)", "Rp216.000", "Bayar sebelum", "Bayar sekarang: http://localhost:3001/o/tok-123", "Midtrans Sandbox"]) {
+      expect(email.text).toContain(part);
+    }
+    expect(email.html).toContain("Menunggu pembayaran");
+    expect(email.html).not.toContain("<b>Wulandari</b>");
+  });
+
+  it("tanpa tautan memberi petunjuk membuka halaman dari perangkat yang sama", () => {
+    const email = buildPendingPaymentEmail(orderFacts);
+    expect(email.html).not.toContain("href=");
+    expect(email.text).toContain("perangkat tempat kamu memesan");
+  });
+});
+
+describe("buildOwnerPaidOrderEmail", () => {
+  it("memberi tahu penjual siapa membeli, apa, berapa, dan kapan diambil", () => {
+    const email = buildOwnerPaidOrderEmail(orderFacts, "pemilik@example.com", { dashboardUrl: "http://localhost:3001/dashboard/orders/abc" });
+    expect(email.to).toBe("pemilik@example.com");
+    expect(email.subject).toBe("Order baru lunas: CL-ABCDEF1234, Kaos Hitam x2");
+    for (const part of ["WA 0813", "sari@example.com", "Rp216.000", "Buka pesanan di dashboard: http://localhost:3001/dashboard/orders/abc"]) {
+      expect(email.text).toContain(part);
+    }
+    expect(email.html).toContain("Order masuk");
   });
 });
 
@@ -68,12 +106,12 @@ describe("pengirim email", () => {
 
   it("Resend: kunci idempotensi, otorisasi, dan id provider", async () => {
     const fetcher = vi.fn<FakeFetch>(async () => Response.json({ id: "re_123" }));
-    const sender = createResendSender("re_test_key_123", "Juara Satu <noreply@example.com>", fetcher);
+    const sender = createResendSender("re_test_key_123", "juarasatu <noreply@example.com>", fetcher);
     await expect(sender.send(message, "order-1:paid-v1")).resolves.toEqual({ providerReference: "re_123" });
     const [url, init] = fetcher.mock.calls[0];
     expect(url).toBe("https://api.resend.com/emails");
     expect(init.headers).toMatchObject({ Authorization: "Bearer re_test_key_123", "Idempotency-Key": "order-1:paid-v1" });
-    expect(JSON.parse(String(init.body))).toMatchObject({ from: "Juara Satu <noreply@example.com>", to: ["sari@example.com"], subject: message.subject });
+    expect(JSON.parse(String(init.body))).toMatchObject({ from: "juarasatu <noreply@example.com>", to: ["sari@example.com"], subject: message.subject });
   });
 
   it.each([
@@ -112,6 +150,6 @@ describe("loadEmailSender", () => {
   });
 
   it("Resend lengkap dibuat", () => {
-    expect(loadEmailSender({ EMAIL_PROVIDER: "resend", RESEND_API_KEY: "re_test_key_123", EMAIL_FROM: "Juara Satu <noreply@example.com>" })).not.toBeNull();
+    expect(loadEmailSender({ EMAIL_PROVIDER: "resend", RESEND_API_KEY: "re_test_key_123", EMAIL_FROM: "juarasatu <noreply@example.com>" })).not.toBeNull();
   });
 });

@@ -31,7 +31,8 @@ export function hasAffirmativeClaim(text: string, pattern: RegExp, allowUncertai
 const MONTHS = "januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|jan|feb|mar|apr|jun|jul|agu|agt|ags|sep|sept|okt|nov|des";
 // Calendar and schedule expressions are not sales, price or capacity claims, so they need no matching fact.
 const NEUTRAL_NUMBERS = [
-  new RegExp(`\\b[0-9]{1,2}\\s+(?:${MONTHS})\\b(?:\\s+[0-9]{4})?`, "gu"),
+  // A date may carry its time ("6 Nov 11.00", "6 Nov, pukul 20.00"): a deadline, not a quantity.
+  new RegExp(`\\b[0-9]{1,2}\\s+(?:${MONTHS})\\b(?:\\s+[0-9]{4})?(?:,?\\s+(?:pukul\\s+)?[0-9]{1,2}[.:][0-9]{2})?`, "gu"),
   // A dash needs the year so ranges such as "10-20 unit" stay numeric claims.
   /\b[0-9]{1,2}\/[0-9]{1,2}(?:\/[0-9]{2,4})?\b/gu,
   /\b[0-9]{1,2}-[0-9]{1,2}-[0-9]{2,4}\b/gu,
@@ -55,6 +56,8 @@ function numericClaim(text: string, facts: NarrativeFacts) {
     { pattern: new RegExp(`\\b(?:dari|semula|sebelumnya|normalnya|hanya)\\s+${amount}`, "gu"), values: facts.unitPriceIdr },
     { pattern: /\bpengamatan(?:\s+(?:simulasi|mencatat|menunjukkan|sebanyak))*\s+([0-9]+)\s*(?:unit|porsi|pesanan)\b/gu, values: facts.observedUnits },
     { pattern: /\b(?:kuota|kapasitas|slot|stok)(?:\s+(?:preorder|produksi|yang|tersedia|tersisa|sisa|total|maksimal|sebanyak|sebesar|adalah|dapat|bisa|dipesan))*\s+([0-9]+)\s*(?:unit|slot|porsi|pesanan)\b/gu, values: facts.capacityUnits },
+    // Urgency copy says it the other way round ("sisa 8 slot"); still only accepted when it matches real capacity.
+    { pattern: /\b(?:sisa|tersisa|tinggal)\s+([0-9]+)\s*(?:unit|slot|porsi|pesanan)\b/gu, values: facts.capacityUnits },
     { pattern: /\b(?:diskon|potongan(?:\s+harga)?|hemat)(?:\s+(?:sebesar|hingga))?\s+([0-9]+(?:[.,][0-9]{1,2})?)\s*%/gu, values: facts.discountBps?.map(bps => bps / 100) },
   ];
   let remainder = text;
@@ -116,8 +119,14 @@ export function narrativeSentences(value: string): string[] {
 
 /** Keeps only sentences the predicate accepts; returns null when nothing safe remains. */
 export function keepSafeSentences(value: string, isUnsafe: (sentence: string) => boolean): string | null {
-  const kept = narrativeSentences(value).filter(sentence => !isUnsafe(sentence));
-  return kept.length > 0 ? kept.join(" ") : null;
+  // Line by line, so captions and lists keep their line breaks; a line whose sentences are all unsafe disappears.
+  const lines = value.split("\n").flatMap((line) => {
+    if (line.trim() === "") return [""];
+    const kept = narrativeSentences(line).filter(sentence => !isUnsafe(sentence));
+    return kept.length > 0 ? [kept.join(" ")] : [];
+  });
+  const text = lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  return text === "" ? null : text;
 }
 
 export function contradictsAssessments(value: string, states: { outcome: string; financialState: string; executionState: string }) {

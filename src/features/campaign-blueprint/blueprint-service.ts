@@ -1,7 +1,7 @@
 import { z } from "zod";
-import type { BuildBusinessContextInput } from "../ai-context";
+import type { BuildBusinessContextInput, CampaignContextV1 } from "../ai-context";
 import { BlueprintError, BlueprintEditsSchema, BlueprintPlanSchema, CampaignBlueprintSchema, GeminiBlueprintResultSchema,
-  type BlueprintProvider, type CampaignBlueprint, type CampaignRow, type PersistedSelection } from "./contracts";
+  type BlueprintProductFacts, type BlueprintProvider, type CampaignBlueprint, type CampaignRow, type PersistedSelection } from "./contracts";
 import { fingerprint, sanitizeGeneratedPlan, sourceVersions, validateBlueprint, validateBlueprintOffer, validateSelectedProposal } from "./blueprint-domain";
 
 export const RevisionCommandSchema = z.strictObject({ campaignId: z.uuid(), requestId: z.uuid(),
@@ -23,6 +23,18 @@ export async function validateBlueprintPreflight(input: BlueprintInput, dependen
   if (facts.edits.plan && command.expectedBlueprintId === null) throw new BlueprintError("VERSION_CONFLICT");
   return { contextInput, now, alternative, facts };
 }
+const wibDateTime = new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
+const wibDate = new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "short", timeZone: "Asia/Jakarta" });
+/** Facts the captions talk about. Dates are formatted here so the model never converts time zones itself. */
+function productFacts(context: CampaignContextV1, selected: PersistedSelection, promoEndsAt: string): BlueprintProductFacts {
+  const intake = selected.proposal.preferences.intake;
+  const closesAt = Math.min(Date.parse(context.preorder.endsAt), Date.parse(context.preorder.intakeCutoffAt));
+  return { businessName: context.business.name, productName: context.product.name, productDescription: context.product.description ?? null,
+    preorderName: context.preorder.preorderName, locationContext: context.business.locationContext ?? null,
+    productStrength: intake?.productStrength || null, targetBuyer: intake?.targetBuyer || null,
+    preorderClosesLabel: `${wibDateTime.format(closesAt)} WIB`, promoEndsLabel: `${wibDateTime.format(Date.parse(promoEndsAt))} WIB`,
+    pickupDateLabel: wibDate.format(Date.parse(`${context.preorder.fulfillmentDate}T12:00:00+07:00`)) };
+}
 export async function generateBlueprint(input: BlueprintInput, dependencies: BlueprintDependencies): Promise<CampaignBlueprint> {
   const { command, campaign, selected } = input;
   const { contextInput, now, alternative, facts } = await validateBlueprintPreflight(input, dependencies);
@@ -35,7 +47,7 @@ export async function generateBlueprint(input: BlueprintInput, dependencies: Blu
     const output = await dependencies.provider.generate({ alternative: { ...alternative,
       marketingApproach: facts.edits.marketingApproach, offer: facts.offer,
       assumedAdditionalUnits: facts.edits.targetAdditionalUnits, assumedPromotionCostIdr: facts.edits.budgetCapIdr,
-      computedScenario: facts.calculation }, edits: facts.edits, now });
+      computedScenario: facts.calculation }, edits: facts.edits, now, product: productFacts(facts.context, selected, facts.edits.endsAt) });
     if (dependencies.provider.kind === "gemini") {
       const result = GeminiBlueprintResultSchema.parse(output);
       plan = result.plan; provenance = { model: result.model, providerRequestId: result.providerRequestId };

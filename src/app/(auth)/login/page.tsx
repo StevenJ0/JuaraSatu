@@ -14,7 +14,6 @@ const NOTICES = new Map<unknown, FormState>([
         "Link verifikasi tidak valid, sudah dipakai, atau kedaluwarsa. Coba masuk. Jika email belum terverifikasi, Anda bisa meminta link baru.",
     },
   ],
-  ["password_updated", { status: "success", message: "Password berhasil diubah. Silakan masuk dengan password baru." }],
 ]);
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {

@@ -1,36 +1,91 @@
+import type { ReactNode } from "react";
 import { Brand } from "@/components/brand";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Icon } from "@/components/ui/icon";
 import { authLinks, landingNavigation } from "@/config/site";
-import { demo, initialAvailable, initialTargetGap } from "./demo-data";
+import { AiMock, BuyerStatusMock, CapacityMock, EmailMock, OrderStepsMock, PreorderPageMock, ProductMock, ShareMock, SummaryMock } from "./landing-mocks";
+import { FeatureScroller, RevealObserver, UnifyScene, type Feature } from "./landing-scenes";
 import { MobileNavigation } from "./mobile-navigation";
-import { OfferBreakdown, PreorderPhone, ProductPreview } from "./product-preview";
-import { ResultPreview } from "./result-preview";
 import { PlatformFooter } from "./platform-footer";
 import styles from "./landing.module.css";
 
-const questions = [
+const features: Feature[] = [
   {
-    question: "Bisa buka preorder tanpa membuat promosi?",
-    answer: "Bisa. Preorder dirancang untuk berjalan sendiri. Kamu bisa menambahkan promosi pada preorder yang sama saat membutuhkannya, tanpa harus memakai AI terlebih dahulu.",
+    word: "Preorder",
+    title: "Halaman pesanan siap dibagikan",
+    description: "Susun preorder sebagai draf, periksa lagi target, kuota, dan tanggal ambilnya, lalu terbitkan. Pembeli memesan dari satu tautan tanpa perlu membuat akun.",
+    visual: <PreorderPageMock />,
   },
   {
-    question: "Satu produk berarti pembeli hanya boleh pesan satu unit?",
-    answer: "Satu produk berarti satu jenis atau SKU pada setiap preorder. Pembeli tetap bisa memesan beberapa unit, selama jumlahnya tidak melebihi kapasitas yang tersedia. Pilihan ukuran, warna, atau produk lain dalam satu pesanan belum termasuk MVP.",
+    word: "Kapasitas",
+    title: "Kuota sesuai kemampuan produksi",
+    description: "Atur berapa unit yang sanggup dibuat per tanggal ambil, lengkap dengan batas pemesanan. Pesanan baru ditolak saat kuota habis, jadi kamu tidak menjanjikan lebih dari yang bisa dibuat.",
+    visual: <CapacityMock />,
   },
   {
-    question: "Kenapa sisa target berbeda dengan kapasitas tersedia?",
-    answer: `Di contoh ini, targetnya ${demo.target} unit dan ${demo.initialPaidUnits} sudah dibayar. Sisa targetnya ${initialTargetGap} unit. Karena ${demo.initialHeldUnits} slot masih menunggu pembayaran, yang bisa dipesan pelanggan baru hanya ${initialAvailable} unit. Target adalah sasaran penjualan, bukan minimum produksi. Pesanan valid tetap dipenuhi meskipun target belum tercapai.`,
+    word: "Bayar QRIS",
+    title: "Pembayaran dicek ke Midtrans",
+    description: "Pembeli membayar lewat QRIS dari halaman status pesanannya sendiri. Status lunas diperiksa langsung ke Midtrans, bukan dari pengakuan pembeli. Saat ini memakai Midtrans Sandbox, jadi masih simulasi tanpa uang sungguhan.",
+    visual: <BuyerStatusMock />,
   },
   {
-    question: "Siapa yang mendapat harga promosi?",
-    answer: "Saat promosi aktif, semua pemesanan baru pada preorder tersebut mendapat harga promosi, termasuk pembeli tanpa tautan kampanye. Harga pesanan yang sudah dibuat sebelumnya tetap mengikuti harga saat pemesanan. Tautan kampanye membantu mencatat asal pesanan.",
+    word: "Pesanan",
+    title: "Semua pesanan di satu daftar",
+    description: "Pesanan dari halaman preorder dan pesanan yang kamu catat manual masuk ke daftar yang sama. Proses tiap pesanan dari konfirmasi, produksi, siap, sampai diambil.",
+    visual: <OrderStepsMock />,
   },
   {
-    question: "Apakah sudah bisa dipakai untuk menerima pesanan?",
-    answer: "Belum. Halaman ini adalah pratinjau produk dengan data contoh, bukan layanan transaksi yang sudah aktif. Pemesanan, AI, pembayaran, dan email belum terhubung. Simulasi pembayaran direncanakan memakai Midtrans Sandbox, tanpa uang nyata.",
+    word: "Campaign AI",
+    title: "Strategi saat target belum tercapai",
+    description: "Jawab pertanyaan awal sekali, lalu AI mengusulkan strategi satu per satu. Usulan yang kamu pilih menjadi rencana kampanye lengkap dengan checklist harian dan caption. Angkanya dihitung sistem, keputusannya tetap di tanganmu.",
+    visual: <AiMock />,
+  },
+  {
+    word: "Hasil",
+    title: "Lihat hasilnya dari angka sungguhan",
+    description: "Ringkasan menampilkan progres target, pesanan yang perlu ditangani, dan unit yang harus diproduksi. Hasil kampanye dihitung dari pembayaran yang sudah terverifikasi.",
+    visual: <SummaryMock />,
   },
 ];
+
+type FlowStep = { title: string; points: string[]; visual: ReactNode };
+
+const flowSteps: FlowStep[] = [
+  { title: "Siapkan usaha dan produk", points: ["Isi profil usaha dan ketentuan pengambilan", "Tambah produk, harga jual, modal, dan sampai 5 foto"], visual: <ProductMock /> },
+  { title: "Atur kapasitas produksi", points: ["Tentukan berapa unit yang sanggup dibuat per tanggal", "Atur batas pemesanan dan jam terakhir pengambilan"], visual: <CapacityMock /> },
+  {
+    title: "Simpan draf, terbitkan, bagikan",
+    points: ["Pilih produk dan jadwal, isi target dan kuota, simpan sebagai draf", "Terbitkan, lalu bagikan tautannya ke WhatsApp, Instagram, atau grup pelanggan"],
+    visual: <ShareMock />,
+  },
+  {
+    title: "Pembeli memesan dan membayar QRIS",
+    points: ["Pembeli mengisi jumlah dan kontak tanpa membuat akun", "Email menunggu pembayaran dan pembayaran berhasil terkirim otomatis, beserta tautan status pesanan"],
+    visual: <EmailMock />,
+  },
+  {
+    title: "Target belum tercapai? Minta strategi AI",
+    points: ["Jawab pertanyaan awal sekali, jawabanmu diingat", "Pilih usulan, jadikan rencana, lalu jalankan checklist dan caption-nya"],
+    visual: <AiMock />,
+  },
+  {
+    title: "Proses pesanan dan lihat hasilnya",
+    points: ["Konfirmasi, produksi, tandai siap, sampai pesanan diambil", "Catat pesanan dari luar aplikasi secara manual", "Pantau progres target dan hasil kampanye"],
+    visual: <OrderStepsMock />,
+  },
+];
+
+/** Panah lengkung bergaya coretan tangan antarlangkah. `flip` membalik arah agar mengikuti susunan zig-zag. */
+function FlowArrow({ flip }: { flip: boolean }) {
+  return (
+    <div className={styles.flowArrow} data-flip={flip} data-reveal aria-hidden="true">
+      <svg viewBox="0 0 520 170" fill="none">
+        <path className={styles.arrowLine} pathLength={1} d="M70 6c-14 46 6 92 70 104 78 15 170-36 250-6 46 17 68 38 72 58" />
+        <path className={styles.arrowHead} pathLength={1} d="M440 128l22 34 12-40" />
+      </svg>
+    </div>
+  );
+}
 
 export function LandingPage() {
   return (
@@ -53,87 +108,66 @@ export function LandingPage() {
       <main id="konten-utama" tabIndex={-1}>
         <section className={styles.hero} aria-labelledby="hero-title">
           <div className={`ui-container ${styles.heroCopy}`}>
-            <p className={styles.eyebrow}>Juara Satu untuk usaha preorder</p>
-            <h1 id="hero-title">Kelola preorder dan promosi <span>sesuai kapasitas usahamu.</span></h1>
-            <p className={styles.heroDescription}>Bagikan halaman pesanan ke pelanggan. Rencanakan penawaran dengan melihat sisa kuota dan biaya produk.</p>
-            <ButtonLink className={styles.primaryAction} href={authLinks.signUp.href}>Daftar sekarang<Icon name="arrow-right" /></ButtonLink>
-            <a className={styles.heroExampleLink} href="#contoh-penggunaan">Lihat contoh preorder</a>
-            <p className={styles.previewNotice}>Pratinjau produk · data contoh · belum menerima transaksi</p>
-          </div>
-          <ProductPreview />
-        </section>
-
-        <section className={styles.offerSection} id="cara-kerja" tabIndex={-1} aria-labelledby="offer-title">
-          <div className={styles.chapterPanel}>
-            <div className={`ui-container ${styles.chapterLayout}`}>
-              <div className={styles.chapterCopy}>
-                <p className={styles.chapterLabel}>02 / Sebelum membagikan promosi</p>
-                <h2 id="offer-title">Hitung penawaran sebelum dibagikan.</h2>
-                <p>Dua reservasi yang belum dibayar dilepas. Kini ada ruang untuk menerima {demo.campaignTargetUnits} unit lagi. Pemilik usaha ingin meninjau diskon, sambil melihat biaya per produknya.</p>
-                <div className={styles.ownerNote}>
-                  <strong>AI menyiapkan pilihan. Kamu meninjau rencananya.</strong>
-                  <p>Ide promosi dan draf caption bisa dibantu AI. Harga, biaya, dan kapasitas tetap menjadi dasar pertimbanganmu.</p>
-                </div>
-                <ol className={styles.approvalSteps} id="persetujuan-promosi" tabIndex={-1} aria-label="Langkah persetujuan kampanye">
-                  <li>Pilih ide</li><li>Setujui rencana</li><li>Terbitkan</li>
-                </ol>
-                <p className={styles.approvalNote}>Memilih ide belum menerbitkan promosi.</p>
-              </div>
-              <OfferBreakdown />
+            <p className={styles.eyebrow}>Platform preorder untuk UMKM makanan</p>
+            <h1 id="hero-title">Jalankan preorder dari pesanan pertama <span>sampai pesanan diambil.</span></h1>
+            <p className={styles.heroDescription}>
+              juarasatu membantu kamu mengatur kapasitas produksi, membagikan halaman pesanan, menerima pembayaran QRIS, dan
+              mendapat strategi promosi dari AI saat target belum tercapai.
+            </p>
+            <div className={styles.heroActions}>
+              <ButtonLink className={styles.primaryAction} href={authLinks.signUp.href}>Daftar sekarang<Icon name="arrow-right" /></ButtonLink>
+              <ButtonLink className={styles.secondaryAction} variant="secondary" href="#cara-pakai">Lihat cara pakai</ButtonLink>
             </div>
+            <p className={styles.previewNotice}>Pembayaran memakai Midtrans Sandbox: simulasi, tanpa uang sungguhan.</p>
+          </div>
+          <div className={`ui-container ${styles.heroVisual}`}>
+            <SummaryMock />
+            <p className={styles.visualCaption}>Contoh tampilan Ringkasan dengan data contoh.</p>
           </div>
         </section>
 
-        <section className={styles.resultSection} id="contoh-hasil" tabIndex={-1} aria-labelledby="result-title">
-          <div className={`ui-container ${styles.resultIntro}`}>
-            <div><p className={styles.chapterLabel}>03 / Setelah promosi berjalan</p><h2 id="result-title">Pisahkan hasil preorder dan hasil promosi.</h2></div>
-            <p>Pesanan selama promosi masuk ke laporan preorder yang sama. Lihat gambaran keseluruhannya, lalu buka rincian untuk memahami biaya dan asal pesanannya.</p>
-          </div>
-          <ResultPreview />
-        </section>
+        <UnifyScene />
 
-        <section className={styles.benefitSection} id="manfaat" tabIndex={-1} aria-labelledby="benefit-title">
+        <FeatureScroller features={features} />
+
+        <section className={styles.flow} id="cara-pakai" aria-labelledby="flow-title">
           <div className="ui-container">
-            <div className={styles.benefitIntro}><p className={styles.eyebrow}>Dirancang untuk operasional usaha</p><h2 id="benefit-title">Dari pelanggan memesan sampai produk diserahkan.</h2></div>
-            <dl className={styles.benefits}>
-              <div><dt>Satu produk, beberapa unit</dt><dd>Pelanggan memilih jumlah yang dibutuhkan pada satu preorder, tanpa membuat akun.</dd></div>
-              <div><dt>Pembayaran dan pengambilan</dt><dd>Pesanan yang sudah dibayar tetap punya proses konfirmasi, produksi, dan penyerahan sendiri.</dd></div>
-              <div><dt>Promosi saat dibutuhkan</dt><dd>Preorder bisa berjalan tanpa kampanye. Tambahkan rencana promosi ketika ada kebutuhan.</dd></div>
-            </dl>
-          </div>
-        </section>
-
-        <section className={styles.faqSection} id="pertanyaan-umum" tabIndex={-1} aria-labelledby="faq-title">
-          <div className={`ui-container ${styles.faqInner}`}>
-            <div><p className={styles.eyebrow}>Sebelum mulai</p><h2 id="faq-title">Yang mungkin ingin kamu tanyakan.</h2><p className={styles.faqLead}>Tentang jumlah pesanan, target, dan cara promosi bekerja.</p></div>
-            <div className={styles.faqList}>
-              {questions.map((item) => (
-                <details className={styles.faqItem} key={item.question}>
-                  <summary>{item.question}<span className={styles.disclosureGlyph} aria-hidden="true" /></summary>
-                  <p>{item.answer}</p>
-                </details>
-              ))}
+            <div className={styles.flowIntro}>
+              <p className={styles.eyebrow}>Cara pakai</p>
+              <h2 id="flow-title">Enam langkah dari dasbor sampai pesanan diambil.</h2>
             </div>
+            <ol className={styles.flowList}>
+              {flowSteps.map((step, index) => (
+                <li key={step.title} className={styles.flowItem}>
+                  <div className={styles.flowStep} data-side={index % 2 === 0 ? "start" : "end"} data-reveal>
+                    <div className={styles.flowCopy}>
+                      <span className={styles.stepTag}>Langkah {index + 1}</span>
+                      <h3>{step.title}</h3>
+                      <ul>{step.points.map((point) => <li key={point}>{point}</li>)}</ul>
+                    </div>
+                    <div className={styles.flowVisual}>{step.visual}</div>
+                  </div>
+                  {index < flowSteps.length - 1 && <FlowArrow flip={index % 2 === 1} />}
+                </li>
+              ))}
+            </ol>
           </div>
         </section>
 
         <section className={styles.closing} aria-labelledby="closing-title">
           <div className={`ui-container ${styles.closingInner}`}>
-            <div className={styles.closingCopy}>
-              <h2 id="closing-title">Mulai dari preorder yang bisa kamu penuhi.</h2>
-              <div className={styles.closingActions}>
-                <ButtonLink className={styles.inverseAction} variant="inverse" href={authLinks.signUp.href}>Daftar sekarang</ButtonLink>
-                <ButtonLink className={styles.closingSecondary} variant="secondary" href="#cara-kerja">Cara kerja</ButtonLink>
-              </div>
-            </div>
-            <div className={styles.closingVisual} aria-hidden="true">
-              <PreorderPhone titleId="closing-preorder-title" />
+            <h2 id="closing-title">Siap membuka preorder pertamamu?</h2>
+            <p>Daftar, siapkan produk, lalu bagikan tautan pesananmu hari ini.</p>
+            <div className={styles.closingActions}>
+              <ButtonLink className={styles.inverseAction} variant="inverse" href={authLinks.signUp.href}>Daftar sekarang</ButtonLink>
+              <ButtonLink className={styles.closingSecondary} variant="secondary" href={authLinks.signIn.href}>Masuk</ButtonLink>
             </div>
           </div>
         </section>
       </main>
 
       <PlatformFooter />
+      <RevealObserver />
     </div>
   );
 }

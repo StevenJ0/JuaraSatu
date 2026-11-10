@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { emailRequestSchema, newPasswordSchema, signInSchema, signUpSchema } from "@/features/auth/schemas";
+import { emailRequestSchema, signInSchema, signUpSchema } from "@/features/auth/schemas";
 import { toAuthErrorMessage } from "@/features/auth/errors";
 
 describe("signUpSchema", () => {
@@ -38,27 +38,10 @@ describe("emailRequestSchema", () => {
   });
 });
 
-describe("newPasswordSchema", () => {
-  it("menerima password baru yang sama dengan konfirmasinya", () => {
-    expect(newPasswordSchema.safeParse({ password: "rahasia123", confirmPassword: "rahasia123" }).success).toBe(true);
-  });
-
-  it("menolak password pendek", () => {
-    const result = newPasswordSchema.safeParse({ password: "pendek", confirmPassword: "pendek" });
-    expect(result.error?.issues[0]?.path).toEqual(["password"]);
-  });
-
-  it("menolak konfirmasi yang tidak sama", () => {
-    const result = newPasswordSchema.safeParse({ password: "rahasia123", confirmPassword: "rahasia124" });
-    expect(result.error?.issues[0]?.path).toEqual(["confirmPassword"]);
-  });
-});
-
 describe("toAuthErrorMessage", () => {
   it("memetakan kode yang dikenal", () => {
     expect(toAuthErrorMessage("invalid_credentials")).toBe("Email atau password salah.");
     expect(toAuthErrorMessage("email_not_confirmed")).toMatch(/belum diverifikasi/);
-    expect(toAuthErrorMessage("same_password")).toMatch(/berbeda/);
   });
 
   it("memakai pesan umum untuk kode tak dikenal tanpa meneruskan pesan provider", () => {

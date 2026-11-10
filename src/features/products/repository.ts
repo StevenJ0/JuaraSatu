@@ -34,6 +34,7 @@ const productRowSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
   photo_path: z.string().nullable(),
+  gallery_photo_paths: z.array(z.string()),
   base_price_idr: z.number(),
   variable_cost_idr: z.number().nullable(),
   cost_quality: z.enum(COST_QUALITIES),
@@ -42,7 +43,7 @@ const productRowSchema = z.object({
 });
 
 const PRODUCT_COLUMNS =
-  "id, name, description, photo_path, base_price_idr, variable_cost_idr, cost_quality, is_active, version";
+  "id, name, description, photo_path, gallery_photo_paths, base_price_idr, variable_cost_idr, cost_quality, is_active, version";
 
 export type Product = {
   id: string;
@@ -52,6 +53,8 @@ export type Product = {
   photoUrl: string | null;
   /** Versi kecil untuk daftar; foto lama yang belum punya versi kecil memakai foto utamanya. */
   thumbnailUrl: string | null;
+  /** Semua foto berurutan, foto utama lebih dulu (maksimal 5). */
+  photos: ProductPhoto[];
   basePriceIdr: number;
   variableCostIdr: number | null;
   costQuality: CostQuality;
@@ -59,7 +62,15 @@ export type Product = {
   version: number;
 };
 
-export function productPhotoUrls(client: SupabaseClient, photoPath: string | null): { photoUrl: string | null; thumbnailUrl: string | null } {
+export type ProductPhoto = { path: string; url: string; thumbnailUrl: string };
+
+/** Foto utama lalu foto galeri, masing-masing dengan URL publik dan versi kecilnya. */
+export function productPhotoList(client: SupabaseClient, photoPath: string | null, galleryPaths: readonly string[]): ProductPhoto[] {
+  const publicUrl = (path: string) => client.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
+  return (photoPath ? [photoPath, ...galleryPaths] : []).map((path) => ({ path, url: publicUrl(path), thumbnailUrl: publicUrl(thumbnailPathOf(path) ?? path) }));
+}
+
+function productPhotoUrls(client: SupabaseClient, photoPath: string | null): { photoUrl: string | null; thumbnailUrl: string | null } {
   if (!photoPath) return { photoUrl: null, thumbnailUrl: null };
   const publicUrl = (path: string) => client.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
   return { photoUrl: publicUrl(photoPath), thumbnailUrl: publicUrl(thumbnailPathOf(photoPath) ?? photoPath) };
@@ -72,6 +83,7 @@ function toProduct(client: SupabaseClient, row: z.infer<typeof productRowSchema>
     description: row.description,
     photoPath: row.photo_path,
     ...productPhotoUrls(client, row.photo_path),
+    photos: productPhotoList(client, row.photo_path, row.gallery_photo_paths),
     basePriceIdr: row.base_price_idr,
     variableCostIdr: row.variable_cost_idr,
     costQuality: row.cost_quality,
@@ -80,11 +92,13 @@ function toProduct(client: SupabaseClient, row: z.infer<typeof productRowSchema>
   };
 }
 
-function toProductColumns(input: ProductInput, photoPath: string | null) {
+/** Foto pertama menjadi foto utama (photo_path), sisanya galeri berurutan (gallery_photo_paths). */
+function toProductColumns(input: ProductInput, photoPaths: readonly string[]) {
   return {
     name: input.name,
     description: input.description,
-    photo_path: photoPath,
+    photo_path: photoPaths[0] ?? null,
+    gallery_photo_paths: photoPaths.slice(1),
     base_price_idr: input.basePriceIdr,
     variable_cost_idr: input.variableCostIdr,
     cost_quality: input.costQuality,
@@ -135,9 +149,9 @@ export async function insertProduct(
   businessId: string,
   input: ProductInput,
   sku: string,
-  photoPath: string | null,
+  photoPaths: readonly string[],
 ): Promise<void> {
-  const { error } = await client.from("products").insert({ business_id: businessId, sku, ...toProductColumns(input, photoPath) });
+  const { error } = await client.from("products").insert({ business_id: businessId, sku, ...toProductColumns(input, photoPaths) });
   if (error) fail("insertProduct", error);
 }
 
@@ -148,9 +162,9 @@ export async function updateProduct(
   productId: string,
   expectedVersion: number,
   input: ProductInput,
-  photoPath: string | null,
+  photoPaths: readonly string[],
 ): Promise<boolean> {
-  return applyVersionedUpdate(client, "updateProduct", businessId, productId, expectedVersion, toProductColumns(input, photoPath));
+  return applyVersionedUpdate(client, "updateProduct", businessId, productId, expectedVersion, toProductColumns(input, photoPaths));
 }
 
 export async function setProductActive(
@@ -169,7 +183,7 @@ async function applyVersionedUpdate(
   businessId: string,
   productId: string,
   expectedVersion: number,
-  columns: Record<string, string | number | boolean | null>,
+  columns: Record<string, string | number | boolean | null | readonly string[]>,
 ): Promise<boolean> {
   const { data, error } = await client
     .from("products")

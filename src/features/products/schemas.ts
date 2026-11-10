@@ -35,7 +35,7 @@ export const productSchema = z
       .max(DESCRIPTION_MAX, `Maksimal ${DESCRIPTION_MAX} karakter`)
       .transform((value) => (value === "" ? null : value)),
     basePrice: z.string().trim(),
-    costQuality: z.enum(COST_QUALITIES, { error: "Pilih status biaya" }),
+    costQuality: z.enum(COST_QUALITIES, { error: "Pilih status modal" }),
     variableCost: z.string().trim(),
   })
   .transform(({ basePrice, variableCost, ...fields }, context) => {
@@ -50,13 +50,13 @@ export const productSchema = z
         context.addIssue({
           code: "custom",
           path: ["variableCost"],
-          message: "Kosongkan biaya bila statusnya belum diketahui",
+          message: "Kosongkan modal bila statusnya belum diketahui",
         });
       }
     } else {
       variableCostIdr = parseIdr(variableCost);
       if (variableCostIdr === null) {
-        context.addIssue({ code: "custom", path: ["variableCost"], message: "Isi biaya dalam rupiah, boleh 0" });
+        context.addIssue({ code: "custom", path: ["variableCost"], message: "Isi modal dalam rupiah, boleh 0" });
       }
     }
 

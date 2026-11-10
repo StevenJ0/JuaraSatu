@@ -73,3 +73,23 @@ export async function readPhotoUploads(values: FormDataEntryValue[], limit: numb
   }
   return { kind: "ok", photos };
 }
+
+/** Pilihan foto utama dari form: foto lama ditunjuk lewat path-nya, foto baru lewat urutannya di input `photo`. */
+export type PrimaryPhoto = { kind: "keep"; path: string } | { kind: "new"; index: number };
+const KEEP_PREFIX = "keep:";
+const NEW_PATTERN = /^new:(\d{1,2})$/;
+
+/** Nilai `primaryPhoto` dari form. Kosong atau tidak dikenal berarti tidak memilih, sehingga foto pertama tetap utama. */
+export function readPrimaryPhoto(value: FormDataEntryValue | null): PrimaryPhoto | null {
+  if (typeof value !== "string") return null;
+  const newPhoto = NEW_PATTERN.exec(value);
+  if (newPhoto) return { kind: "new", index: Number(newPhoto[1]) };
+  if (value.startsWith(KEEP_PREFIX) && value.length > KEEP_PREFIX.length) return { kind: "keep", path: value.slice(KEEP_PREFIX.length) };
+  return null;
+}
+
+/** Memindah satu item ke depan tanpa mengubah urutan item lain; null bila indeks di luar daftar. */
+export function moveToFront<T>(items: readonly T[], index: number): T[] | null {
+  if (!Number.isInteger(index) || index < 0 || index >= items.length) return null;
+  return [items[index], ...items.slice(0, index), ...items.slice(index + 1)];
+}

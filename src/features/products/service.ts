@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ProductPhotoFiles } from "@/features/products/photo-processing";
-import { MAX_PRODUCT_PHOTOS } from "@/features/products/photo";
+import { MAX_PRODUCT_PHOTOS, moveToFront, type PrimaryPhoto } from "@/features/products/photo";
 import type { ProductInput } from "@/features/products/schemas";
 import {
   ProductRepositoryError,
@@ -17,9 +17,10 @@ const MAX_SKU_ATTEMPTS = 3;
 
 /**
  * Perubahan foto saat edit: `keep` adalah foto lama yang dipertahankan (berurutan), `add` foto baru yang ditambahkan di belakang.
- * Hasil akhirnya 1 sampai 5 foto; foto pertama menjadi foto utama.
+ * `primary` memindah foto pilihan pemilik ke depan sebagai foto utama; tanpa pilihan, foto pertama yang menjadi utama.
+ * Hasil akhirnya 1 sampai 5 foto.
  */
-export type PhotoChange = { keep: string[]; add: ProductPhotoFiles[] };
+export type PhotoChange = { keep: string[]; add: ProductPhotoFiles[]; primary?: PrimaryPhoto | null };
 export type UpdateProductResult = "updated" | "conflict" | "not_found" | "invalid_photos";
 
 /** File yang tertinggal hanya memakan ruang, sedangkan data produk sudah benar, jadi kegagalan di sini tidak menggagalkan proses. */
@@ -79,6 +80,16 @@ async function insertWithGeneratedSku(
   }
 }
 
+/** Posisi foto utama di `[...keep, ...add]`; null bila menunjuk foto yang tidak ada di perubahan ini. */
+function primaryIndexOf(primary: PrimaryPhoto | null, keep: readonly string[], addedCount: number): number | null {
+  if (!primary) return 0;
+  if (primary.kind === "keep") {
+    const index = keep.indexOf(primary.path);
+    return index === -1 ? null : index;
+  }
+  return primary.index < addedCount ? keep.length + primary.index : null;
+}
+
 /**
  * Foto baru diunggah sebelum baris diubah; foto lama baru dihapus setelah baris tidak lagi menunjuknya.
  * `keep` hanya boleh berisi foto milik produk ini, agar path produk atau usaha lain tidak bisa diselipkan lewat form.
@@ -99,9 +110,12 @@ export async function updateProductWithPhotos(
   const keep = [...new Set(photoChange.keep)];
   const total = keep.length + photoChange.add.length;
   if (keep.some((path) => !currentPaths.includes(path)) || total < 1 || total > MAX_PRODUCT_PHOTOS) return "invalid_photos";
+  const primaryIndex = primaryIndexOf(photoChange.primary ?? null, keep, photoChange.add.length);
+  if (primaryIndex === null) return "invalid_photos";
 
   const uploaded = await uploadPhotos(client, businessId, photoChange.add);
-  const nextPaths = [...keep, ...uploaded];
+  const ordered = [...keep, ...uploaded];
+  const nextPaths = moveToFront(ordered, primaryIndex) ?? ordered;
 
   let updated: boolean;
   try {

@@ -3,8 +3,10 @@ import {
   MAX_PHOTO_BYTES,
   detectPhotoType,
   fullPhotoPath,
+  moveToFront,
   readPhotoUpload,
   readPhotoUploads,
+  readPrimaryPhoto,
   thumbnailPathOf,
 } from "@/features/products/photo";
 
@@ -84,5 +86,30 @@ describe("readPhotoUploads", () => {
   it("satu file tidak valid membatalkan semuanya", async () => {
     const html = new File(["<html>"], "c.jpg", { type: "image/jpeg" });
     await expect(readPhotoUploads([png("a.png"), html])).resolves.toMatchObject({ kind: "invalid" });
+  });
+});
+
+describe("readPrimaryPhoto", () => {
+  it("membaca foto lama lewat path dan foto baru lewat urutan", () => {
+    expect(readPrimaryPhoto("keep:bisnis/foto-full.webp")).toEqual({ kind: "keep", path: "bisnis/foto-full.webp" });
+    expect(readPrimaryPhoto("new:2")).toEqual({ kind: "new", index: 2 });
+  });
+
+  it("nilai kosong atau tidak dikenal berarti tidak memilih", () => {
+    for (const value of [null, "", "keep:", "new:", "new:-1", "new:abc", "lain"]) expect(readPrimaryPhoto(value)).toBeNull();
+    expect(readPrimaryPhoto(new File(["x"], "x.txt"))).toBeNull();
+  });
+});
+
+describe("moveToFront", () => {
+  it("memindah item ke depan tanpa mengubah urutan lainnya", () => {
+    expect(moveToFront(["a", "b", "c", "d"], 2)).toEqual(["c", "a", "b", "d"]);
+    expect(moveToFront(["a", "b"], 0)).toEqual(["a", "b"]);
+  });
+
+  it("indeks di luar daftar menghasilkan null", () => {
+    expect(moveToFront(["a"], 1)).toBeNull();
+    expect(moveToFront(["a"], -1)).toBeNull();
+    expect(moveToFront([], 0)).toBeNull();
   });
 });

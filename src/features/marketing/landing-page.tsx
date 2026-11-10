@@ -4,8 +4,9 @@ import { ButtonLink } from "@/components/ui/button-link";
 import { Icon } from "@/components/ui/icon";
 import { authLinks, landingNavigation } from "@/config/site";
 import { AiMock, BuyerStatusMock, CapacityMock, EmailMock, OrderStepsMock, PreorderPageMock, ProductMock, ShareMock, SummaryMock } from "./landing-mocks";
-import { FeatureScroller, RevealObserver, UnifyScene, type Feature } from "./landing-scenes";
+import { FeatureScroller, ScrollDrawEffects, UnifyScene, type Feature } from "./landing-scenes";
 import { MobileNavigation } from "./mobile-navigation";
+import { RotatingPhrase } from "./rotating-phrase";
 import { PlatformFooter } from "./platform-footer";
 import styles from "./landing.module.css";
 
@@ -48,6 +49,15 @@ const features: Feature[] = [
   },
 ];
 
+/** Akhir kalimat judul yang berganti; semuanya hal yang memang dicatat aplikasi. Yang pertama juga dibaca pembaca layar. */
+const heroEndings = [
+  "sampai pesanan diambil.",
+  "hingga pembayaran lunas.",
+  "sampai kuota terpenuhi.",
+  "hingga target tercapai.",
+  "sampai produksi selesai.",
+] as const;
+
 type FlowStep = { title: string; points: string[]; visual: ReactNode };
 
 const flowSteps: FlowStep[] = [
@@ -75,13 +85,16 @@ const flowSteps: FlowStep[] = [
   },
 ];
 
-/** Panah lengkung bergaya coretan tangan antarlangkah. `flip` membalik arah agar mengikuti susunan zig-zag. */
+/**
+ * Panah coretan tangan antarlangkah: turun dari atas, melengkung panjang, lalu menukik ke langkah berikutnya dengan kepala
+ * panah berlekuk. Tergambar mengikuti gulir (--v dari ScrollDrawEffects). `flip` membalik arah sesuai susunan zig-zag.
+ */
 function FlowArrow({ flip }: { flip: boolean }) {
   return (
-    <div className={styles.flowArrow} data-flip={flip} data-reveal aria-hidden="true">
-      <svg viewBox="0 0 520 170" fill="none">
-        <path className={styles.arrowLine} pathLength={1} d="M70 6c-14 46 6 92 70 104 78 15 170-36 250-6 46 17 68 38 72 58" />
-        <path className={styles.arrowHead} pathLength={1} d="M440 128l22 34 12-40" />
+    <div className={styles.flowArrow} data-flip={flip} data-scroll-draw="arrow" aria-hidden="true">
+      <svg viewBox="0 0 520 230" fill="none">
+        <path className={styles.arrowLine} pathLength={1} d="M74 2C72 40 76 78 124 92C168 105 220 88 274 86C330 84 380 98 410 140C428 165 440 190 450 214" />
+        <path className={styles.arrowHead} pathLength={1} d="M462 168C454 186 450 200 450 214C434 208 414 200 402 192C408 194 424 204 448 213" />
       </svg>
     </div>
   );
@@ -108,8 +121,11 @@ export function LandingPage() {
       <main id="konten-utama" tabIndex={-1}>
         <section className={styles.hero} aria-labelledby="hero-title">
           <div className={`ui-container ${styles.heroCopy}`}>
-            <p className={styles.eyebrow}>Platform preorder untuk UMKM makanan</p>
-            <h1 id="hero-title">Jalankan preorder dari pesanan pertama <span>sampai pesanan diambil.</span></h1>
+            <p className={styles.eyebrow}>Platform preorder untuk UMKM</p>
+            <h1 id="hero-title">
+              Jalankan preorder dari pesanan pertama <span className="sr-only">{heroEndings[0]}</span>
+              <RotatingPhrase phrases={heroEndings} />
+            </h1>
             <p className={styles.heroDescription}>
               juarasatu membantu kamu mengatur kapasitas produksi, membagikan halaman pesanan, menerima pembayaran QRIS, dan
               mendapat strategi promosi dari AI saat target belum tercapai.
@@ -120,7 +136,7 @@ export function LandingPage() {
             </div>
             <p className={styles.previewNotice}>Pembayaran memakai Midtrans Sandbox: simulasi, tanpa uang sungguhan.</p>
           </div>
-          <div className={`ui-container ${styles.heroVisual}`}>
+          <div className={`ui-container ${styles.heroVisual}`} data-scroll-draw="card">
             <SummaryMock />
             <p className={styles.visualCaption}>Contoh tampilan Ringkasan dengan data contoh.</p>
           </div>
@@ -139,7 +155,7 @@ export function LandingPage() {
             <ol className={styles.flowList}>
               {flowSteps.map((step, index) => (
                 <li key={step.title} className={styles.flowItem}>
-                  <div className={styles.flowStep} data-side={index % 2 === 0 ? "start" : "end"} data-reveal>
+                  <div className={styles.flowStep} data-side={index % 2 === 0 ? "start" : "end"} data-scroll-draw="step">
                     <div className={styles.flowCopy}>
                       <span className={styles.stepTag}>Langkah {index + 1}</span>
                       <h3>{step.title}</h3>
@@ -167,7 +183,7 @@ export function LandingPage() {
       </main>
 
       <PlatformFooter />
-      <RevealObserver />
+      <ScrollDrawEffects />
     </div>
   );
 }

@@ -1,9 +1,0 @@
-{
-  "version": "1",
-  "name": "Campaign Lab local Slices 1–8B",
-  "type": "collection",
-  "ignore": [
-    "node_modules",
-    ".git"
-  ]
-}

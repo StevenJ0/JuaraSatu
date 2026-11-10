@@ -1,7 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { readFileSync } from "node:fs";
-import { createContext, Script } from "node:vm";
 
 const { create } = vi.hoisted(() => ({ create: vi.fn<(request: unknown, options: unknown) => Promise<unknown>>() }));
 vi.mock("server-only", () => ({}));
@@ -24,19 +22,6 @@ const completed = (value: unknown) => ({ id: "mock-real-transport-id", status: "
 beforeEach(() => { create.mockReset(); });
 
 describe("explicit development Gemini wiring (SDK mocked; no paid calls)", () => {
-  it("requires a separate paid opt-in for Bruno real generation, while preserving Fake and read-only modes", () => {
-    const source = readFileSync("bruno/campaign-lab/collection.bru", "utf8").match(/script:pre-request \{([\s\S]*?)\n\}/)?.[1];
-    expect(source).toBeDefined();
-    const run = (values: Record<string, string>, method = "POST") => new Script(source ?? "").runInContext(createContext({
-      bru: { interpolate: (value: string) => value, getVar: (key: string) => values[key] },
-      req: { getUrl: () => "http://localhost:3100/api/dev/discussions", getMethod: () => method, getBody: () => ({ action: "send" }) },
-    }));
-    expect(() => run({ confirmRealGemini: "true" })).toThrow(/allowPaidRequests/);
-    expect(() => run({ confirmRealGemini: "true", allowPaidRequests: "true" })).not.toThrow();
-    expect(() => run({ confirmFakeProviders: "true" })).not.toThrow();
-    expect(() => run({ confirmRealGemini: "true" }, "GET")).not.toThrow();
-    expect(() => run({ confirmFakeProviders: "true", confirmRealGemini: "true" })).toThrow(/Choose one/);
-  });
   it("fails closed for production, missing key, embedding-as-text and fake-only scenarios", () => {
     expect(developmentEnabled({ ...env, NODE_ENV: "production" })).toBe(false);
     expect(() => discussionProviderIdentity({ ...env, NODE_ENV: "production" })).toThrow();

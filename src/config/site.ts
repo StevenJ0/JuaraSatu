@@ -3,7 +3,7 @@ export const site = {
   name: "juarasatu",
   title: "juarasatu | Teman usaha di setiap langkah",
   description:
-    "juarasatu membantu UMKM makanan menjalankan preorder: atur kapasitas produksi, bagikan halaman pesanan, terima pembayaran QRIS (simulasi Midtrans Sandbox), dan minta strategi promosi dari AI saat target belum tercapai.",
+    "juarasatu membantu UMKM menjalankan preorder: atur kapasitas produksi, bagikan halaman pesanan, terima pembayaran QRIS (simulasi Midtrans Sandbox), dan minta strategi promosi dari AI saat target belum tercapai.",
 };
 
 export const authLinks = {

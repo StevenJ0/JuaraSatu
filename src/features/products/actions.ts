@@ -11,7 +11,9 @@ import {
   PHOTO_LIMIT_MESSAGE,
   PHOTO_REQUIRED_MESSAGE,
   PHOTO_UNREADABLE_MESSAGE,
+  moveToFront,
   readPhotoUploads,
+  readPrimaryPhoto,
   type PhotoUpload,
 } from "@/features/products/photo";
 import { optimizeProductPhoto, type ProductPhotoFiles } from "@/features/products/photo-processing";
@@ -69,7 +71,12 @@ export async function createProductAction(_previous: FormState, formData: FormDa
   const photoError = photos.kind === "invalid" ? photos.message : photos.photos.length === 0 ? PHOTO_REQUIRED_MESSAGE : null;
   if (!parsed.success || photos.kind !== "ok" || photoError) return invalidFormState(parsed, photoError, fields);
 
-  const photoFiles = await optimizePhotos(photos.photos);
+  // Produk baru belum punya foto lama, jadi pilihan foto utama hanya bisa menunjuk foto yang baru dikirim.
+  const primary = readPrimaryPhoto(formData.get("primaryPhoto"));
+  const ordered = moveToFront(photos.photos, primary?.kind === "new" ? primary.index : 0);
+  if (!ordered) return invalidFormState(parsed, PHOTO_CHANGED_MESSAGE, fields);
+
+  const photoFiles = await optimizePhotos(ordered);
   if (!photoFiles) return invalidFormState(parsed, PHOTO_UNREADABLE_MESSAGE, fields);
 
   try {
@@ -107,6 +114,7 @@ export async function updateProductAction(_previous: FormState, formData: FormDa
     const result = await updateProductWithPhotos(supabase, businessId, ref.data.productId, ref.data.version, parsed.data, {
       keep,
       add: photoFiles,
+      primary: readPrimaryPhoto(formData.get("primaryPhoto")),
     });
     if (result === "invalid_photos") return invalidFormState(parsed, PHOTO_CHANGED_MESSAGE, fields);
     if (result === "conflict") return { status: "error", message: CONFLICT_MESSAGE, values: fields };

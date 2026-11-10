@@ -1,5 +1,5 @@
 /*
- * Tema sisi pemilik UMKM (docs/design/README.md). Semua aturan berada di bawah `.owner-theme`, sehingga aman walau
+ * Tema sisi pemilik UMKM. Semua aturan berada di bawah `.owner-theme`, sehingga aman walau
  * CSS ini tetap termuat setelah navigasi ke landing. `--ui-*` dan `--text-*` ditimpa di sini karena utility Tailwind
  * (`bg-brand`, `text-ink`, `text-sm`) membaca variabel itu.
  */

@@ -22,6 +22,7 @@ import { cancelPreorderDraftAction, cancelPublishedPreorderAction, completePreor
 import { ClosePreorderForm } from "@/features/preorders/components/close-preorder-form";
 import { PreorderStatusBadge } from "@/features/preorders/components/preorder-status-badge";
 import { PreorderTransition } from "@/features/preorders/components/preorder-transition";
+import { ShareLink } from "@/features/preorders/components/share-link";
 import { findPreorder, findPreorderCloseNote, type Preorder, type PreorderCloseNote } from "@/features/preorders/repository";
 import { findProduct, type Product } from "@/features/products/repository";
 
@@ -158,6 +159,8 @@ function BuyerPreview({
           ? "Pratinjau untuk Anda saja. Harga dan ketentuan mengikuti data terbaru dan dikunci saat diterbitkan."
           : "Ketentuan sudah dikunci. Buka halaman pembeli untuk memeriksa informasi sebelum membagikan tautannya."}
       </p>
+      {/* Hanya preorder yang sedang terbit menerima pesanan, jadi hanya tautannya yang ditawarkan untuk dibagikan. */}
+      {preorder.status === "published" && <ShareLink path={`/p/${preorder.slug}`} />}
       {!isDraft && (
         <Link href={`/p/${preorder.slug}`} target="_blank" rel="noopener noreferrer" className={`mt-4 w-full sm:w-fit ${SECONDARY_BUTTON_CLASS}`}>
           Buka halaman pembeli

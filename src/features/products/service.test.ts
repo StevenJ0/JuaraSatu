@@ -168,6 +168,24 @@ describe("updateProductWithPhotos", () => {
     expect(remove).toHaveBeenCalledWith(client, OLD_PATH);
   });
 
+  it("foto baru yang dipilih menjadi foto utama, urutan foto lain tetap", async () => {
+    upload.mockResolvedValueOnce(NEW_PATH).mockResolvedValueOnce(NEW_PATH_2);
+    await expect(run({ keep: [OLD_PATH, OLD_GALLERY_PATH], add: [photo, photo], primary: { kind: "new", index: 1 } })).resolves.toBe("updated");
+    expect(update.mock.calls[0]?.[5]).toEqual([NEW_PATH_2, OLD_PATH, OLD_GALLERY_PATH, NEW_PATH]);
+  });
+
+  it("foto lama yang dipilih menjadi foto utama", async () => {
+    await expect(run({ ...keepAll, primary: { kind: "keep", path: OLD_GALLERY_PATH } })).resolves.toBe("updated");
+    expect(update.mock.calls[0]?.[5]).toEqual([OLD_GALLERY_PATH, OLD_PATH]);
+  });
+
+  it("menolak pilihan foto utama yang tidak ada di perubahan, sebelum mengunggah", async () => {
+    await expect(run({ keep: [OLD_PATH], add: [photo], primary: { kind: "keep", path: OLD_GALLERY_PATH } })).resolves.toBe("invalid_photos");
+    await expect(run({ keep: [OLD_PATH], add: [photo], primary: { kind: "new", index: 1 } })).resolves.toBe("invalid_photos");
+    expect(upload).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+  });
+
   it("menolak path foto yang bukan milik produk ini", async () => {
     await expect(run({ keep: [`${BUSINESS_ID}/milik-lain.jpg`], add: [] })).resolves.toBe("invalid_photos");
     expect(update).not.toHaveBeenCalled();

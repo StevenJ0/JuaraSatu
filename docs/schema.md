@@ -1,20 +1,21 @@
 
-# Campaign Lab — Database Schema & Data Contract
+# juarasatu — Database Schema & Data Contract
 
 **Version:** 2.1  
-**Date:** 1 November 2026  
-**Source of Truth:** Campaign Lab PRD v2.1  
+**Date:** 1 November 2026 (diperbarui 10 November 2026)  
+**Source of Truth:** PRD v2.1 ([docs/requirements/PRD.md](requirements/PRD.md))  
 **Database:** PostgreSQL + Supabase  
 **Auth:** Supabase Auth  
 **Vector Database:** pgvector — 768 dimensions  
 **Architecture:** Next.js Modular Monolith  
-**Status:** Kontrak terverifikasi pada PostgreSQL disposable dari 16 root migrations sampai `20261108110000` (9 November 2026): `node scripts/test-database-v21.mjs --strict-docs` PASS, 26 tabel/352 kolom MATCH, public function/ACL/RLS dan generated types existing cocok tanpa regenerasi; sembilan kelompok C8/P2-2 PASS. Ini metadata verifikasi T1, bukan perubahan schema, bukti deployment, provider live, atau sign-off MVP E2E. Checkpoint historis tetap dijalankan; lihat addendum §29–30 dan laporan QA T1.
+**Migration:** satu file, `supabase/migrations/20261110120000_initial_schema.sql`, berisi seluruh schema yang dipakai aplikasi (tabel, constraint, index, trigger, fungsi/RPC, RLS, hak akses role API, dan Storage `product-photos`).  
+**Status:** Dokumen ini sesuai dengan database yang dibangun dari migration tersebut (diperiksa 10 November 2026): 26 tabel, 353 kolom, tipe data, NULL/NOT NULL, dan nilai default cocok; 50 signature fungsi publik. Migration init diuji pada project Supabase kosong dan hasilnya identik dengan database aplikasi yang berjalan (dump schema, hak akses per tabel/kolom/fungsi, policy Storage).
 
 ---
 
 # 1. Overview
 
-Campaign Lab adalah platform manajemen preorder yang membantu UMKM merencanakan, menjalankan, dan mengevaluasi campaign pemasaran menggunakan AI.
+juarasatu adalah platform manajemen preorder yang membantu UMKM merencanakan, menjalankan, dan mengevaluasi campaign pemasaran menggunakan AI.
 
 Konsep utama:
 
@@ -215,7 +216,7 @@ Rules:
 - Informasi rekening bank tidak disimpan.
 - Kontak publik hanya ditampilkan berdasarkan persetujuan owner.
 - Setiap bisnis memiliki satu owner pada MVP.
-- `categories` tidak mempunyai column default. CHECK `businesses_categories_valid` memerlukan array satu dimensi berisi 1–3 label non-NULL; panjang label setelah trim 1–80, unik tanpa membedakan kapital/spasi tepi. Tidak ada enum kategori database. Migration `20261106160000_core_preorder_on_v21.sql` membackfill array dari `category`, lalu menetapkan NOT NULL. Trigger `business_category_sync` mengisi array dari legacy category bila NULL dan menyinkronkan `category` ke 80 karakter pertama elemen pertama. Generated Insert tetap memerlukan kedua kolom karena generator mengikuti column defaults/nullability, bukan efek trigger.
+- `categories` tidak mempunyai column default. CHECK `businesses_categories_valid` memerlukan array satu dimensi berisi 1–3 label non-NULL; panjang label setelah trim 1–80, unik tanpa membedakan kapital/spasi tepi. Tidak ada enum kategori database. Trigger `business_category_sync` mengisi array dari legacy category bila NULL dan menyinkronkan `category` ke 80 karakter pertama elemen pertama. Generated Insert tetap memerlukan kedua kolom karena generator mengikuti column defaults/nullability, bukan efek trigger.
 
 ## 4.3 `business_members`
 
@@ -300,7 +301,7 @@ Business Rules:
 
 - Produk merupakan satu SKU standar.
 - Satu produk punya paling banyak 5 foto: `photo_path` adalah foto utama, `gallery_photo_paths` berisi foto tambahan secara berurutan
-  (migration `20261110090000_product_gallery_photos`). Pemilik (`authenticated`) mendapat hak INSERT dan UPDATE kolom
+  (CHECK `products_gallery_photo_paths_max` dan `products_gallery_requires_primary`). Pemilik (`authenticated`) mendapat hak INSERT dan UPDATE kolom
   `gallery_photo_paths`, sama seperti `photo_path`; RLS products tidak berubah.
 - Varian size dan warna kompleks tidak termasuk MVP.
 - Produk tidak dihapus permanen setelah memiliki transaksi.
@@ -659,8 +660,8 @@ Rules:
 - AI tidak boleh melakukan approval atau publish.
 - Informasi pelanggan dan secret tidak dikirim ke Gemini.
 - Hasil valid disimpan untuk provenance dan debugging aman.
-- Memory memakai canonical request key `memory:<evaluationId>:<sourceVersion>` agar alias request ID berbagi satu claim; hash mengikat sumber dan input. Ditambahkan oleh migration `20261106090000_memory_generation_type.sql` (Batch 03B).
-- Migration `20261106100000_atomic_ai_generation_admission.sql` menambahkan `admit_ai_generation` untuk klaim provider-backed baru; replay/checkpoint dan perubahan status tetap memakai lifecycle generation yang sama.
+- Memory memakai canonical request key `memory:<evaluationId>:<sourceVersion>` agar alias request ID berbagi satu claim; hash mengikat sumber dan input.
+- `admit_ai_generation` dipakai untuk klaim provider-backed baru; replay/checkpoint dan perubahan status tetap memakai lifecycle generation yang sama.
 
 ---
 
@@ -1230,7 +1231,7 @@ Rules:
 
 # 13. Analytics
 
-Campaign Lab menggunakan dua jenis analytics.
+juarasatu menggunakan dua jenis analytics.
 
 ## 13.1 Preorder Analytics
 
@@ -2161,26 +2162,23 @@ Schema dan implementasinya dinyatakan siap setelah:
 
 Dokumen acuan:
 
-1. `Campaign_Lab_PRD_v2_1.md`
-2. `AGENTS.md`
-3. `docs/database-rules.md`
-4. `database/legacy/migrations/20261030210000_initial_schema.sql` (historis, bukan chain aktif)
-5. `database/legacy/migrations/20261030225000_add_campaign_memory_and_calendar_contents.sql` (historis)
-6. `supabase/migrations/20261103000000_initial_v21.sql` dan migration additive root sampai `20261107110000` (chain aktif)
+1. [PRD v2.1](requirements/PRD.md)
+2. [Aturan database](requirements/database-rules.md)
+3. `supabase/migrations/20261110120000_initial_schema.sql` — satu-satunya migration aktif; menyatukan seluruh migration sebelumnya
 
 PRD merupakan acuan target produk.
 
-Migration aktual merupakan sumber kebenaran kondisi database yang sudah diterapkan.
+Migration merupakan sumber kebenaran kondisi database. Perubahan schema berikutnya ditambahkan sebagai migration baru setelah file init, bukan dengan mengubah file init.
 
 Jika terdapat ketidaksesuaian, lakukan schema diff dan review sebelum implementasi.
 
-**Dokumen ini adalah target database contract, bukan SQL migration yang siap dijalankan.**
+**Dokumen ini adalah kontrak database untuk dibaca; SQL yang dijalankan ada di migration init.**
 
 ---
 
-# 27. Addendum implementasi lokal Slice 7B — Evaluation CAS dan completion
+# 27. Addendum Slice 7B — Evaluation CAS dan completion
 
-Ditambahkan dalam tugas database Slice 7B yang secara eksplisit mengizinkan migration additive lokal pada 4 November 2026. Tidak ada perubahan tabel/kolom/enum/index/RLS/grant tabel. Baseline aktif adalah `20261103000000_initial_v21.sql`, diikuti RPC creation Slice 5 dan tiga migration Slice 7B `20261104090000`, `20261104091000`, `20261104092000`; migration lama tetap utuh.
+Kontrak RPC evaluasi berikut termasuk dalam migration init. Bagian ini tidak menambah tabel/kolom/enum/index/RLS/grant tabel.
 
 - `record_campaign_evaluation_cas` menerima expected latest evaluation UUID (nullable untuk awal), memeriksa revision sumber dalam transaksi dan menyimpan generation/review sebagai snapshot append-only. Review mengacu parent terbaru, dengan actor/waktu dan sumber tetap tersimpan.
 - `finalize_campaign_evaluation` memeriksa business/preorder/campaign, expected campaign version/hash, latest owner-reviewed evaluation, approved published blueprint, kelengkapan biaya/KPI dan revision sumber; lalu menyimpan final evaluation dan `closed → completed` atomik. Final evaluation UUID adalah request UUID yang durable; audit/referensi final berada dalam `metrics_json.finalization`, bukan kolom campaign baru.
@@ -2190,13 +2188,11 @@ Ditambahkan dalam tugas database Slice 7B yang secara eksplisit mengizinkan migr
 - Finalisasi produksi ditolak sampai otoritas revision C6 terverifikasi tersedia. `evaluation_kind=final` pada completion simulasi tidak menghapus provenance sintetis. SQL menolak status memory approved untuk sumber completion ini; tidak ada memory yang otomatis dibuat.
 - `created_at` evaluasi baru diurutkan monoton di bawah lock campaign (termasuk writer lama), agar token latest tidak bergantung pada waktu mulai transaksi yang menunggu. Default kolom tetap sama.
 
-Kontrak RPC lengkap, JSON audit, lock order, seluruh writer, batas provenance dan hasil uji aktual: [Slice 7B](../src/features/campaign-evaluation/SLICE_7B.md).
-
 ---
 
-# 28. Addendum lokal Slice 8B — transaksi Business Memory
+# 28. Addendum Slice 8B — transaksi Business Memory
 
-Tugas Slice 8B pada 4 November 2026 secara eksplisit mengizinkan perubahan RPC/grant/guard additive lokal. Migration `20261104093000_memory_approval_and_indexing_transactions.sql` dan `20261104094000_memory_index_recovery.sql` diterapkan tanpa reset; lima migration sebelumnya tidak diubah. Tidak ada tabel, kolom, enum, index, RLS, atau grant tabel baru.
+Kontrak RPC Business Memory berikut termasuk dalam migration init. Bagian ini tidak menambah tabel, kolom, enum, index, RLS, atau grant tabel.
 
 - `approve_campaign_memory(uuid,uuid,text,text,text,uuid) → uuid` mempertahankan signature, kini service-only setelah auth owner di server. Lock campaign context → memory, pemeriksaan source/latest/review/hash/version/provenance, kemudian approval + `domain_events` audit + enqueue unik dalam satu transaksi. EXECUTE authenticated yang lama dicabut. Sumber `development_synthetic` tetap ditolak; otoritas verified C6/C7 belum tersedia dan tidak digantikan flag JSON.
 - `claim_memory_jobs(p_business_id uuid,p_model text,p_profile text,p_embedding_version integer,p_limit integer=5,p_lease_seconds integer=60,p_max_attempts integer=5) → SETOF job_runs` membatasi bisnis/jenis memory/profil/versi/durable key, memakai SKIP LOCKED, lease, monotonic attempt dan terminal exhaustion. Tidak mengambil job email/payment. Klaim kompatibilitas queue tidak menggantikan validasi kelayakan source oleh worker/writeback.
@@ -2204,13 +2200,11 @@ Tugas Slice 8B pada 4 November 2026 secara eksplisit mengizinkan perubahan RPC/g
 - Ketiga public RPC SECURITY DEFINER, `search_path=''`, owner postgres, EXECUTE hanya service_role. Private transition helpers tidak dapat dieksekusi role aplikasi. Guard memory/job menutup jalur direct service indexing. RPC vector-only lama tidak lagi memiliki service EXECUTE; `finish_job` tetap melayani jenis lain dan menolak `embed_memory`.
 - `match_campaign_memories` tetap SECURITY INVOKER owner-scoped dengan filter tenant/approved/ready/model/profile/version sebelum ranking. Aplikasi tetap memerlukan source attestation tepercaya; belum ada approved production RAG dari completion sintetis.
 
-Kontrak, batas uji disposable versus aplikasi aktif, status provider nyata dan QA: [Slice 8B](../src/features/business-memory/SLICE_8B.md). Hasil uji legacy tetap dicatat pada migration contract asalnya, bukan dianggap izin approval sintetis pada kontrak baru.
-
 ---
 
 # 29. Kontrak pascamerge — A1/A2/A3 dan sinkronisasi A5
 
-Root `supabase/migrations/` adalah chain aktif, berbeda dari snapshot `database/v2.1/supabase/migrations/` dan `database/legacy/migrations/`. Verifikasi A5 memakai database baru disposable; deployment A1/A2/A3 ke persistent local/remote **belum dilakukan**. Tidak ada tabel bernama `reservations` atau `payment_attempts`: entitas aktual ialah `capacity_reservations` dan `payments` (satu row per payment attempt).
+`supabase/migrations/` berisi satu migration aktif (init), berbeda dari snapshot historis `database/v2.1/supabase/migrations/` dan `database/legacy/migrations/` yang tidak dijalankan. Tidak ada tabel bernama `reservations` atau `payment_attempts`: entitas aktual ialah `capacity_reservations` dan `payments` (satu row per payment attempt).
 
 | Area | Kontrak aktual |
 |---|---|
@@ -2229,7 +2223,7 @@ Postgres-meta menghasilkan SQL void sebagai TypeScript `undefined`, JSON/JSONB s
 
 # 30. A6-F1 — Financial bounds dan owner CAS (8 November 2026)
 
-Migration forward-only `20261108090000_financial_bounds_owner_cas.sql` mengikuti A3 sebagai migration root ke14. Tidak menambah tabel/kolom/RPC publik, mengubah ACL/RLS, atau memperbarui data historis. Kontrak public metadata A5 tetap26tabel/352kolom/50signature; penerapan pada database persisten memerlukan rollout tersendiri. Bukti pengujian dicatat pada laporan QA A6-F1.
+Aturan berikut termasuk dalam migration init. Tidak menambah tabel/kolom/RPC publik atau mengubah ACL/RLS. Metadata publik: 26 tabel, 353 kolom, 50 signature fungsi.
 
 - Seluruh pembuatan order manual preorder, standalone manual, dan public memakai `private.insert_order`. Harga dasar/unit wajib1..1.000.000.000 IDR, quantity1..10.000, diskon0..9999bps, dan **subtotal sebelum diskon** maksimal1.000.000.000. Nilai di atas batas ditolak dengan `VALIDATION_ERROR` (P0001), tidak dipotong. Perkalian pemeriksaan memakai numeric sebelum arithmetic bigint atau insert. Unit variable-cost snapshot yang diketahui tetap0..1.000.000.000; NULL tetap berarti unknown.
 - `private.discount_per_unit` mempertahankan floor per unit lalu dikalikan quantity. Bound subtotal juga membatasi discount total/final total. Diskon valid tidak membuat subtotal di atas batas menjadi sah walaupun final totalnya lebih rendah. Harga unit expected dari client tetap advisory; SQL yang menghitung harga. Penolakan membatalkan seluruh transaksi, termasuk reservation/version/event; tidak ada backfill atau validasi ulang seluruh historical rows.
